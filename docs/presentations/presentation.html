@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flexible LLM Architecture — DeepGruble</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --dg-navy:    #0A1628;
+    --dg-blue:    #1A3A6B;
+    --dg-accent:  #2563EB;
+    --dg-bright:  #3B82F6;
+    --dg-gold:    #F59E0B;
+    --dg-green:   #10B981;
+    --dg-red:     #EF4444;
+    --dg-light:   #F8FAFC;
+    --dg-muted:   #94A3B8;
+    --dg-border:  #1E3A5F;
+    --font-main:  'Inter', 'Segoe UI', system-ui, sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: var(--font-main);
+    background: var(--dg-navy);
+    color: var(--dg-light);
+    overflow: hidden;
+  }
+
+  /* ── Slide Container ── */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    padding: 56px 72px 48px;
+    flex-direction: column;
+    animation: fadeIn .35s ease;
+  }
+  .slide.active { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Cover slide ── */
+  .slide-cover {
+    background: linear-gradient(145deg, #0A1628 0%, #1A3A6B 60%, #0A1628 100%);
+    justify-content: center;
+    align-items: flex-start;
+    gap: 0;
+  }
+  .cover-eyebrow {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--dg-gold);
+    margin-bottom: 28px;
+  }
+  .cover-title {
+    font-size: 52px;
+    font-weight: 800;
+    line-height: 1.1;
+    max-width: 780px;
+    margin-bottom: 20px;
+  }
+  .cover-title span { color: var(--dg-bright); }
+  .cover-subtitle {
+    font-size: 22px;
+    color: var(--dg-muted);
+    max-width: 580px;
+    line-height: 1.5;
+    margin-bottom: 56px;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 48px;
+  }
+  .cover-meta-item label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--dg-muted); display: block; margin-bottom: 4px; }
+  .cover-meta-item span  { font-size: 14px; font-weight: 600; color: var(--dg-light); }
+  .cover-accent-line {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 5px;
+    background: linear-gradient(to bottom, var(--dg-gold), var(--dg-accent));
+  }
+
+  /* ── Regular slide ── */
+  .slide-content { background: var(--dg-navy); }
+  .slide-header {
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--dg-border);
+    padding-bottom: 18px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .slide-section {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--dg-gold);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .slide-title {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.2;
+    max-width: 820px;
+    color: var(--dg-light);
+  }
+  .slide-body { flex: 1; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+
+  /* ── Exec Summary ── */
+  .insight-box {
+    background: linear-gradient(135deg, #1A3A6B22, #2563EB11);
+    border: 1px solid var(--dg-border);
+    border-left: 4px solid var(--dg-gold);
+    border-radius: 8px;
+    padding: 18px 24px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #CBD5E1;
+  }
+  .insight-box strong { color: var(--dg-light); }
+
+  /* ── Columns ── */
+  .cols { display: flex; gap: 24px; flex: 1; }
+  .col  { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+
+  /* ── Cards ── */
+  .card {
+    background: #0F2040;
+    border: 1px solid var(--dg-border);
+    border-radius: 10px;
+    padding: 20px;
+    flex: 1;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--dg-bright);
+    margin-bottom: 10px;
+  }
+  .card p { font-size: 13.5px; line-height: 1.65; color: #94A3B8; }
+  .card p strong { color: var(--dg-light); }
+
+  /* ── Big number ── */
+  .big-stat {
+    background: #0F2040;
+    border: 1px solid var(--dg-border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .big-stat .number { font-size: 44px; font-weight: 800; line-height: 1; }
+  .big-stat .number.green  { color: var(--dg-green); }
+  .big-stat .number.red    { color: var(--dg-red); }
+  .big-stat .number.gold   { color: var(--dg-gold); }
+  .big-stat .number.blue   { color: var(--dg-bright); }
+  .big-stat .label { font-size: 12px; color: var(--dg-muted); margin-top: 6px; text-align: center; line-height: 1.4; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    background: #0F2040;
+    color: var(--dg-muted);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--dg-border);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #0F2040;
+    color: #CBD5E1;
+    line-height: 1.4;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #0F204044; }
+  td strong { color: var(--dg-light); }
+  .tag-green  { background: #10B98122; color: var(--dg-green);  border: 1px solid #10B98144; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .tag-red    { background: #EF444422; color: var(--dg-red);    border: 1px solid #EF444444; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .tag-gold   { background: #F59E0B22; color: var(--dg-gold);   border: 1px solid #F59E0B44; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .tag-blue   { background: #2563EB22; color: var(--dg-bright);  border: 1px solid #2563EB44; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+  /* ── Cascade diagram ── */
+  .cascade {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    justify-content: center;
+  }
+  .cascade-tier {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #0F2040;
+    border: 1px solid var(--dg-border);
+    border-radius: 8px;
+    padding: 12px 18px;
+    position: relative;
+  }
+  .cascade-tier.highlight { border-color: var(--dg-accent); background: #1A3A6B33; }
+  .tier-badge {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800;
+    flex-shrink: 0;
+  }
+  .t0 { background: #10B98122; color: var(--dg-green); border: 1px solid var(--dg-green); }
+  .t1 { background: #F59E0B22; color: var(--dg-gold);  border: 1px solid var(--dg-gold); }
+  .t2 { background: #2563EB22; color: var(--dg-bright); border: 1px solid var(--dg-bright); }
+  .t3 { background: #7C3AED22; color: #A78BFA;          border: 1px solid #7C3AED; }
+  .tier-info { flex: 1; }
+  .tier-name { font-size: 13px; font-weight: 700; color: var(--dg-light); }
+  .tier-desc { font-size: 11.5px; color: var(--dg-muted); margin-top: 2px; }
+  .tier-cost { font-size: 18px; font-weight: 800; text-align: right; flex-shrink: 0; }
+  .cost-green { color: var(--dg-green); }
+  .cost-gold  { color: var(--dg-gold); }
+  .cost-blue  { color: var(--dg-bright); }
+  .cost-purple { color: #A78BFA; }
+  .cascade-arrow { text-align: center; font-size: 16px; color: var(--dg-border); margin: -2px 0; }
+
+  /* ── Bar chart ── */
+  .bar-chart { display: flex; flex-direction: column; gap: 12px; flex: 1; justify-content: center; }
+  .bar-row { display: flex; align-items: center; gap: 12px; }
+  .bar-label { font-size: 12px; color: var(--dg-muted); width: 160px; text-align: right; flex-shrink: 0; line-height: 1.3; }
+  .bar-track { flex: 1; height: 28px; background: #0F2040; border-radius: 4px; overflow: hidden; position: relative; }
+  .bar-fill   { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 10px; font-size: 12px; font-weight: 700; color: white; transition: width .6s ease; }
+  .bar-value  { font-size: 13px; font-weight: 700; width: 80px; text-align: left; flex-shrink: 0; }
+
+  /* ── Phase list ── */
+  .phases { display: flex; flex-direction: column; gap: 10px; }
+  .phase-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #0F2040;
+    border: 1px solid var(--dg-border);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .phase-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--dg-accent);
+    color: white;
+    font-size: 12px;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .phase-info { flex: 1; }
+  .phase-title { font-size: 13px; font-weight: 700; color: var(--dg-light); }
+  .phase-desc  { font-size: 11.5px; color: var(--dg-muted); margin-top: 2px; }
+  .phase-effort { font-size: 11px; color: var(--dg-muted); text-align: right; flex-shrink: 0; }
+  .phase-effort strong { color: var(--dg-gold); font-size: 13px; display: block; }
+
+  /* ── Risk table ── */
+  .risk-pill { border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+  .risk-high   { background: #EF444422; color: var(--dg-red); }
+  .risk-med    { background: #F59E0B22; color: var(--dg-gold); }
+  .risk-low    { background: #10B98122; color: var(--dg-green); }
+
+  /* ── Next steps ── */
+  .steps { display: flex; gap: 16px; flex: 1; }
+  .step-card {
+    flex: 1;
+    background: #0F2040;
+    border: 1px solid var(--dg-border);
+    border-radius: 10px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .step-week { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--dg-gold); font-weight: 700; }
+  .step-card-title { font-size: 16px; font-weight: 700; color: var(--dg-light); line-height: 1.3; }
+  .step-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+  .step-list li { display: flex; gap: 8px; font-size: 12.5px; color: #94A3B8; line-height: 1.4; }
+  .step-list li::before { content: '→'; color: var(--dg-accent); flex-shrink: 0; font-weight: 700; }
+
+  /* ── KPI row ── */
+  .kpi-row { display: flex; gap: 16px; }
+  .kpi { flex: 1; background: #0F2040; border: 1px solid var(--dg-border); border-radius: 10px; padding: 18px; text-align: center; }
+  .kpi .val { font-size: 36px; font-weight: 800; line-height: 1; }
+  .kpi .lbl { font-size: 11px; color: var(--dg-muted); margin-top: 6px; line-height: 1.4; }
+
+  /* ── Navigation ── */
+  .nav {
+    position: fixed;
+    bottom: 28px;
+    right: 40px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 100;
+  }
+  .nav button {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--dg-border);
+    background: #0F2040;
+    color: var(--dg-light);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s, border-color .2s;
+  }
+  .nav button:hover:not(:disabled) { background: var(--dg-accent); border-color: var(--dg-accent); }
+  .nav button:disabled { opacity: 0.3; cursor: default; }
+  .nav-counter { font-size: 12px; color: var(--dg-muted); min-width: 52px; text-align: center; }
+
+  /* ── Progress bar ── */
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: linear-gradient(to right, var(--dg-gold), var(--dg-accent));
+    transition: width .35s ease;
+    z-index: 200;
+  }
+
+  /* ── Slide number badge ── */
+  .slide-num {
+    position: absolute;
+    top: 20px; right: 32px;
+    font-size: 11px;
+    color: var(--dg-border);
+    letter-spacing: 1px;
+  }
+
+  /* ── Responsive text ── */
+  @media (max-width: 1200px) {
+    .slide { padding: 40px 48px 36px; }
+    .cover-title { font-size: 40px; }
+    .slide-title  { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck">
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SLIDE 1 — Cover                               -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="slide slide-cover active" id="s1">
+    <div class="cover-accent-line"></div>
+    <p class="cover-eyebrow">Strategic Recommendation · March 2026</p>
+    <h1 class="cover-title">Flexible <span>LLM Architecture</span><br>for DeepGruble</h1>
+    <p class="cover-subtitle">How a provider-agnostic architecture with cascade routing reduces LLM costs by 94% and makes unanswerable.ai commercially viable at scale.</p>
+    <div class="cover-meta">
+      <div class="cover-meta-item"><label>Prepared by</label><span>LLM Architecture Initiative</span></div>
+      <div class="cover-meta-item"><label>Date</label><span>March 2026</span></div>
+      <div class="cover-meta-item"><label>Classification</label><span>Internal — Confidential</span></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SLIDE 2 — Executive Summary                   -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="slide slide-content" id="s2">
+    <div class="slide-num">2 / 13</div>
+    <div class="slide-header">
+      <div>
+        <span class="slide-section">Executive Summary</span>
+        <h2 class="slide-title">Three findings, one clear recommendation</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="insight-box">
+        DeepGruble is currently paying <strong>20× more than necessary</strong> for LLM infrastructure, and a single-vendor dependency <strong>threatens the viability of unanswerable.ai</strong> as a scalable product. Implementing cascade routing reduces LLM costs by up to <strong>94%</strong> and flips medium-client margin from <strong>−50% to +71%</strong>.
+      </div>
+      <div class="cols">
+        <div class="card">
+          <div class="card-title">Finding 1 — Commercial Risk</div>
+          <p>A <strong>50-user client costs $1,200/month in LLM fees alone</strong> — more than any viable platform fee. The product cannot scale profitably under the current architecture.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Finding 2 — Strategic Risk</div>
+          <p>Anthropic controls DG's cost structure, availability, and terms. A <strong>10% price increase or API outage</strong> has zero buffer. Competing platforms offering multi-provider support gain a structural advantage.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Finding 3 — Capability Risk</div>
+          <p>Routing everything through Claude means <strong>paying 40× more</strong> for simple tasks and missing capabilities like 1M-token context, on-premises privacy, and sub-$0.20/M budget tier providers.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SLIDE 3 — The Problem: Unit Economics          -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="slide slide-content" id="s3">
+    <div class="slide-num">3 / 13</div>
+    <div class="slide-header">
+      <div>
+        <span class="slide-section">The Problem</span>
+        <h2 class="slide-title">The current cost structure makes unanswerable.ai unprofitable above 25 users</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <table>
+        <thead>
+          <tr><th>Client size</th><th>LLM cost / month (Claude only)</th><th>Viable platform fee</th><th>P&amp;L</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Small — 10 users</td><td>$180</td><td>$300</td><td>+$120</td><td><span class="tag-green">Viable ✓</span></td></tr>
+          <tr><td><strong>Medium — 50 users</strong></td><td><strong>$1,200</strong></td><td>$800</td><td><strong>−$400</strong></td><td><span class="tag-red">Loss-making ✗</span></td></tr>
+          <tr><td><strong>Large — 200 users</strong></td><td><strong>$6,000</strong></td><td>$2,500</td><td><strong>−$3,500</strong></td><td><span class="tag-red">Loss-making ✗</span></td></tr>
+        </tbody>
+      </table>
+      <div class="cols" style="margin-top:8px">
+        <div class="big-stat">
+          <div class="number red">−50%</div>
+          <div class="label">Gross margin on a<br>50-user client today</div>
+        </div>
+        <div class="big-stat">
+          <div class="number red">−140%</div>
+          <div class="label">Gross margin on a<br>200-user client today</div>
+        </div>
+        <div class="big-stat">
+          <div class="number gold">$171,600</div>
+          <div class="label">Annual LLM spend at<br>10 clients (Claude only)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SLIDE 4 — The Problem: Vendor Lock-in          -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="slide slide-content" id="s4">
+    <div class="slide-num">4 / 13</div>
+    <div class="slide-header">
+      <div>
+        <span class="slide-section">The Problem</span>
+        <h2 class="slide-title">Anthropic controls DG's cost, availability, and competitive positioning — with zero buffer</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="cols">
+        <div class="col">
+          <div class="card">
+            <div class="card-title">Cost control</div>
+            <p>A <strong>10% Claude price increase</strong> passes directly to DG with no ability to absorb or offset it. No alternative provider is integrated.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">Availability</div>
+            <p>A <strong>Claude API outage</strong> takes down unanswerable.ai entirely. No fallback. No SLA. Direct client impact.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">Terms &amp; data</div>
+            <p>Anthropic can change <strong>rate limits, acceptable use, or data handling</strong> with 30 days' notice. Clients with data residency requirements cannot be served.</p>
+          </div>
+        </div>
+        <div class="col">
+          <div class="insight-box" style="flex:1">
+            <strong>The core contradiction:</strong><br><br>
+            unanswerable.ai's core promise is that organisations can <em>"escape vendor lock-in — move between LLM providers without losing the organisational nervous system."</em><br><br>
+            The product promises LLM independence.<br><strong>The infrastructure delivers LLM dependency.</strong>
+          </div>
+          <div class="card">
+            <div class="card-title">Competitive risk</div>
+            <p>Competing frameworks offering multi-provider support gain a <strong>structural sales advantage</strong> with enterprise clients who mandate provider diversity.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SLIDE 5 — The Opportunity: Market Shift        -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="slide slide-content" id="s5">
+    <div class="slide-num">5 / 13</div>
+    <div class="slide-header">
+      <div>
+        <span class="slide-section">The Opportunity</span>
+        <h2 class="slide-title">LLM prices dropped 80% in 2025 — frontier-quality is now available at 1% of Claude's output cost</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">Claude Sonnet 4.6<br><small style="color:#475569">baseline</small></div>
+          <div class="bar-track"><div class="bar-fill" style="width:100%;background:#EF4444">$15.00/M output</div></div>
+          <div class="bar-value" style="color:#EF4444">$15.00</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Gemini 3.1 Pro</div>
+          <div class="bar-track"><div class="bar-fill" style="width:80%;background:#F59E0B">$12.00/M</div></div>
+          <div class="bar-value" style="color:#F59E0B">$12.00</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">GPT-4.1</div>
+          <div class="bar-track"><div class="bar-fill" style="width:53%;background:#F97316">$8.00/M</div></div>
+          <div class="bar-value" style="color:#F97316">$8.00</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Grok 4.1 Fast</div>
+          <div class="bar-track"><div class="bar-fill" style="width:3.3%;background:#3B82F6; min-width:80px">$0.50/M</div></div>
+          <div class="bar-value" style="color:#3B82F6">$0.50</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">DeepSeek V3</div>
+          <div class="bar-track"><div class="bar-fill" style="width:1.9%;background:#10B981; min-width:80px">$0.28/M</div></div>
+          <div class="bar-value" style="color:#10B981">$0.28</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Self-hosted Ollama</div>
+          <div class="bar-track"><div class="bar-fill" style="width:0.5%;background:#10B981; min-width:60px">~$0</div></div>
+          <div class="bar-value" style="color:#10B981">~$0</div>
+        </div>
+      </div>
+      <div class="insight-box" style="margin-top:8px">
+        <strong>Key insight:</strong> Output tokens cost 3–10× more than input tokens — that is where 70%+ of DG's spend concentrates. DeepSeek V3 output at $0.28/M vs Claude at $15.00/M = <strong>54× cheaper for the same output volume.</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SLIDE 6 — The Solution: Architecture Overview  -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="slide slide-content" id="s6">
+    <div class="slide-num">6 / 13</div>
+    <div class="slide-header">
+      <div>
+        <span class="slide-section">The Solution</span>
+        <h2 class="slide-title">Three components deliver full provider independence with a single interface change</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="cols">
+        <div class="col" style="flex:1.1">
+          <div class="card">
+            <div class="card-title">Component 1 — Unified Interface</div>
+            <p>A single TypeScript interface all providers implement. <strong>The rest of the codebase never imports a provider SDK directly.</strong> Adding a provider = implement one interface, nothing else changes.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">Component 2 — Cascade Router</div>
+            <p>Reads task requirements (<code style="color:#60A5FA;font-size:12px">privacySensitive</code>, <code style="color:#60A5FA;font-size:12px">requiresReasoning</code>, <code style="color:#60A5FA;font-size:12px">contextLength</code>) and <strong>routes each request to the optimal-cost provider</strong> that meets the quality bar.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">Component 3 — Provider Adapters</div>
+            <p>Six adapters. <strong>Three are ~10 lines each</strong> because DeepSeek, Grok, and Ollama all speak the OpenAI API format — they extend <code style="color:#60A5FA;font-size:12px">OpenAIAdapter</code> with just a base URL override.</p>
+          </div>
+        </div>
+        <div class="col" style="flex:0.9">
+          <table style="font-size:12px">
+            <thead><tr><th>Adapter</th><th>Effort</th></tr></thead>
+            <tbody>
+              <tr><td>ClaudeAdapter</td><td><span class="tag-gold">Medium</span></td></tr>
+              <tr><td>GeminiAdapter</td><td><span class="tag-gold">Medium</span></td></tr>
+              <tr><td>OpenAIAdapter</td><td><span class="tag-gold">Medium</span></td></tr>
+              <tr><td><strong>DeepSeekAdapter</strong></td><td><span class="tag-green">Minimal (~2h)</span></td></tr>
+              <tr><td><strong>GrokAdapter</strong></td><td><span class="tag-green">Minimal (~2h)</span></td></tr>
+              <tr><td><strong>LocalLLMAdapter</strong></td><td><span class="tag-green">Minimal (~2h)</span></td></tr>
+            </tbody>
+          </table>
+          <div class="insight-box" style="margin-top:8px">
+            <strong>DeepSeek is the highest-leverage first step.</strong> ~2 hours of work. Immediately shifts 60–80% of routine tokens to a provider 54× cheaper on output.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SLIDE 7 — Cascade Routing Explained            -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="slide slide-content" id="s7">
+    <div class="slide-num">7 / 13</div>
+    <div class="slide-header">
+      <div>
+        <span class="slide-section">The Solution</span>
+        <h2 class="slide-title">Cascade routing: try the cheapest model first, escalate only when the task requires it</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="cols">
+        <div class="col" style="flex:1">
+          <div class="cascade">
+            <div class="cascade-tier">
+              <div class="tier-badge t0">0</div>
+              <div class="tier-info">
+                <div class="tier-name">Self-Hosted — Ollama</div>
+                <div class="tier-desc">Privacy-sensitive data · high-volume (>50M tokens/mo) · offline</div>
+              </div>
+              <div class="tier-cost cost-green">~$0</div>
+            </div>
+            <div class="cascade-arrow">↓ if not privacy-sensitive</div>
+            <div class="cascade-tier">
+              <div class="tier-badge t1">1</div>
+              <div class="tier-info">
+                <div class="tier-name">Budget Cloud — DeepSeek V3 · Grok 4.1 Fast</div>
+                <div class="tier-desc">Routine queries · summarisation · simple Q&amp;A on Granite docs</div>
+              </div>
+              <div class="tier-cost cost-gold">$0.14/M</div>
+            </div>
+            <div class="cascade-arrow">↓ if needs tool-use or agentic</div>
+            <div class="cascade-tier highlight">
+              <div class="tier-badge t2">2</div>
+              <div class="tier-info">
+                <div class="tier-name">Quality Cloud — Claude Sonnet 4.6</div>
+                <div class="tier-desc">Coding · agentic loops · strict instruction following · 200K ctx</div>
+              </div>
+              <div class="tier-cost cost-blue">$3.00/M</div>
+            </div>
+            <div class="cascade-arrow">↓ if needs deep reasoning or 1M+ context</div>
+            <div class="cascade-tier">
+              <div class="tier-badge t3">3</div>
+              <div class="tier-info">
+                <div class="tier-name">Specialised — DeepSeek R1 · Gemini 3.1 Pro · Claude Opus</div>
+                <div class="tier-desc">Complex reasoning · full-repo scans (1M ctx) · multimodal</div>
+              </div>
+              <div class="tier-cost cost-purple">$0.55–$5/M</div>
+            </div>
+          </div>
+        </div>
+        <div class="col" style="flex:0.65; gap:12px">
+          <div class="big-stat" style="flex:1">
+            <div class="number blue">60%</div>
+            <div class="label">of queries handled by<br>Tier 1 (budget cloud)</div>
+          </div>
+          <div class="big-stat" style="flex:1">
+            <div class="number green">~$0</div>
+            <div class="label">marginal cost for<br>privacy-sensitive work</div>
+          </div>
+          <div class="big-stat" style="flex:1">
+            <div class="number gold">−94%</div>
+            <div class="label">total LLM cost reduction<br>at 10 clients/year</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SLIDE 8 — Business Case                        -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="slide slide-content" id="s8">
+    <div class="slide-num">8 / 13</div>
+    <div class="slide-header">
+      <div>
+        <span class="slide-section">The Business Case</span>
+        <h2 class="slide-title">Cascade routing flips unanswerable.ai from loss-making to profitable across all client sizes</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <table>
+        <thead>
+          <tr><th>Client size</th><th>Claude only</th><th>Cascade (cloud)</th><th>Cascade + self-hosted</th><th>Platform fee</th><th>Margin (cascade)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Small — 10 users</td><td>$180/mo</td><td>$35/mo</td><td>~$5/mo</td><td>$300/mo</td><td><span class="tag-green">+$265 (88%) ✓</span></td></tr>
+          <tr><td>Medium — 50 users</td><td><span style="color:#EF4444">$1,200/mo</span></td><td>$230/mo</td><td>~$50/mo</td><td>$800/mo</td><td><span class="tag-green">+$570 (71%) ✓</span></td></tr>
+          <tr><td>Large — 200 users</td><td><span style="color:#EF4444">$6,000/mo</span></td><td>$1,150/mo</td><td>~$250/mo</td><td>$2,500/mo</td><td><span class="tag-green">+$1,350 (54%) ✓</span></td></tr>
+        </tbody>
+      </table>
+      <div class="kpi-row" style="margin-top:12px">
+        <div class="kpi">
+          <div class="val" style="color:#EF4444">$171,600</div>
+          <div class="lbl">Annual LLM cost<br>10 clients — today</div>
+        </div>
+        <div class="kpi">
+          <div class="val" style="color:#F59E0B">$26,520</div>
+          <div class="lbl">Annual LLM cost<br>10 clients — cascade cloud</div>
+        </div>
+        <div class="kpi">
+          <div class="val" style="color:#10B981">$9,600</div>
+          <div class="lbl">Annual LLM cost<br>10 clients — cascade + self-hosted</div>
+        </div>
+        <div class="kpi" style="border-color:#10B981">
+          <div class="val" style="color:#10B981">$162,000</div>
+          <div class="lbl"><strong>Annual saving</strong><br>cascade + self-hosted</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SLIDE 9 — Self-Hosted Economics                -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="slide slide-content" id="s9">
+    <div class="slide-num">9 / 13</div>
+    <div class="slide-header">
+      <div>
+        <span class="slide-section">The Business Case</span>
+        <h2 class="slide-title">Self-hosting pays back in 12–18 months and is the right call from ~4 clients onward</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="cols">
+        <div class="col">
+          <table style="font-size:12.5px">
+            <thead><tr><th>Hardware</th><th>Upfront</th><th>Electricity/mo</th><th>What it runs</th></tr></thead>
+            <tbody>
+              <tr><td>1× RTX 4090 (24GB)</td><td>~$1,600</td><td>$30–45</td><td>32B coding, 14B reasoning</td></tr>
+              <tr><td><strong>2× RTX 4090 (48GB)</strong></td><td><strong>~$3,200</strong></td><td><strong>$60–90</strong></td><td><strong>Qwen 72B, DeepSeek-R1 70B</strong></td></tr>
+            </tbody>
+          </table>
+          <table style="font-size:12.5px;margin-top:12px">
+            <thead><tr><th>Clients</th><th>Cloud cascade/mo</th><th>Self-hosted/mo</th><th>Decision</th></tr></thead>
+            <tbody>
+              <tr><td>1 client</td><td>$230</td><td>$312</td><td><span class="tag-blue">Cloud cheaper</span></td></tr>
+              <tr><td>3 clients</td><td>$660</td><td>$312</td><td><span class="tag-gold">Borderline</span></td></tr>
+              <tr><td><strong>4+ clients</strong></td><td>$880+</td><td>$312</td><td><span class="tag-green">Self-host wins ✓</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col" style="flex:0.75">
+          <div class="big-stat" style="flex:1">
+            <div class="number blue">4</div>
+            <div class="label">Clients needed for<br>self-hosting to break even</div>
+          </div>
+          <div class="big-stat" style="flex:1">
+            <div class="number green">12–18</div>
+            <div class="label">Months for hardware<br>payback at 4 clients</div>
+          </div>
+          <div class="insight-box">
+            <strong>Strategy:</strong> Start with cloud cascade only. Add Ollama when client 4 onboards. Self-hosted then pays for itself within 18 months and reduces marginal cost to near zero.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SLIDE 10 — The Roadmap                         -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="slide slide-content" id="s10">
+    <div class="slide-num">10 / 13</div>
+    <div class="slide-header">
+      <div>
+        <span class="slide-section">The Roadmap</span>
+        <h2 class="slide-title">7 phases fully defined — end-to-end working system in 3 weeks, full savings in week 4</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="phases">
+        <div class="phase-row">
+          <div class="phase-num">1</div>
+          <div class="phase-info">
+            <div class="phase-title">Unified LLM Interface — <code style="color:#60A5FA;font-size:12px">src/llm/interface.ts</code></div>
+            <div class="phase-desc">Single TypeScript interface + shared types. Unblocks all other phases. No external dependencies.</div>
+          </div>
+          <div class="phase-effort"><strong>~1 day</strong>Fully unblocked</div>
+        </div>
+        <div class="phase-row">
+          <div class="phase-num">2</div>
+          <div class="phase-info">
+            <div class="phase-title">Provider Adapters — Claude · Gemini · OpenAI · DeepSeek · Grok · Local</div>
+            <div class="phase-desc">DeepSeek, Grok, Ollama extend OpenAIAdapter — ~10 lines each. Claude and Gemini require SDK mapping.</div>
+          </div>
+          <div class="phase-effort"><strong>~5 days</strong>Depends on Phase 1</div>
+        </div>
+        <div class="phase-row">
+          <div class="phase-num">3</div>
+          <div class="phase-info">
+            <div class="phase-title">Provider Registry + Factory — <code style="color:#60A5FA;font-size:12px">src/llm/registry.ts</code></div>
+            <div class="phase-desc">Maps provider names to adapter constructors. Adding a provider = one entry in the registry.</div>
+          </div>
+          <div class="phase-effort"><strong>~1 day</strong>Depends on Phase 2</div>
+        </div>
+        <div class="phase-row">
+          <div class="phase-num">4</div>
+          <div class="phase-info">
+            <div class="phase-title">Config Layer — <code style="color:#60A5FA;font-size:12px">src/llm/config.ts</code> · flag › env › file › default</div>
+            <div class="phase-desc">Provider selectable via <code style="color:#60A5FA;font-size:11px">--llm deepseek:deepseek-v3</code>, env var, config file, or default (Claude).</div>
+          </div>
+          <div class="phase-effort"><strong>~1 day</strong>Depends on Phase 3</div>
+        </div>
+        <div class="phase-row">
+          <div class="phase-num">5</div>
+          <div class="phase-info">
+            <div class="phase-title">Cascade Router — <code style="color:#60A5FA;font-size:12px">src/llm/router.ts</code> · Static → Cascade → Capability</div>
+            <div class="phase-desc">Start with StaticStrategy (Claude default). Add CascadeStrategy to activate 94% cost saving.</div>
+          </div>
+          <div class="phase-effort"><strong>~3 days</strong>Cost savings activate here</div>
+        </div>
+        <div class="phase-row">
+          <div class="phase-num">6</div>
+          <div class="phase-info">
+            <div class="phase-title">CLI Integration — inject provider at startup, <code style="color:#60A5FA;font-size:12px">/provider</code> switch command</div>
+            <div class="phase-desc">End-to-end system. Claude remains default — zero behaviour change for existing users.</div>
+          </div>
+          <div class="phase-effort"><strong>~2 days</strong>Target codebase needed</div>
+        </div>
+        <div class="phase-row">
+          <div class="phase-num">7</div>
+          <div class="phase-info">
+            <div class="phase-title">Tests — unit per adapter · factory · config · integration per provider</div>
+            <div class="phase-desc">MockProvider implementing LLMProvider for all upstream tests. Integration tests opt-in with real API keys.</div>
+          </div>
+          <div class="phase-effort"><strong>~3 days</strong>Parallel with Phase 5–6</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SLIDE 11 — Risks                               -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="slide slide-content" id="s11">
+    <div class="slide-num">11 / 13</div>
+    <div class="slide-header">
+      <div>
+        <span class="slide-section">Risks &amp; Mitigations</span>
+        <h2 class="slide-title">Five risks identified — all manageable, none blocking</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <table>
+        <thead>
+          <tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Quality degradation</strong> — DeepSeek underperforms on a task class</td>
+            <td><span class="risk-pill risk-med">Medium</span></td>
+            <td><span class="risk-pill risk-med">Medium</span></td>
+            <td>Callers opt out of budget tier per request via routing hints. Rollback = one config change.</td>
+          </tr>
+          <tr>
+            <td><strong>Ops burden</strong> — GPU / Ollama infrastructure maintenance</td>
+            <td><span class="risk-pill risk-med">Medium</span></td>
+            <td><span class="risk-pill risk-low">Low</span></td>
+            <td>Start cloud-only. Add self-hosted only when 4+ clients justify it.</td>
+          </tr>
+          <tr>
+            <td><strong>DeepSeek data privacy</strong> — Chinese-operated API for some clients</td>
+            <td><span class="risk-pill risk-low">Low–Med</span></td>
+            <td><span class="risk-pill risk-high">High</span></td>
+            <td>Solved by Tier 0 (self-hosted). Privacy-sensitive traffic never reaches DeepSeek.</td>
+          </tr>
+          <tr>
+            <td><strong>Adapter maintenance</strong> — provider SDKs change over time</td>
+            <td><span class="risk-pill risk-low">Low</span></td>
+            <td><span class="risk-pill risk-low">Low</span></td>
+            <td>Each adapter is fully isolated. A Gemini API change touches only <code style="font-size:11px;color:#60A5FA">gemini.ts</code>.</td>
+          </tr>
+          <tr>
+            <td><strong>Target codebase unknown</strong> — Phase 6 integration TBD</td>
+            <td><span class="risk-pill risk-high">High</span></td>
+            <td><span class="risk-pill risk-med">Medium</span></td>
+            <td>Phases 1–5 are codebase-agnostic. Identify target repo before Phase 6 begins.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SLIDE 12 — Next Steps                          -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="slide slide-content" id="s12">
+    <div class="slide-num">12 / 13</div>
+    <div class="slide-header">
+      <div>
+        <span class="slide-section">Recommendation</span>
+        <h2 class="slide-title">Four actions unlock the full implementation — the first two can be done today</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="steps">
+        <div class="step-card">
+          <div class="step-week">This week</div>
+          <div class="step-card-title">Unblock the build</div>
+          <ul class="step-list">
+            <li>Create GitHub repo in DeepGruble org</li>
+            <li>Identify target codebase for Phase 6 integration</li>
+            <li>Decide janitor pipeline cadence (last open question)</li>
+          </ul>
+        </div>
+        <div class="step-card" style="border-color:#2563EB">
+          <div class="step-week">Week 1</div>
+          <div class="step-card-title">Start coding — Phase 1 is fully unblocked today</div>
+          <ul class="step-list">
+            <li>Implement <code style="color:#60A5FA">interface.ts</code> + shared types</li>
+            <li>Implement <code style="color:#60A5FA">ClaudeAdapter</code> (migrate existing usage)</li>
+            <li>Implement <code style="color:#60A5FA">DeepSeekAdapter</code> (~2h — highest leverage action)</li>
+          </ul>
+        </div>
+        <div class="step-card">
+          <div class="step-week">Month 1 target</div>
+          <div class="step-card-title">End-to-end working system</div>
+          <ul class="step-list">
+            <li>All 6 adapters live and tested</li>
+            <li>Cascade routing active internally</li>
+            <li>58% cost reduction captured on DG team usage</li>
+          </ul>
+        </div>
+        <div class="step-card">
+          <div class="step-week">Month 2 target</div>
+          <div class="step-card-title">Product-ready</div>
+          <ul class="step-list">
+            <li>Ollama running on DG infrastructure</li>
+            <li>First unanswerable.ai client through multi-provider stack</li>
+            <li>94% cost reduction fully active</li>
+          </ul>
+        </div>
+      </div>
+      <div class="insight-box" style="margin-top:12px">
+        <strong>The cost of delay:</strong> Every month operating at Claude-only pricing with 10 clients = <strong>$14,300 in avoidable LLM spend.</strong> The DeepSeek adapter alone takes ~2 hours and saves the majority of that immediately.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SLIDE 13 — Key Numbers                         -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="slide slide-content" id="s13">
+    <div class="slide-num">13 / 13</div>
+    <div class="slide-header">
+      <div>
+        <span class="slide-section">Summary</span>
+        <h2 class="slide-title">The numbers that matter</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;flex:1">
+        <div class="big-stat">
+          <div class="number red">$171,600</div>
+          <div class="label">Annual LLM spend<br>10 clients — today</div>
+        </div>
+        <div class="big-stat">
+          <div class="number green">$9,600</div>
+          <div class="label">Annual LLM spend<br>10 clients — after</div>
+        </div>
+        <div class="big-stat">
+          <div class="number gold">−94%</div>
+          <div class="label">Total cost reduction<br>cascade + self-hosted</div>
+        </div>
+        <div class="big-stat">
+          <div class="number blue">$162,000</div>
+          <div class="label">Annual saving<br>at 10 clients</div>
+        </div>
+        <div class="big-stat">
+          <div class="number red">−50%</div>
+          <div class="label">Medium client margin<br>today (Claude only)</div>
+        </div>
+        <div class="big-stat">
+          <div class="number green">+71%</div>
+          <div class="label">Medium client margin<br>after cascade routing</div>
+        </div>
+        <div class="big-stat">
+          <div class="number blue">~2h</div>
+          <div class="label">Effort to implement<br>DeepSeek adapter</div>
+        </div>
+        <div class="big-stat">
+          <div class="number gold">4</div>
+          <div class="label">Clients needed for<br>self-hosting break-even</div>
+        </div>
+        <div class="big-stat">
+          <div class="number blue">7</div>
+          <div class="label">Implementation phases<br>fully defined</div>
+        </div>
+        <div class="big-stat">
+          <div class="number green">2</div>
+          <div class="label">Months to full<br>implementation</div>
+        </div>
+        <div class="big-stat">
+          <div class="number gold">0</div>
+          <div class="label">Open blockers for<br>Phase 1 (start today)</div>
+        </div>
+        <div class="big-stat" style="border-color:var(--dg-gold)">
+          <div class="number gold">$14,300</div>
+          <div class="label">Cost of <em>one month</em><br>of delay at 10 clients</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- ── Navigation ── -->
+<div class="nav">
+  <button id="prev" onclick="navigate(-1)" title="Previous">‹</button>
+  <span class="nav-counter" id="counter">1 / 13</span>
+  <button id="next" onclick="navigate(1)" title="Next">›</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total  = slides.length;
+  let current  = 0;
+
+  function navigate(dir) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(total - 1, current + dir));
+    slides[current].classList.add('active');
+    document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
+    document.getElementById('prev').disabled = current === 0;
+    document.getElementById('next').disabled = current === total - 1;
+    document.getElementById('progress').style.width = ((current + 1) / total * 100) + '%';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown'  || e.key === ' ') navigate(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp') navigate(-1);
+  });
+
+  navigate(0);
+</script>
+</body>
+</html>

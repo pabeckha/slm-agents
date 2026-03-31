@@ -1,0 +1,53 @@
+\chapter{Introduction} \label{ch:introduction}
+
+\section{Motivation}
+
+Large language models (LLMs) have become the dominant backbone for agentic systems, powering applications that reason over user requests, decompose tasks, and call external tools to produce structured outputs. Frontier models such as GPT-4 and Claude demonstrate strong performance on these tasks, but their deployment comes with significant trade-offs: high inference costs, dependency on external APIs, increased latency, and limited control over data privacy. For many real-world applications, these constraints make frontier models impractical.
+
+Small language models (SLMs), typically ranging from 1B to 8B parameters, offer an alternative. Recent open-weight models such as Qwen 2.5~\cite{qwen2024qwen25}, Llama 3.2~\cite{llama2024llama32}, and Phi-4~\cite{abdin2024phi} can run on consumer-grade hardware, enable local deployment, and drastically reduce per-query costs. However, out of the box, SLMs struggle with the core capabilities that agentic systems demand. They frequently produce malformed structured outputs, select incorrect tools, hallucinate function arguments, and fail at multi-step reasoning. These shortcomings have led to a widespread assumption that reliable agentic behavior requires large-scale models.
+
+This thesis challenges that assumption. Rather than treating model scale as the primary driver of agent reliability, it investigates whether targeted optimization techniques can bridge the performance gap between small and large models for agentic tasks. If small models can be made reliable enough for tool calling and reasoning through methods such as constrained decoding, prompt engineering, and fine-tuning, they could enable a new class of local, cost-efficient, and privacy-preserving agentic systems.
+
+\section{Problem Statement}
+
+Agentic systems built on language models must perform two fundamental capabilities well: reasoning correctly about user requests and calling the right tools with valid arguments. Reasoning requires the model to decompose tasks, decide when to call a tool versus respond directly, and chain multi-step logic without hallucinating intermediate steps. Tool calling requires selecting the correct function from a schema, producing valid structured arguments, and handling the result appropriately.
+
+When small language models are used for these tasks without any optimization, they exhibit several failure modes. They generate invalid JSON, select non-existent tools, produce arguments with incorrect types or values, and fail to follow execution plans. These failures are not merely inconvenient; they render the agent non-functional for production use.
+
+The central question is whether these failures stem from fundamental limitations in model capacity or from insufficient constraints and guidance during generation. If the latter, then a carefully chosen stack of optimization techniques should be able to make small models competitive with frontier models on agentic benchmarks.
+
+\section{Research Question}
+
+This thesis addresses the following research question:
+
+\begin{quote}
+\textit{Which combination of optimization techniques enables a small language model to reason effectively and call the correct tools?}
+\end{quote}
+
+To answer this question, the thesis evaluates a cumulative pipeline of methods, ordered by implementation cost. No-training methods are evaluated first (constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}), followed by training-based methods (LoRA fine-tuning~\cite{hu2022lora}, knowledge distillation~\cite{hinton2015distilling}). Each method is assessed both individually and in combination, measuring its marginal contribution to tool-calling accuracy and reasoning quality.
+
+\section{Contributions}
+
+The main contributions of this thesis are:
+
+\begin{enumerate}
+    \item A systematic evaluation of optimization techniques for small language models in agentic tasks, ordered from no-training to training-required methods.
+    \item An empirical analysis of constrained decoding as a foundation for reliable structured output generation in small models.
+    \item A cumulative evaluation framework that measures the marginal impact of each technique on tool-calling correctness and reasoning quality.
+    \item A comparison of optimized small language model configurations against frontier models on the Berkeley Function Calling Leaderboard (BFCL)~\cite{bfcl2024} and custom benchmarks.
+    \item Practical guidelines for deploying agentic systems with small models on consumer hardware.
+\end{enumerate}
+
+\section{Thesis Structure}
+
+The remainder of this thesis is organized as follows:
+
+\textbf{Chapter~\ref{ch:background}} provides the theoretical background on language models, agentic systems, and the optimization techniques investigated in this work, including constrained decoding, prompt engineering, retrieval-augmented generation, LoRA fine-tuning, and knowledge distillation.
+
+\textbf{Chapter~\ref{ch:methodology}} describes the experimental design, the cumulative evaluation ladder, the candidate models, and the evaluation framework including benchmarks and metrics.
+
+\textbf{Chapter~\ref{ch:results}} presents the experimental results for each optimization method, both individually and in combination, along with comparisons to frontier models.
+
+\textbf{Chapter~\ref{ch:discussion}} discusses the implications of the results, analyzes the cost-benefit trade-offs of each method, and addresses limitations of the study.
+
+\textbf{Chapter~\ref{ch:conclusion}} answers the research question, summarizes the findings, and outlines directions for future work.

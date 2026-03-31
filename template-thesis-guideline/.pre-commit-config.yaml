@@ -1,0 +1,59 @@
+default_language_version:
+  python: python3
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      # - id: check-json
+      # - id: check-yaml
+      - id: check-toml
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-case-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.13.2
+    hooks:
+      # try to fix what is possible
+      - id: ruff
+        args: ["--fix", "--unsafe-fixes"]
+      # perform formatting updates
+      - id: ruff-format
+      # validate if all is fine with preview mode
+      - id: ruff
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        additional_dependencies: [tomli]
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.36.3
+    hooks:
+      - id: typos
+        args: [ ]
+        exclude: .gitignore
+
+  - repo: https://github.com/tox-dev/pyproject-fmt
+    rev: v2.6.0
+    hooks:
+      - id: pyproject-fmt
+        additional_dependencies: [tox]
+
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.24.1
+    hooks:
+      - id: validate-pyproject
+
+  - repo: local
+    hooks:
+      - id: check-figures-updated
+        name: Check figures updated
+        entry: uv run scripts/check_figures_updated.py
+        language: system
+        files: scripts/figures.py

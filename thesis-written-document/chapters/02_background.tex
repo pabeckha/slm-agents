@@ -1,0 +1,129 @@
+\chapter{Background} \label{ch:background}
+
+This chapter introduces the theoretical foundations underlying this thesis. It covers language model architectures and their scaling properties, the design of agentic systems, and the optimization techniques evaluated in subsequent chapters.
+
+\section{Language Models}
+
+\subsection{Transformer Architecture}
+
+The Transformer architecture, introduced by Vaswani et al.~\cite{vaswani2017attention}, forms the foundation of modern language models. It replaces recurrent computation with a self-attention mechanism that allows each token in a sequence to attend to all other tokens in parallel. A Transformer block consists of a multi-head self-attention layer followed by a position-wise feed-forward network, with layer normalization and residual connections applied around each sub-layer.
+
+Given an input sequence of token embeddings $X$, the self-attention mechanism computes queries $Q = XW^Q$, keys $K = XW^K$, and values $V = XW^V$ through learned linear projections. The attention output is computed as:
+\begin{equation}
+\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V
+\end{equation}
+where $d_k$ is the dimension of the key vectors. Multi-head attention runs this operation in parallel across multiple subspaces, allowing the model to capture different types of dependencies simultaneously.
+
+For language modeling, the decoder-only variant is most common. It applies a causal attention mask so that each token can only attend to preceding tokens, enabling autoregressive generation where the model predicts one token at a time conditioned on all previous tokens.
+
+\subsection{Scaling Laws}
+
+Scaling laws describe the empirical relationship between model performance and three key factors: the number of parameters, the amount of training data, and the available compute budget. Kaplan et al.~\cite{kaplan2020scaling} showed that language model loss follows a power-law relationship with each of these factors, and that performance improves predictably as any of them increases.
+
+Hoffmann et al.~\cite{hoffmann2022training} refined these findings with the Chinchilla scaling laws, demonstrating that many large models were under-trained relative to their size. Their work showed that for a fixed compute budget, optimal performance is achieved by balancing model size and training data rather than maximizing parameters alone. This insight has direct implications for small language models: a well-trained small model can outperform a larger but under-trained one.
+
+More recently, the focus has shifted toward inference-time scaling~\cite{snell2024scaling}, where additional computation at generation time (through techniques such as chain-of-thought prompting or search) can improve performance without increasing model size.
+
+\subsection{Small vs. Large Language Models}
+
+Large language models (LLMs) such as GPT-4~\cite{openai2023gpt4} and the Claude model family operate at hundreds of billions of parameters and demonstrate strong performance across a wide range of tasks, including complex reasoning and tool use. However, their size demands significant computational resources, typically requiring multi-GPU clusters or cloud API access for inference.
+
+Small language models (SLMs), in the range of 1B to 8B parameters, can run on consumer hardware such as a single GPU with 24GB of VRAM. Recent open-weight SLMs, including Qwen 2.5~\cite{qwen2024qwen25}, Llama 3.2~\cite{llama2024llama32}, and Phi-4~\cite{abdin2024phi}, have narrowed the gap with larger models on standard benchmarks through improved training data, better tokenizers, and architectural refinements such as grouped-query attention (GQA).
+
+Despite these improvements, SLMs still lag behind frontier models on tasks that require multi-step reasoning, tool selection from large schemas, and reliable structured output generation. This gap motivates the optimization techniques explored in this thesis.
+
+\section{Agentic Systems}
+
+An agentic system is a software architecture in which a language model acts as the central reasoning engine, deciding which actions to take, invoking external tools, and synthesizing results to fulfill user requests. Unlike simple question-answering, agentic behavior involves planning, acting, and adapting based on intermediate results.
+
+\subsection{Tool Calling}
+
+Tool calling refers to the ability of a language model to invoke external functions or APIs as part of its response. The model receives a set of available tool schemas (names, descriptions, parameter types) and must select the appropriate tool for a given request, generate valid arguments matching the schema, and incorporate the tool's response into its reasoning.
+
+Tool calling is the primary capability evaluated in this thesis. It requires both language understanding (to map user intent to the correct tool) and structured generation (to produce syntactically and semantically valid function calls).
+
+\subsection{Structured Output Generation}
+
+Agentic systems typically require the model to produce outputs in a specific format, most commonly JSON. The model must generate output that is syntactically valid (parseable JSON), conforms to a predefined schema (correct field names and types), and is semantically correct (values that make sense for the given context).
+
+Without explicit constraints, language models frequently produce malformed outputs: missing closing brackets, incorrect field names, wrong data types, or extra fields not present in the schema. These failures are particularly common in small models and represent a key reliability bottleneck for agentic deployments.
+
+\subsection{The ReAct Pattern}
+
+ReAct (Reasoning and Acting)~\cite{yao2023react} is a prompting framework that interleaves reasoning traces with action steps. Rather than generating a final answer directly, the model follows a loop of Thought (reasoning about what to do next), Action (calling a tool or performing a step), and Observation (processing the result of that action).
+
+This pattern improves multi-step task completion by making the model's reasoning explicit and allowing it to adapt its plan based on intermediate results. ReAct is particularly relevant for agentic systems because it provides a structured way to combine reasoning and tool use within a single generation process.
+
+\section{Constrained Decoding}
+
+Constrained decoding modifies the generation process so that the model can only produce outputs that conform to a predefined structure. Rather than relying on the model to implicitly learn output formats, constrained decoding enforces them at inference time by masking invalid tokens at each generation step.
+
+\subsection{Formal Grammars for Generation}
+
+The key idea is to define the valid output space using a formal grammar, typically a context-free grammar (CFG) or a JSON schema. At each decoding step, the grammar determines which tokens are valid continuations given the tokens generated so far. Invalid tokens receive a probability of zero (or negative infinity in log-space), ensuring that only grammatically valid sequences can be produced.
+
+For tool calling, this means the model is guaranteed to produce valid JSON that conforms to the tool's argument schema. Field names, types, and structure are enforced by construction rather than learned behavior. Willard and Louf~\cite{willard2023efficient} formalized this approach using finite-state machines compiled from regular expressions and JSON schemas.
+
+\subsection{Guided Decoding Techniques}
+
+Several libraries implement constrained decoding for language models. Outlines~\cite{outlines2024} uses finite-state machines compiled from regular expressions or JSON schemas to guide generation. LMQL~\cite{beurer2024guidance} combines constrained decoding with a query language that allows expressing complex output constraints declaratively.
+
+These techniques are particularly impactful for small models because they eliminate an entire class of errors (malformed outputs) without requiring any additional training. Constrained decoding is the foundational method in this thesis and serves as the base layer upon which other techniques are stacked.
+
+\section{Prompt Engineering and Inference-Time Compute}
+
+\subsection{Few-Shot Prompting}
+
+Few-shot prompting provides the model with examples of correct input-output pairs directly in the prompt~\cite{brown2020language}. For tool calling, this means including examples of user requests paired with the expected function calls. The model uses these examples as templates to guide its own generation.
+
+Few-shot prompting is a zero-cost technique (no training required) that can significantly improve task performance, especially for smaller models that benefit from explicit demonstrations of the expected output format and reasoning process.
+
+\subsection{Chain-of-Thought Reasoning}
+
+Chain-of-thought (CoT) prompting~\cite{wei2022chain} encourages the model to generate intermediate reasoning steps before producing a final answer. Instead of directly outputting a tool call, the model first explains its reasoning: which tool is appropriate, what arguments are needed, and why.
+
+CoT is a form of inference-time compute, trading additional generated tokens for improved accuracy. It is particularly effective for tasks that require multi-step reasoning, such as selecting among many similar tools or constructing complex function arguments. For small models, CoT can compensate for limited implicit reasoning capacity by making the reasoning process explicit.
+
+\section{Retrieval-Augmented Generation}
+
+Retrieval-augmented generation (RAG)~\cite{lewis2020retrieval} augments the model's input with relevant information retrieved from an external knowledge source at inference time. In the context of tool calling, RAG retrieves relevant tool schemas and documentation based on the user's request, rather than including all available tools in every prompt.
+
+This approach offers two benefits for small models. First, it reduces the prompt length by only including relevant tools, which is important given the limited context windows of smaller models. Second, it reduces hallucination by grounding the model's generation in retrieved factual content rather than relying solely on parametric knowledge.
+
+A typical RAG pipeline for tool calling involves encoding tool descriptions into a vector store, retrieving the top-k most relevant tools for a given query using semantic similarity, and injecting the retrieved schemas into the model's prompt before generation.
+
+\section{Parameter-Efficient Fine-Tuning}
+
+Fine-tuning adapts a pre-trained model to a specific task by continuing training on task-specific data. Full fine-tuning updates all model parameters, which is computationally expensive and requires significant memory. Parameter-efficient fine-tuning (PEFT) methods address this by updating only a small subset of parameters while keeping the rest frozen.
+
+\subsection{LoRA}
+
+Low-Rank Adaptation (LoRA)~\cite{hu2022lora} is the most widely used PEFT method. Instead of updating the full weight matrices during fine-tuning, LoRA injects trainable low-rank decomposition matrices alongside the frozen pre-trained weights. For a weight matrix $W \in \mathbb{R}^{d \times k}$, LoRA learns two smaller matrices $A \in \mathbb{R}^{d \times r}$ and $B \in \mathbb{R}^{r \times k}$, where $r \ll \min(d, k)$, such that the adapted weight becomes $W + AB$.
+
+This reduces the number of trainable parameters by orders of magnitude while achieving performance comparable to full fine-tuning on many tasks. For tool calling, LoRA can be used to fine-tune small models on datasets of function-calling examples, teaching them to select tools and generate arguments more accurately.
+
+\subsection{PEFT Variants}
+
+Beyond LoRA, several other PEFT methods exist. QLoRA~\cite{dettmers2023qlora} combines LoRA with quantization, applying low-rank adaptation on top of a 4-bit quantized base model to further reduce memory requirements. Adapter layers insert small trainable modules between frozen Transformer layers. Prefix tuning prepends trainable continuous vectors to the key and value sequences in each attention layer.
+
+This thesis primarily uses LoRA due to its simplicity, strong empirical performance, and wide support across frameworks and model architectures.
+
+\section{Knowledge Distillation}
+
+Knowledge distillation~\cite{hinton2015distilling} transfers knowledge from a larger teacher model to a smaller student model. The student is trained not only on ground-truth labels but also on the teacher's output distributions or generated responses. The idea is that the teacher's outputs contain richer information than hard labels alone, including relative confidence across alternatives and implicit reasoning patterns.
+
+For tool calling, knowledge distillation involves generating a dataset of tool-calling examples using a frontier model (the teacher), then fine-tuning the small model (the student) on these examples. The teacher provides high-quality demonstrations of tool selection, argument construction, and reasoning traces that the student can learn to replicate.
+
+This approach is particularly relevant when labeled tool-calling data is scarce, as the teacher model can generate large volumes of training data from unlabeled user requests. The trade-off is the cost of running the teacher model to generate the distillation dataset.
+
+\section{Related Work}
+
+Several lines of research are directly relevant to this thesis.
+
+In the domain of function calling and tool use, the Berkeley Function Calling Leaderboard (BFCL)~\cite{bfcl2024} provides a standardized benchmark for evaluating language models on function-calling tasks, measuring AST accuracy and execution accuracy across multiple categories. ToolLLM~\cite{qin2024toolllm} provides a large-scale benchmark with over 16,000 real-world APIs for evaluating tool-use capabilities. Gorilla~\cite{patil2023gorilla} demonstrated that fine-tuned smaller models can outperform larger models on API calling when given appropriate training data.
+
+For constrained decoding, Willard and Louf~\cite{willard2023efficient} formalized the use of finite-state machines for structured generation in language models. The Outlines library~\cite{outlines2024} implements this approach for JSON schema-guided generation. LMQL~\cite{beurer2024guidance} introduced a query language for constrained generation that supports complex output specifications.
+
+In the area of small model optimization, recent work on Phi~\cite{abdin2024phi}, Qwen~\cite{qwen2024qwen25}, and Llama~\cite{llama2024llama32} model families has demonstrated that careful data curation and training recipes can produce small models with strong general capabilities. However, systematic evaluations of these models specifically for agentic tasks remain limited.
+
+The intersection of constrained decoding with fine-tuning for tool calling in small models is relatively unexplored. Most existing work applies these techniques in isolation or focuses on large models. This thesis contributes a systematic evaluation of their combined effect on small models for agentic tasks.

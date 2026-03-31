@@ -1,0 +1,10 @@
+[project]
+name = "llm-sdk"
+version = "0.1.0"
+description = "Lightweight wrapper around Hugging Face causal LMs for constrained decoding experiments."
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.0",
+  "transformers>=4.40",
+  "huggingface-hub>=0.20",
+]

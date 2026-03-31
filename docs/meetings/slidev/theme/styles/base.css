@@ -1,0 +1,80 @@
+/* ─── DTU Color Palette ─── */
+:root {
+  --dtu-red: #990000;
+  --dtu-red-dark: #6e0000;
+  --dtu-blue: #2F3EEA;
+  --dtu-green: #1FD082;
+  --dtu-navy: #171748;
+  --dtu-yellow: #F6D04D;
+  --dtu-orange: #FC7634;
+  --dtu-purple: #79238E;
+
+  --slidev-theme-primary: #990000;
+}
+
+/* ─── Global ─── */
+* {
+  font-family: Arial, 'Helvetica Neue', sans-serif !important;
+}
+
+/* ─── Status badges for tables ─── */
+.done {
+  background: rgba(31, 208, 130, 0.15);
+  color: #17a066;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.next {
+  background: rgba(47, 62, 234, 0.1);
+  color: var(--dtu-blue);
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pending {
+  background: rgba(246, 208, 77, 0.25);
+  color: #a07800;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.risky {
+  background: rgba(153, 0, 0, 0.1);
+  color: var(--dtu-red);
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.badge-muted {
+  background: #f0f0f0;
+  color: #888;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ─── v-click animation ─── */
+.slidev-vclick-target {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.slidev-vclick-hidden {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+/* ─── Progress bar ─── */
+.slidev-progress {
+  background: var(--dtu-red) !important;
+}

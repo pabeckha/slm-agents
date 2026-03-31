@@ -1,0 +1,46 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#e8eaf6',
+    'lineColor': '#333333',
+    'fontSize': '14px',
+    'edgeLabelBackground': '#ffffff'
+  }
+}}%%
+
+flowchart LR
+    P["User Prompt<br/><i>'What is the weather in Copenhagen<br/>and convert 20°C to Fahrenheit?'</i>"]
+
+    subgraph STAGE1["1 · Reasoning"]
+        R["Parse intent · Decompose tasks · Plan execution"]
+    end
+
+    subgraph STAGE2["2 · Tool Selection"]
+        S["Match to schema · Pick correct tool from 20+ options"]
+    end
+
+    subgraph STAGE3["3 · Argument Generation"]
+        G["Produce valid JSON · Correct types · Required fields"]
+    end
+
+    O["Tool Call<br/><code>get_weather</code> · <code>convert_temp</code>"]
+
+    P --> STAGE1 --> STAGE2 --> STAGE3 --> O
+
+    F1(["Misinterprets intent<br/>Misses sub-tasks"])
+    F2(["Hallucinated names<br/>Wrong tool picked"])
+    F3(["Invalid JSON<br/>Wrong arg types<br/>Missing fields"])
+
+    STAGE1 -. "SLM fails" .-> F1
+    STAGE2 -. "SLM fails" .-> F2
+    STAGE3 -. "SLM fails" .-> F3
+
+    classDef stage fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d1b2a
+    classDef fail fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#b71c1c,stroke-dasharray: 5 5
+    classDef io fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#1a1a1a
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1a1a1a
+
+    class R,S,G stage
+    class F1,F2,F3 fail
+    class P io
+    class O success

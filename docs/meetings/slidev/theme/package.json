@@ -1,0 +1,16 @@
+{
+  "name": "slidev-theme-dtu",
+  "version": "0.1.0",
+  "engines": {
+    "slidev": ">=0.19.0"
+  },
+  "slidev": {
+    "colorSchema": "light",
+    "defaults": {
+      "fonts": {
+        "sans": "Arial",
+        "mono": "Fira Code"
+      }
+    }
+  }
+}

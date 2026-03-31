@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Supervisor Meeting — Nick — March 2026</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red:    #990000;
+    --red-d:  #6e0000;
+    --blue:   #2F3EEA;
+    --green:  #1FD082;
+    --navy:   #171748;
+    --yellow: #F6D04D;
+    --orange: #FC7634;
+    --purple: #79238E;
+    --text:   #000000;
+    --muted:  #64748b;
+    --bg:     #ffffff;
+    --white:  #ffffff;
+    --border: #e2e2e2;
+    --r:      6px;
+    --transition: .32s cubic-bezier(.4,0,.2,1);
+    --left-margin: 148px;
+    --h-pad: 80px;
+  }
+
+  html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: Arial, 'Helvetica Neue', sans-serif; }
+
+  /* ─── Progress ─── */
+  #progress {
+    position: fixed; top: 0; left: 0; height: 3px; z-index: 100;
+    background: var(--red);
+    transition: width var(--transition);
+  }
+
+  /* ─── Deck ─── */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  /* ─── Slides ─── */
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none;
+    transform: translateY(16px);
+    transition: opacity var(--transition), transform var(--transition);
+    z-index: 1; background: var(--white);
+  }
+  .slide.active { opacity: 1; pointer-events: all; transform: translateY(0); }
+  .slide.exit   { opacity: 0; transform: translateY(-10px); }
+
+  /* ─── Title slide (Front A layout) ─── */
+  .slide-title {
+    background: var(--red);
+  }
+
+  .title-logo-area {
+    padding: 20px 24px;
+    flex-shrink: 0;
+  }
+
+  .title-body {
+    flex: 1; display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 0 var(--h-pad) 0;
+  }
+  .title-subtitle {
+    font-size: 24px; line-height: 1.4;
+    color: rgba(255,255,255,.75); margin-bottom: 24px;
+  }
+  .title-body h1 {
+    font-size: 64px; font-weight: 700; line-height: 0.93;
+    color: var(--white); margin-bottom: 0;
+  }
+
+  .title-footer {
+    padding: 18px var(--h-pad) 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    color: rgba(255,255,255,.55); font-size: 12px;
+  }
+  .title-footer-left { }
+  .title-footer-right { text-align: right; }
+
+  /* ─── DTU logo SVG (proper letterforms + 3 wave marks) ─── */
+  .dtu-logo svg { display: block; }
+
+  /* ─── Content slide ─── */
+  .slide-content { background: var(--white); }
+
+  .content-top {
+    display: flex; align-items: flex-start; padding: 20px var(--h-pad) 0 24px;
+    flex-shrink: 0;
+  }
+  .content-logo {
+    flex-shrink: 0; margin-right: 24px; padding-top: 4px;
+  }
+  .content-title-area {
+    flex: 1; padding-top: 8px;
+  }
+  .content-title-area .eyebrow {
+    font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+    font-weight: 700; color: var(--red); margin-bottom: 4px;
+  }
+  .content-title-area h2 {
+    font-size: 28px; font-weight: 700; color: var(--text); margin: 0;
+    line-height: 1.15;
+  }
+  .title-rule {
+    height: 2px; background: var(--red); margin: 14px var(--h-pad) 0 24px;
+    flex-shrink: 0;
+  }
+
+  /* ─── Content body ─── */
+  .slide-body {
+    flex: 1; padding: 16px var(--h-pad) 56px calc(var(--left-margin));
+    overflow: hidden;
+    display: flex; flex-direction: column; justify-content: flex-start;
+  }
+
+  /* ─── Grid ─── */
+  .grid { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ─── Cards ─── */
+  .card {
+    background: var(--white); border: 1px solid var(--border);
+    border-left: 4px solid var(--border);
+    border-radius: var(--r); padding: 12px 14px;
+    font-size: 13.5px; line-height: 1.55;
+    display: flex; gap: 12px; align-items: flex-start;
+    transition: border-color .15s, box-shadow .15s, opacity .35s ease, transform .35s ease;
+  }
+  .card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.07); }
+  .card.hidden { opacity: 0; transform: translateY(14px); pointer-events: none; }
+
+  .card.red    { border-left-color: var(--red); }
+  .card.blue   { border-left-color: var(--blue); }
+  .card.green  { border-left-color: var(--green); }
+  .card.yellow { border-left-color: var(--yellow); }
+  .card.orange { border-left-color: var(--orange); }
+  .card.navy   { border-left-color: var(--navy); }
+  .card.muted  { border-left-color: #ccc; }
+
+  .card-num {
+    width: 26px; height: 26px; border-radius: 4px;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .card-num.red    { background: rgba(153,0,0,.1);    color: var(--red); }
+  .card-num.blue   { background: rgba(47,62,234,.1);  color: var(--blue); }
+  .card-num.green  { background: rgba(31,208,130,.15);color: #17a066; }
+  .card-num.yellow { background: rgba(246,208,77,.25);color: #a07800; }
+  .card-num.orange { background: rgba(252,118,52,.12);color: var(--orange); }
+  .card-num.navy   { background: rgba(23,23,72,.1);   color: var(--navy); }
+  .card-num.muted  { background: #f0f0f0; color: #888; }
+
+  .card-title { font-weight: 700; color: var(--text); margin-bottom: 2px; font-size: 13.5px; }
+  .card-body  { color: var(--muted); font-size: 12.5px; }
+
+  /* Edit mode */
+  body.editing .card { outline: 1px dashed rgba(153,0,0,.25); }
+  body.editing [contenteditable]:focus { outline: 2px solid var(--red); border-radius: 2px; }
+  body.editing [contenteditable] { cursor: text; }
+
+  /* ─── Footer (matches DTU template: date | title | slide#) ─── */
+  .slide-footer {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 24px 10px var(--h-pad);
+    font-size: 11px; color: var(--muted);
+    border-top: 1px solid var(--border);
+    background: var(--white);
+    z-index: 2;
+  }
+  .slide-title .slide-footer {
+    border-top-color: rgba(255,255,255,.15);
+    background: transparent;
+    color: rgba(255,255,255,.45);
+  }
+  .footer-date { min-width: 80px; }
+  .footer-title { flex: 1; text-align: right; padding-right: 20px; }
+  .footer-num { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* ─── Nav bar (overlays footer on active slide) ─── */
+  nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px var(--h-pad);
+    background: rgba(23,23,72,.92);
+    backdrop-filter: blur(6px);
+    border-top: 1px solid rgba(255,255,255,.08);
+  }
+
+  .nav-left  { display: flex; align-items: center; gap: 14px; }
+  .nav-right { display: flex; gap: 8px; align-items: center; }
+
+  .slide-count { font-size: 12px; color: rgba(255,255,255,.4); font-variant-numeric: tabular-nums; }
+
+  .pip-wrap { display: flex; gap: 5px; align-items: center; }
+  .pip {
+    width: 6px; height: 6px; border-radius: 3px;
+    background: rgba(255,255,255,.2); cursor: pointer;
+    transition: background .2s, width .25s; border: none;
+  }
+  .pip.active { background: var(--red); width: 20px; }
+
+  button.nav-btn {
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+    color: rgba(255,255,255,.8); padding: 6px 16px; border-radius: 4px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: background .15s;
+    font-family: Arial, sans-serif;
+  }
+  button.nav-btn:hover:not(:disabled) { background: rgba(255,255,255,.15); }
+  button.nav-btn:disabled { opacity: .25; cursor: default; }
+
+  #edit-toggle {
+    background: transparent; border: 1px solid rgba(255,255,255,.2);
+    color: rgba(255,255,255,.5); padding: 6px 14px; border-radius: 4px;
+    font-size: 10px; font-weight: 700; cursor: pointer;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    transition: all .15s; font-family: Arial, sans-serif;
+  }
+  #edit-toggle:hover { border-color: var(--red); color: #ff6666; }
+  body.editing #edit-toggle { border-color: var(--red); color: var(--red); background: rgba(153,0,0,.15); }
+
+  /* ─── Edit banner ─── */
+  #edit-banner {
+    position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+    background: var(--red); color: var(--white);
+    padding: 5px 20px; border-radius: 3px;
+    font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 200;
+  }
+  body.editing #edit-banner { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="edit-banner">Edit Mode — click any text to change it</div>
+
+<div class="deck">
+
+  <!-- 1. Title (Front A layout — red bg, DTU logo top-left) -->
+  <div class="slide slide-title active">
+    <div class="title-logo-area">
+      <div class="dtu-logo">
+        <!-- DTU logo: letters + 3 wave marks (white on red) -->
+        <svg width="36" height="52" viewBox="0 0 494 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M68 31v200h23c10 0 17-2 21-9 8-9 8-26 8-62v-62c0-35-1-53-8-62-5-6-11-7-21-7H68zm-40-31h65c25 0 41 6 51 18 14 17 14 43 14 84v56c0 42 0 68-14 85-10 12-25 18-51 18H28c-2 0-3-1-4-1-1-1-2-3-2-5V5c0-2 1-3 2-5 1-1 2-1 4-1z" fill="white"/>
+          <path d="M184 0h123c2 0 3 1 4 1 1 2 2 3 2 5v22c0 2-1 3-2 5-1 1-2 1-4 1h-39v223c0 2-1 4-1 5-1 1-3 1-4 1h-33c-2 0-4 0-5-1-1-1-1-3-1-5V34h-40c-2 0-3 0-4-1-1-2-1-3-1-5V5c0-2 0-3 1-5 1-1 2-1 4-1z" fill="white"/>
+          <path d="M336 0h31c2 0 3 1 4 1 1 2 1 3 1 5v185c0 20 2 31 8 38 4 5 10 7 18 7 9 0 15-2 19-7 6-7 8-18 8-38V6c0-2 1-3 1-5 1-1 2-1 4-1h31c2 0 3 0 4 1 1 2 2 3 2 5v185c0 25-3 42-15 56-10 12-27 18-54 18-27 0-43-6-53-18-11-12-15-29-15-56V6c0-2 0-3 1-5 1-1 2-1 4-1z" fill="white"/>
+          <!-- Wave mark 1 -->
+          <path d="M105 337c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 392l105-55z" fill="white"/>
+          <!-- Wave mark 2 -->
+          <path d="M105 473c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 528l105-55z" fill="white" opacity=".75"/>
+          <!-- Wave mark 3 -->
+          <path d="M105 609c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 664l105-55z" fill="white" opacity=".5"/>
+        </svg>
+      </div>
+    </div>
+    <div class="title-body">
+      <p class="title-subtitle" contenteditable="false">DTU Master Thesis · Supervisor Meeting</p>
+      <h1 contenteditable="false">Agents with<br>Small Language<br>Models</h1>
+    </div>
+    <div class="title-footer">
+      <span class="footer-date" contenteditable="false">March 16, 2026</span>
+      <span class="footer-title" contenteditable="false">Paulo Beckhauser · s242779 · Supervisor: Nick</span>
+      <span class="footer-num">1 / 6</span>
+    </div>
+  </div>
+
+  <!-- 2. Context -->
+  <div class="slide slide-content">
+    <div class="content-top">
+      <div class="content-logo dtu-logo">
+        <svg width="28" height="40" viewBox="0 0 494 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M68 31v200h23c10 0 17-2 21-9 8-9 8-26 8-62v-62c0-35-1-53-8-62-5-6-11-7-21-7H68zm-40-31h65c25 0 41 6 51 18 14 17 14 43 14 84v56c0 42 0 68-14 85-10 12-25 18-51 18H28c-2 0-3-1-4-1-1-1-2-3-2-5V5c0-2 1-3 2-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M184 0h123c2 0 3 1 4 1 1 2 2 3 2 5v22c0 2-1 3-2 5-1 1-2 1-4 1h-39v223c0 2-1 4-1 5-1 1-3 1-4 1h-33c-2 0-4 0-5-1-1-1-1-3-1-5V34h-40c-2 0-3 0-4-1-1-2-1-3-1-5V5c0-2 0-3 1-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M336 0h31c2 0 3 1 4 1 1 2 1 3 1 5v185c0 20 2 31 8 38 4 5 10 7 18 7 9 0 15-2 19-7 6-7 8-18 8-38V6c0-2 1-3 1-5 1-1 2-1 4-1h31c2 0 3 0 4 1 1 2 2 3 2 5v185c0 25-3 42-15 56-10 12-27 18-54 18-27 0-43-6-53-18-11-12-15-29-15-56V6c0-2 0-3 1-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M105 337c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 392l105-55z" fill="#990000"/>
+          <path d="M105 473c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 528l105-55z" fill="#990000" opacity=".75"/>
+          <path d="M105 609c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 664l105-55z" fill="#990000" opacity=".5"/>
+        </svg>
+      </div>
+      <div class="content-title-area">
+        <span class="eyebrow">Context</span>
+        <h2 contenteditable="false">The core architecture challenge</h2>
+      </div>
+    </div>
+    <div class="title-rule"></div>
+    <div class="slide-body">
+      <div class="grid">
+        <div class="card blue">
+          <div class="card-num blue">&#x2B21;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Goal: efficient agentic architecture</div>
+            <div class="card-body" contenteditable="false">Design an architecture where a small language model can reason effectively and call the correct tools.</div>
+          </div>
+        </div>
+        <div class="card red">
+          <div class="card-num red">&#x2717;</div>
+          <div>
+            <div class="card-title" contenteditable="false">The problem with small models</div>
+            <div class="card-body" contenteditable="false">SLMs fail at structured output and tool selection out of the box — they hallucinate tool names, produce invalid JSON, and mis-reason about arguments.</div>
+          </div>
+        </div>
+        <div class="card green">
+          <div class="card-num green">&#x2713;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Reasoning correctly</div>
+            <div class="card-body" contenteditable="false">The model must decompose tasks, decide when to call a tool vs. respond directly, and chain multi-step reasoning without hallucinating intermediate steps.</div>
+          </div>
+        </div>
+        <div class="card green">
+          <div class="card-num green">&#x2713;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Calling the correct tools</div>
+            <div class="card-body" contenteditable="false">Select the right tool from a schema, produce valid arguments, and handle the result — all within constrained compute and latency budgets.</div>
+          </div>
+        </div>
+        <div class="card yellow">
+          <div class="card-num yellow">&#x25CE;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Efficiency constraints</div>
+            <div class="card-body" contenteditable="false">Target: sub-second tool-call latency on consumer hardware. No cloud inference — the model must run locally or on edge devices.</div>
+          </div>
+        </div>
+        <div class="card navy">
+          <div class="card-num navy">&rarr;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Research question</div>
+            <div class="card-body" contenteditable="false">Which combination of constrained decoding, fine-tuning, and inference optimizations closes the gap between SLMs and large frontier models on agentic benchmarks?</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-date">March 16, 2026</span>
+      <span class="footer-title">Agents with Small Language Models</span>
+      <span class="footer-num">2</span>
+    </div>
+  </div>
+
+  <!-- 3. Progress -->
+  <div class="slide slide-content">
+    <div class="content-top">
+      <div class="content-logo dtu-logo">
+        <svg width="28" height="40" viewBox="0 0 494 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M68 31v200h23c10 0 17-2 21-9 8-9 8-26 8-62v-62c0-35-1-53-8-62-5-6-11-7-21-7H68zm-40-31h65c25 0 41 6 51 18 14 17 14 43 14 84v56c0 42 0 68-14 85-10 12-25 18-51 18H28c-2 0-3-1-4-1-1-1-2-3-2-5V5c0-2 1-3 2-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M184 0h123c2 0 3 1 4 1 1 2 2 3 2 5v22c0 2-1 3-2 5-1 1-2 1-4 1h-39v223c0 2-1 4-1 5-1 1-3 1-4 1h-33c-2 0-4 0-5-1-1-1-1-3-1-5V34h-40c-2 0-3 0-4-1-1-2-1-3-1-5V5c0-2 0-3 1-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M336 0h31c2 0 3 1 4 1 1 2 1 3 1 5v185c0 20 2 31 8 38 4 5 10 7 18 7 9 0 15-2 19-7 6-7 8-18 8-38V6c0-2 1-3 1-5 1-1 2-1 4-1h31c2 0 3 0 4 1 1 2 2 3 2 5v185c0 25-3 42-15 56-10 12-27 18-54 18-27 0-43-6-53-18-11-12-15-29-15-56V6c0-2 0-3 1-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M105 337c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 392l105-55z" fill="#990000"/>
+          <path d="M105 473c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 528l105-55z" fill="#990000" opacity=".75"/>
+          <path d="M105 609c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 664l105-55z" fill="#990000" opacity=".5"/>
+        </svg>
+      </div>
+      <div class="content-title-area">
+        <span class="eyebrow">Progress</span>
+        <h2 contenteditable="false">What I've done since the last meeting</h2>
+      </div>
+    </div>
+    <div class="title-rule"></div>
+    <div class="slide-body">
+      <div class="grid">
+        <div class="card green">
+          <div class="card-num green">&#x2713;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Project plan submitted</div>
+            <div class="card-body" contenteditable="false">Motivation, background, research question and Gantt chart delivered.</div>
+          </div>
+        </div>
+        <div class="card green">
+          <div class="card-num green">&#x2713;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Literature reviewed</div>
+            <div class="card-body" contenteditable="false">Constrained decoding, LoRA/PEFT, quantization, pruning, knowledge distillation, RAG — all surveyed and documented.</div>
+          </div>
+        </div>
+        <div class="card green">
+          <div class="card-num green">&#x2713;</div>
+          <div>
+            <div class="card-title" contenteditable="false">PRD &amp; research docs completed</div>
+            <div class="card-body" contenteditable="false">Candidate models, optimization methods, benchmark datasets, success criteria all defined.</div>
+          </div>
+        </div>
+        <div class="card green">
+          <div class="card-num green">&#x2713;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Constrained decoding PoC built</div>
+            <div class="card-body" contenteditable="false">From-scratch on Qwen3-0.6B: 95%+ tool-call accuracy, 100% valid JSON. No ML frameworks in src/.</div>
+          </div>
+        </div>
+        <div class="card green">
+          <div class="card-num green">&#x2713;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Knowledge distillation exploration started</div>
+            <div class="card-body" contenteditable="false">Testing Claude → small model CoT trace distillation pipeline.</div>
+          </div>
+        </div>
+        <div class="card green">
+          <div class="card-num green">&#x2713;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Baseline established</div>
+            <div class="card-body" contenteditable="false">Unconstrained Qwen3-0.6B fails at structured output — confirms the hypothesis.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-date">March 16, 2026</span>
+      <span class="footer-title">Agents with Small Language Models</span>
+      <span class="footer-num">3</span>
+    </div>
+  </div>
+
+  <!-- 4. Problems -->
+  <div class="slide slide-content">
+    <div class="content-top">
+      <div class="content-logo dtu-logo">
+        <svg width="28" height="40" viewBox="0 0 494 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M68 31v200h23c10 0 17-2 21-9 8-9 8-26 8-62v-62c0-35-1-53-8-62-5-6-11-7-21-7H68zm-40-31h65c25 0 41 6 51 18 14 17 14 43 14 84v56c0 42 0 68-14 85-10 12-25 18-51 18H28c-2 0-3-1-4-1-1-1-2-3-2-5V5c0-2 1-3 2-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M184 0h123c2 0 3 1 4 1 1 2 2 3 2 5v22c0 2-1 3-2 5-1 1-2 1-4 1h-39v223c0 2-1 4-1 5-1 1-3 1-4 1h-33c-2 0-4 0-5-1-1-1-1-3-1-5V34h-40c-2 0-3 0-4-1-1-2-1-3-1-5V5c0-2 0-3 1-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M336 0h31c2 0 3 1 4 1 1 2 1 3 1 5v185c0 20 2 31 8 38 4 5 10 7 18 7 9 0 15-2 19-7 6-7 8-18 8-38V6c0-2 1-3 1-5 1-1 2-1 4-1h31c2 0 3 0 4 1 1 2 2 3 2 5v185c0 25-3 42-15 56-10 12-27 18-54 18-27 0-43-6-53-18-11-12-15-29-15-56V6c0-2 0-3 1-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M105 337c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 392l105-55z" fill="#990000"/>
+          <path d="M105 473c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 528l105-55z" fill="#990000" opacity=".75"/>
+          <path d="M105 609c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 664l105-55z" fill="#990000" opacity=".5"/>
+        </svg>
+      </div>
+      <div class="content-title-area">
+        <span class="eyebrow">Problems</span>
+        <h2 contenteditable="false">Challenges &amp; questions for Nick</h2>
+      </div>
+    </div>
+    <div class="title-rule"></div>
+    <div class="slide-body">
+      <div class="grid">
+        <div class="card red">
+          <div class="card-num red">?</div>
+          <div>
+            <div class="card-title" contenteditable="false">Scope: depth vs. breadth</div>
+            <div class="card-body" contenteditable="false">8 optimization methods planned. Go deep on 3–4 (CD + LoRA + KD + RAG) or cover all with shallower eval?</div>
+          </div>
+        </div>
+        <div class="card red">
+          <div class="card-num red">?</div>
+          <div>
+            <div class="card-title" contenteditable="false">Pruning trade-off</div>
+            <div class="card-body" contenteditable="false">Structured pruning risks degrading instruction-following. Full experiment or sanity check given the time budget?</div>
+          </div>
+        </div>
+        <div class="card red">
+          <div class="card-num red">?</div>
+          <div>
+            <div class="card-title" contenteditable="false">Benchmark strategy</div>
+            <div class="card-body" contenteditable="false">BFCL is primary target. Also build a custom eval set from the agent framework, or rely on public benchmarks only?</div>
+          </div>
+        </div>
+        <div class="card red">
+          <div class="card-num red">?</div>
+          <div>
+            <div class="card-title" contenteditable="false">Distillation data cost</div>
+            <div class="card-body" contenteditable="false">Generating CoT traces from Claude Opus / GPT-4 has API cost. Recommended approach for managing this?</div>
+          </div>
+        </div>
+        <div class="card red">
+          <div class="card-num red">?</div>
+          <div>
+            <div class="card-title" contenteditable="false">Compute resources</div>
+            <div class="card-body" contenteditable="false">Fine-tuning and distillation need more than my local GPU. What compute is available through DTU / the research group?</div>
+          </div>
+        </div>
+        <div class="card red">
+          <div class="card-num red">?</div>
+          <div>
+            <div class="card-title" contenteditable="false">Library vs. from-scratch decoding</div>
+            <div class="card-body" contenteditable="false">When composing with LoRA/quantized models, extend the custom implementation or switch to Outlines/Guidance?</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-date">March 16, 2026</span>
+      <span class="footer-title">Agents with Small Language Models</span>
+      <span class="footer-num">4</span>
+    </div>
+  </div>
+
+  <!-- 5. Implementation Order -->
+  <div class="slide slide-content">
+    <div class="content-top">
+      <div class="content-logo dtu-logo">
+        <svg width="28" height="40" viewBox="0 0 494 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M68 31v200h23c10 0 17-2 21-9 8-9 8-26 8-62v-62c0-35-1-53-8-62-5-6-11-7-21-7H68zm-40-31h65c25 0 41 6 51 18 14 17 14 43 14 84v56c0 42 0 68-14 85-10 12-25 18-51 18H28c-2 0-3-1-4-1-1-1-2-3-2-5V5c0-2 1-3 2-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M184 0h123c2 0 3 1 4 1 1 2 2 3 2 5v22c0 2-1 3-2 5-1 1-2 1-4 1h-39v223c0 2-1 4-1 5-1 1-3 1-4 1h-33c-2 0-4 0-5-1-1-1-1-3-1-5V34h-40c-2 0-3 0-4-1-1-2-1-3-1-5V5c0-2 0-3 1-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M336 0h31c2 0 3 1 4 1 1 2 1 3 1 5v185c0 20 2 31 8 38 4 5 10 7 18 7 9 0 15-2 19-7 6-7 8-18 8-38V6c0-2 1-3 1-5 1-1 2-1 4-1h31c2 0 3 0 4 1 1 2 2 3 2 5v185c0 25-3 42-15 56-10 12-27 18-54 18-27 0-43-6-53-18-11-12-15-29-15-56V6c0-2 0-3 1-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M105 337c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 392l105-55z" fill="#990000"/>
+          <path d="M105 473c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 528l105-55z" fill="#990000" opacity=".75"/>
+          <path d="M105 609c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 664l105-55z" fill="#990000" opacity=".5"/>
+        </svg>
+      </div>
+      <div class="content-title-area">
+        <span class="eyebrow">Methods</span>
+        <h2 contenteditable="false">Implementation Order</h2>
+      </div>
+    </div>
+    <div class="title-rule"></div>
+    <div class="slide-body">
+      <div class="grid">
+        <div class="card green">
+          <div class="card-num green">1</div>
+          <div>
+            <div class="card-title" contenteditable="false">Constrained Decoding</div>
+            <div class="card-body" contenteditable="false">Core thesis claim — PoC done. Run full BFCL eval to establish the baseline.</div>
+          </div>
+        </div>
+        <div class="card green">
+          <div class="card-num green">2</div>
+          <div>
+            <div class="card-title" contenteditable="false">Quantization</div>
+            <div class="card-body" contenteditable="false">No retraining — compress (AWQ INT4). Measure latency and quality delta on top of CD.</div>
+          </div>
+        </div>
+        <div class="card green">
+          <div class="card-num green">3</div>
+          <div>
+            <div class="card-title" contenteditable="false">Inference-Time Compute</div>
+            <div class="card-body" contenteditable="false">No retraining — CoT, ReAct prompting. Cheap to test, strong empirical backing for agentic tasks.</div>
+          </div>
+        </div>
+        <div class="card green">
+          <div class="card-num green">4</div>
+          <div>
+            <div class="card-title" contenteditable="false">RAG</div>
+            <div class="card-body" contenteditable="false">No retraining — retrieve relevant tool schemas at runtime. Reduces hallucination of tool names/args.</div>
+          </div>
+        </div>
+        <div class="card yellow">
+          <div class="card-num yellow">5</div>
+          <div>
+            <div class="card-title" contenteditable="false">LoRA / PEFT</div>
+            <div class="card-body" contenteditable="false">Requires training — teach tool-use patterns on ToolBench / Glaive. Highest direct impact.</div>
+          </div>
+        </div>
+        <div class="card yellow">
+          <div class="card-num yellow">6</div>
+          <div>
+            <div class="card-title" contenteditable="false">Knowledge Distillation</div>
+            <div class="card-body" contenteditable="false">Requires training — CoT traces from Claude Opus. Builds on the LoRA setup already in place.</div>
+          </div>
+        </div>
+        <div class="card red">
+          <div class="card-num red">7</div>
+          <div>
+            <div class="card-title" contenteditable="false">Pruning</div>
+            <div class="card-body" contenteditable="false">Risky — can degrade instruction-following. Evaluate only after the model is already performing well.</div>
+          </div>
+        </div>
+        <div class="card muted">
+          <div class="card-num muted">8</div>
+          <div>
+            <div class="card-title" contenteditable="false">Architecture</div>
+            <div class="card-body" contenteditable="false">Benchmarking only — compare pre-trained variants (Flash Attention, MoE). No modifications.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-date">March 16, 2026</span>
+      <span class="footer-title">Agents with Small Language Models</span>
+      <span class="footer-num">5</span>
+    </div>
+  </div>
+
+  <!-- 6. Plan -->
+  <div class="slide slide-content">
+    <div class="content-top">
+      <div class="content-logo dtu-logo">
+        <svg width="28" height="40" viewBox="0 0 494 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M68 31v200h23c10 0 17-2 21-9 8-9 8-26 8-62v-62c0-35-1-53-8-62-5-6-11-7-21-7H68zm-40-31h65c25 0 41 6 51 18 14 17 14 43 14 84v56c0 42 0 68-14 85-10 12-25 18-51 18H28c-2 0-3-1-4-1-1-1-2-3-2-5V5c0-2 1-3 2-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M184 0h123c2 0 3 1 4 1 1 2 2 3 2 5v22c0 2-1 3-2 5-1 1-2 1-4 1h-39v223c0 2-1 4-1 5-1 1-3 1-4 1h-33c-2 0-4 0-5-1-1-1-1-3-1-5V34h-40c-2 0-3 0-4-1-1-2-1-3-1-5V5c0-2 0-3 1-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M336 0h31c2 0 3 1 4 1 1 2 1 3 1 5v185c0 20 2 31 8 38 4 5 10 7 18 7 9 0 15-2 19-7 6-7 8-18 8-38V6c0-2 1-3 1-5 1-1 2-1 4-1h31c2 0 3 0 4 1 1 2 2 3 2 5v185c0 25-3 42-15 56-10 12-27 18-54 18-27 0-43-6-53-18-11-12-15-29-15-56V6c0-2 0-3 1-5 1-1 2-1 4-1z" fill="#990000"/>
+          <path d="M105 337c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 392l105-55z" fill="#990000"/>
+          <path d="M105 473c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 528l105-55z" fill="#990000" opacity=".75"/>
+          <path d="M105 609c136 53 147 53 284 0l105 55-105 55c-136-53-148-53-284 0L0 664l105-55z" fill="#990000" opacity=".5"/>
+        </svg>
+      </div>
+      <div class="content-title-area">
+        <span class="eyebrow">Plan</span>
+        <h2 contenteditable="false">What I'll work on for the next 4 weeks</h2>
+      </div>
+    </div>
+    <div class="title-rule"></div>
+    <div class="slide-body">
+      <div class="grid">
+        <div class="card orange">
+          <div class="card-num orange">&rarr;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Week 1–2 · Evaluation &amp; quantization</div>
+            <div class="card-body" contenteditable="false">Run constrained decoding on full BFCL set — establish CD baseline numbers. Quantize Qwen 2.5 7B (AWQ INT4) and measure quality delta.</div>
+          </div>
+        </div>
+        <div class="card orange">
+          <div class="card-num orange">&rarr;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Week 3–4 · LoRA fine-tuning</div>
+            <div class="card-body" contenteditable="false">Set up LoRA pipeline on ToolBench / Glaive function-calling dataset. Run CD+Q and CD+Q+FT configs and compare to baseline.</div>
+          </div>
+        </div>
+        <div class="card orange">
+          <div class="card-num orange">&#x270E;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Writing — starts now, runs in parallel</div>
+            <div class="card-body" contenteditable="false">Background and methodology chapters. Target: both drafted by Week 6.</div>
+          </div>
+        </div>
+        <div class="card blue">
+          <div class="card-num blue">&#x25C8;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Next milestone · Week 4</div>
+            <div class="card-body" contenteditable="false">CD+Q+FT results ready. Bring numbers + written methodology draft to next supervision meeting.</div>
+          </div>
+        </div>
+        <div class="card blue">
+          <div class="card-num blue">&#x2709;</div>
+          <div>
+            <div class="card-title" contenteditable="false">Do I need Nick's help between meetings?</div>
+            <div class="card-body" contenteditable="false">Yes — feedback on the methodology chapter draft before I go too far, and guidance on scope decision (problem #1).</div>
+          </div>
+        </div>
+        <div class="card blue">
+          <div class="card-num blue">&uarr;</div>
+          <div>
+            <div class="card-title" contenteditable="false">I'll send ahead of next meeting</div>
+            <div class="card-body" contenteditable="false">Methodology chapter draft + BFCL results table — 3–5 days before, so Nick has time to review.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-date">March 16, 2026</span>
+      <span class="footer-title">Agents with Small Language Models</span>
+      <span class="footer-num">6</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-left">
+    <span class="slide-count" id="counter">1 / 6</span>
+    <div class="pip-wrap" id="pips"></div>
+  </div>
+  <div class="nav-right">
+    <button id="edit-toggle" title="Press E to toggle">Edit</button>
+    <button id="save-btn" class="nav-btn" title="Ctrl+S" style="border-color:rgba(31,208,130,.4);color:rgba(31,208,130,.8)">&darr; Save HTML</button>
+    <button class="nav-btn" id="prev" onclick="go(-1)" disabled>&larr; Prev</button>
+    <button class="nav-btn" id="next" onclick="go(1)">Next &rarr;</button>
+  </div>
+</nav>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const n = slides.length;
+  let cur = 0;
+
+  // hide all cards initially (except title slide which has none)
+  slides.forEach((slide, si) => {
+    if (si === 0) return; // title slide — no cards
+    slide.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
+  });
+
+  // track how many cards are revealed per slide
+  const revealed = Array.from(slides).map(() => 0);
+
+  function cardsOf(si) { return Array.from(slides[si].querySelectorAll('.card')); }
+
+  function revealNext(si) {
+    const cards = cardsOf(si);
+    const r = revealed[si];
+    if (r < cards.length) {
+      cards[r].classList.remove('hidden');
+      revealed[si]++;
+      return true; // revealed a card, stay on slide
+    }
+    return false; // all cards shown
+  }
+
+  function resetSlide(si) {
+    if (si === 0) return;
+    cardsOf(si).forEach(c => c.classList.add('hidden'));
+    revealed[si] = 0;
+  }
+
+  const pipWrap = document.getElementById('pips');
+  slides.forEach((_, i) => {
+    const b = document.createElement('button');
+    b.className = 'pip' + (i === 0 ? ' active' : '');
+    b.title = `Slide ${i + 1}`;
+    b.onclick = () => jumpTo(i);
+    pipWrap.appendChild(b);
+  });
+
+  function updateNav() {
+    const cards = cardsOf(cur);
+    const allShown = revealed[cur] >= cards.length;
+    document.getElementById('prev').disabled = cur === 0;
+    document.getElementById('next').disabled = cur === n - 1 && allShown;
+    document.getElementById('counter').textContent = (cur + 1) + ' / ' + n;
+    document.getElementById('progress').style.width = ((cur + 1) / n * 100) + '%';
+    document.querySelectorAll('.pip').forEach((p, j) => p.classList.toggle('active', j === cur));
+  }
+
+  function showSlide(i, revealAll) {
+    slides[cur].classList.remove('active');
+    slides[cur].classList.add('exit');
+    setTimeout(() => slides[cur].classList.remove('exit'), 320);
+    cur = i;
+    slides[cur].classList.add('active');
+    if (revealAll) {
+      // reveal all cards at once when jumping via pip
+      cardsOf(cur).forEach(c => c.classList.remove('hidden'));
+      revealed[cur] = cardsOf(cur).length;
+    }
+    updateNav();
+  }
+
+  function jumpTo(i) {
+    // reset slides we're skipping past
+    for (let s = i + 1; s < n; s++) resetSlide(s);
+    showSlide(i, true);
+  }
+
+  function go(d) {
+    if (d > 0) {
+      // try to reveal next card first
+      if (revealNext(cur)) { updateNav(); return; }
+      // all cards shown — move to next slide
+      if (cur + 1 < n) showSlide(cur + 1, false);
+    } else {
+      // going back always resets current slide and goes to previous
+      resetSlide(cur);
+      if (cur - 1 >= 0) showSlide(cur - 1, true);
+    }
+  }
+
+  // reveal first card of title slide equivalent (title has no cards, so just show it)
+  document.getElementById('progress').style.width = (1 / n * 100) + '%';
+  updateNav();
+
+  const editToggle = document.getElementById('edit-toggle');
+  function setEditing(on) {
+    document.body.classList.toggle('editing', on);
+    document.querySelectorAll('[contenteditable]').forEach(el => {
+      el.contentEditable = on ? 'true' : 'false';
+    });
+    editToggle.textContent = on ? 'Done' : 'Edit';
+  }
+  editToggle.onclick = () => setEditing(!document.body.classList.contains('editing'));
+
+  // ── Persist edits ──
+  const STORAGE_KEY = 'dtu-slides-content';
+
+  function allEditables() {
+    return document.querySelectorAll('[contenteditable]');
+  }
+
+  function saveToStorage() {
+    const data = {};
+    allEditables().forEach((el, i) => { data[i] = el.innerHTML; });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function loadFromStorage() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    allEditables().forEach((el, i) => {
+      if (data[i] !== undefined) el.innerHTML = data[i];
+    });
+  }
+
+  // auto-save on every edit
+  document.addEventListener('input', e => {
+    if (e.target.getAttribute('contenteditable') === 'true') saveToStorage();
+  });
+
+  // restore on load
+  loadFromStorage();
+
+  // ── Download updated HTML ──
+  document.getElementById('save-btn').addEventListener('click', () => {
+    // temporarily make all elements non-editable in the clone
+    const clone = document.documentElement.cloneNode(true);
+    clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    // remove editing state
+    clone.querySelector('body').classList.remove('editing');
+    const html = '<!DOCTYPE html>\n' + clone.outerHTML;
+    const blob = new Blob([html], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'meeting-nick-16-march-2026.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.target.getAttribute('contenteditable') === 'true') return;
+    if (['ArrowRight', 'ArrowDown', ' '].includes(e.key)) { e.preventDefault(); go(1); }
+    if (['ArrowLeft', 'ArrowUp'].includes(e.key)) { e.preventDefault(); go(-1); }
+    if (e.key === 'e' || e.key === 'E') setEditing(!document.body.classList.contains('editing'));
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); document.getElementById('save-btn').click(); }
+  });
+</script>
+</body>
+</html>

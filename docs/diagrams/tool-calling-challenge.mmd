@@ -1,0 +1,75 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#1a1a2e',
+    'primaryTextColor': '#e0e0e0',
+    'primaryBorderColor': '#4a4a6a',
+    'lineColor': '#6c63ff',
+    'secondaryColor': '#16213e',
+    'tertiaryColor': '#0f3460',
+    'fontSize': '14px'
+  }
+}}%%
+
+flowchart LR
+    subgraph INPUT["<b>User Prompt</b>"]
+        P["&quot;What is the weather in Copenhagen<br/>and convert 20°C to Fahrenheit?&quot;"]
+    end
+
+    subgraph REASONING["<b>1. Reasoning &amp; Task Decomposition</b>"]
+        direction LR
+        R1["Parse intent"]
+        R2["Identify sub-tasks"]
+        R3["Determine execution order"]
+        R1 --> R2 --> R3
+
+        F1["<b>SLM Failure Modes</b><br/>Misinterprets intent<br/>Misses sub-tasks<br/>Hallucinates steps"]
+    end
+
+    subgraph SELECTION["<b>2. Tool Selection</b>"]
+        direction LR
+        S1["Match task to<br/>available tools"]
+        S2["Select correct<br/>function name"]
+
+        TOOLS["<b>Tool Schema</b><br/>get_weather(city: str)<br/>convert_temp(value: float, to: str)<br/>send_email(to: str, body: str)<br/>search_web(query: str)<br/>...20 more tools"]
+
+        S1 --> S2
+
+        F2["<b>SLM Failure Modes</b><br/>Hallucinated tool names<br/>Selects wrong tool<br/>Calls unnecessary tools"]
+    end
+
+    subgraph GENERATION["<b>3. Argument Generation</b>"]
+        direction LR
+        G1["Generate structured<br/>JSON output"]
+        G2["Populate typed<br/>arguments"]
+
+        OUTPUT["<b>Expected Output</b><br/>{&quot;name&quot;: &quot;get_weather&quot;,<br/> &quot;args&quot;: {&quot;city&quot;: &quot;Copenhagen&quot;}}<br/>{&quot;name&quot;: &quot;convert_temp&quot;,<br/> &quot;args&quot;: {&quot;value&quot;: 20, &quot;to&quot;: &quot;F&quot;}}"]
+
+        G1 --> G2
+
+        F3["<b>SLM Failure Modes</b><br/>Invalid JSON syntax<br/>Wrong argument types<br/>Missing required fields<br/>Extra hallucinated fields"]
+    end
+
+    INPUT --> REASONING
+    REASONING --> SELECTION
+    SELECTION --> GENERATION
+
+    R3 -.-> F1
+    S2 -.-> F2
+    G2 -.-> F3
+
+    S1 -.-> TOOLS
+    G2 -.-> OUTPUT
+
+    classDef inputStyle fill:#1a1a2e,stroke:#6c63ff,stroke-width:2px,color:#e0e0e0
+    classDef stageStyle fill:#16213e,stroke:#4a4a6a,stroke-width:1px,color:#e0e0e0
+    classDef failStyle fill:#3a0a0a,stroke:#ff4444,stroke-width:2px,color:#ff8888
+    classDef toolStyle fill:#0a2a0a,stroke:#44ff44,stroke-width:1px,color:#88ff88
+    classDef outputStyle fill:#0a0a3a,stroke:#4488ff,stroke-width:1px,color:#88bbff
+    classDef subgraphStyle fill:#0d1117,stroke:#4a4a6a,stroke-width:2px,color:#e0e0e0
+
+    class P inputStyle
+    class R1,R2,R3,S1,S2,G1,G2 stageStyle
+    class F1,F2,F3 failStyle
+    class TOOLS toolStyle
+    class OUTPUT outputStyle
