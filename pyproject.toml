@@ -1,5 +1,5 @@
 [project]
-name = "small-llms-agents"
+name = "slm-agents"
 version = "0.1.0"
 description = "Explores how small language models can be integrated into agentic systems, with a focus on capabilities, limitations, and practical design choices."
 readme = "README.md"

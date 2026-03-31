@@ -1,4 +1,4 @@
-# Agents with Small Language Models
+# SLM Agents
 
 DTU Master Thesis investigating which optimization techniques enable Small Language Models (SLMs) to perform reliable tool calling and agentic reasoning on consumer hardware.
 
@@ -12,7 +12,7 @@ Frontier models (Claude Opus, GPT-4) handle tool calling well but require cloud 
 
 ## Approach
 
-Apply optimization methods incrementally, measuring each one's impact on tool-calling accuracy:
+Each optimization method expands the boundary of what a local SLM can handle reliably in a cascade architecture, reducing dependence on expensive frontier models:
 
 1. **Constrained Decoding** - Force valid JSON output via logit masking (PoC complete, 95%+ accuracy on Qwen3-0.6B)
 2. **Quantization** - AWQ INT4 compression for reduced memory/latency
@@ -27,31 +27,19 @@ Evaluated on [BFCL (Berkeley Function Calling Leaderboard)](https://gorilla.cs.b
 ## Project Structure
 
 ```
-thesis/
-  small-llms/               # Codebase: constrained decoding and experiments
-    src/                     # Implementation
-    data/                    # Input/output datasets
-    notebooks/               # Experiment notebooks
-  methods/                   # One folder per optimization method
-    constrained-decoding/
-    quantization/
-    inference-time-compute/
-    rag/
-    lora-peft/
-    pruning/
-    architecture/
-  docs/                      # Research, architecture, meeting notes
-    research/                # Literature and analysis
-    architecture/            # ADRs and design docs
-    meetings/                # Supervisor meeting slides
-  project_plan/              # Time plan and bibliography
-  thesis-written-document/   # LaTeX thesis document
+src/                       # Constrained decoding pipeline
+llm_sdk/                   # Model wrapper (Small_LLM_Model)
+scripts/                   # HPC job scripts, evaluation scripts
+data/                      # Input/output datasets
+notebooks/                 # Experiment notebooks
+docs/                      # Research, planning, decisions
+project_plan/              # Formal project plan and bibliography
+thesis/                    # LaTeX thesis document
 ```
 
 ## Setup
 
 ```bash
-cd small-llms
 uv sync
 ```
 
@@ -65,16 +53,8 @@ source .env
 ### Run constrained decoding PoC
 
 ```bash
-cd small-llms
 uv run python -m src
 ```
-
-## Key Documents
-
-- [PRD.md](PRD.md) - Product requirements and experimental design
-- [status.md](status.md) - Current progress on all methods
-- [docs/implementation-order.md](docs/implementation-order.md) - Method implementation order
-- [docs/PRD.md](docs/PRD.md) - Detailed method-level specifications
 
 ## Supervisor
 

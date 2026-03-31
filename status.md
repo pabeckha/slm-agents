@@ -8,18 +8,60 @@
 
 ---
 
+## Task
+
+ReAct agent loop: reason → call tool → observe result → repeat. Evaluated on BFCL Simple (single-call) and τ-bench (multi-step agentic).
+
+## Models
+
+| Model | Size | Role |
+|-------|------|------|
+| **Qwen 2.5 7B** | 7B | Primary |
+| Qwen3-0.6B | 0.6B | Stretch goal |
+| Phi-4 Mini | 3.8B | Stretch goal |
+
 ## Methods
 
 | # | Method | Status | Phase | Notes |
 |---|--------|--------|-------|-------|
-| 1 | Constrained Decoding | **Done** | No retraining | PoC built from scratch on Qwen3-0.6B. 95%+ tool-call accuracy, 100% valid JSON. Full BFCL eval pending. |
-| 2 | Quantization | **Not started** | No retraining | AWQ INT4 compression. Measure latency and quality delta on top of CD. |
-| 3 | Inference-Time Compute | **Not started** | No retraining | CoT, ReAct prompting. Cheap to test, strong empirical backing. |
-| 4 | RAG | **Not started** | No retraining | Retrieve relevant tool schemas at runtime. Reduces hallucination of tool names/args. |
-| 5 | LoRA / PEFT | **Not started** | Requires training | Fine-tune on ToolBench / Glaive function-calling data. Highest expected direct impact. |
-| 6 | Knowledge Distillation | **Out of scope** | Requires training | CoT traces from Claude Opus. Removed due to API cost, time constraints, and marginal benefit over LoRA alone. |
-| 7 | Pruning | **Not started** | Requires training | Risky for instruction-following. Evaluate only after model performs well. |
-| 8 | Architecture | **Not started** | Benchmarking only | Compare pre-trained variants (Flash Attention, MoE, GQA). No modifications. |
+| 0 | Baseline | **Not started** | Reference | Raw model, no optimization |
+| 1 | Prompt Engineering / Few-shot | **Not started** | No training | Cheapest improvement |
+| 2 | Constrained Decoding | **PoC done** | No training | 95%+ accuracy on Qwen3-0.6B (single-shot). Needs redesign for ReAct hybrid mode. |
+| 3 | Inference-Time Compute (CoT/ReAct) | **Not started** | No training | Improves reasoning in agent loop |
+| 4 | RAG | **Not started** | No training | Retrieves relevant tool schemas |
+| 5 | Quantization (AWQ INT4) | **Not started** | No training | Fits larger models on hardware |
+| 6 | LoRA / PEFT | **Not started** | Training | Highest expected impact |
+
+## Experiment Configs (Ablation)
+
+| Config | What it isolates |
+|--------|-----------------|
+| B | Raw model baseline |
+| PE | Prompt engineering alone |
+| CD | Constrained decoding alone |
+| FT | LoRA alone |
+| CD+FT | CD + LoRA compounding |
+| CD+Q+FT | + Quantization impact |
+| CD+Q+FT+ITC | + CoT/ReAct reasoning |
+| CD+Q+FT+RAG | + RAG tool retrieval |
+| CD+Q+FT+ITC+RAG | Full stack |
+
+## Metrics
+
+- **BFCL Simple:** AST accuracy (primary)
+- **τ-bench:** Task success rate (primary)
+- **Secondary:** Per-step tool accuracy, failure mode breakdown, latency, memory
+
+## Frontier Baselines
+
+Claude Sonnet 4.6, GPT-4.1 (fixed reference lines)
+
+## Success Criteria
+
+- ≥85% AST accuracy on BFCL Simple (best config)
+- Within 15% of Sonnet 4.6 on τ-bench (best config)
+- <2% format errors with constrained decoding
+- Runs on single RTX 4090 (24GB VRAM)
 
 ---
 
@@ -29,55 +71,20 @@
 |-----------|--------|--------|
 | Literature review | March 2026 | **Done** |
 | PRD and research docs | March 2026 | **Done** |
-| Constrained decoding PoC | March 2026 | **Done** |
-| Full BFCL eval (CD baseline) | Week 1-2 (April) | **Not started** |
-| Quantization (AWQ INT4) | Week 1-2 (April) | **Not started** |
-| LoRA fine-tuning pipeline | Week 3-4 (April) | **Not started** |
-| CD+Q+FT results | Week 4 (April) | **Not started** |
-| Background chapter draft | Week 6 | **Not started** |
-| Methodology chapter draft | Week 6 | **Not started** |
-
----
-
-## Experiment Configurations
-
-```
-B                    Baseline (no optimization)
-  |
-CD                   + Constrained Decoding
-  |
-CD+Q                 + Quantization (AWQ INT4)
-  |
-CD+Q+ITC             + Inference-Time Compute (CoT / ReAct)
-  |
-CD+Q+RAG             + RAG (tool-definition retrieval)
-  |
-CD+Q+FT              + LoRA Fine-tuning
-  |
-CD+Q+FT+RAG          + LoRA + RAG
-  |
-Compare all vs. Claude Opus / GPT-4 on BFCL
-```
-
----
-
-## Candidate Models
-
-| Model | Size | Notes |
-|-------|------|-------|
-| Qwen3-0.6B | 0.6B | Current PoC model |
-| Phi-4 Mini | 3.8B | Strong reasoning for size |
-| Llama 3.2 | 3B / 8B | Tool-use fine-tuned variants available |
-| Qwen 2.5 | 3B / 7B | Strong instruction following |
-| Gemma 3 | 4B | Efficient architecture |
-| SmolLM2 | 1.7B | Extreme edge case |
+| Constrained decoding PoC (single-shot) | March 2026 | **Done** |
+| Experiment spec | March 2026 | **Done** |
+| vLLM serving on HPC + BFCL eval + τ-bench setup | Week 1 (April) | **Not started** |
+| Baseline + PE + CD on BFCL | Week 2 (April) | **Not started** |
+| τ-bench integration + CoT/ReAct + RAG | Week 3 (April) | **Not started** |
+| LoRA fine-tuning + Quantization | Week 4 (April) | **Not started** |
+| Ablation runs (all configs × model) | Week 5 (May) | **Not started** |
+| Frontier baselines + analysis + writing | Week 6 (May) | **Not started** |
 
 ---
 
 ## Open Questions
 
-- Depth vs. breadth: go deep on 3-4 methods (CD + LoRA + RAG) or cover all with shallower eval?
-- Which pruning method degrades tool-call accuracy the least?
-- Can constrained decoding compensate for a model not fine-tuned on tool-use data?
 - What is the minimum model size that achieves acceptable tool-call accuracy with full optimization?
-- Compute resources: what GPU access is available through DTU?
+- Can constrained decoding compensate for a model not fine-tuned on tool-use data?
+- Compute resources: what GPU access is available through DTU HPC?
+- LoRA training data: Glaive (single-turn) + small synthetic ReAct traces from frontier API. Budget TBD.
