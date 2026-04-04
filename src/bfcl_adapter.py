@@ -121,7 +121,7 @@ def _resolve_checker_model_name(model_name: str) -> str:
 
     escaped = model_name.replace("_", "/")
     if escaped in MODEL_CONFIG_MAPPING:
-        return model_name
+        return escaped
 
     # Pick first registered Qwen model as a safe fallback.
     for key in MODEL_CONFIG_MAPPING:
