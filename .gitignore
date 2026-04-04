@@ -8,6 +8,9 @@
 CLAUDE.md
 PRD.md
 
+# Local tooling
+PB-AI-tooling/
+
 # Model weights and checkpoints
 *.bin
 *.safetensors
@@ -20,6 +23,10 @@ checkpoints/
 # HPC
 slurm-*.out
 *.job.log
+logs/
+
+# Vendor (cloned benchmark repos)
+vendor/
 
 # Hugging Face cache
 .cache/

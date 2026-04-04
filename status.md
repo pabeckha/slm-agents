@@ -1,6 +1,6 @@
 # Thesis Status
 
-**Last updated:** 2026-03-31
+**Last updated:** 2026-04-03
 
 ## Research Question
 
@@ -73,7 +73,7 @@ Claude Sonnet 4.6, GPT-4.1 (fixed reference lines)
 | PRD and research docs | March 2026 | **Done** |
 | Constrained decoding PoC (single-shot) | March 2026 | **Done** |
 | Experiment spec | March 2026 | **Done** |
-| vLLM serving on HPC + BFCL eval + τ-bench setup | Week 1 (April) | **Not started** |
+| vLLM serving on HPC + BFCL eval + τ-bench setup | Week 1 (April) | **In progress** |
 | Baseline + PE + CD on BFCL | Week 2 (April) | **Not started** |
 | τ-bench integration + CoT/ReAct + RAG | Week 3 (April) | **Not started** |
 | LoRA fine-tuning + Quantization | Week 4 (April) | **Not started** |
@@ -82,9 +82,19 @@ Claude Sonnet 4.6, GPT-4.1 (fixed reference lines)
 
 ---
 
+## HPC Infrastructure
+
+- **Scheduler:** LSF (bsub), not SLURM
+- **GPU queues:** gpua100, gpuv100, gpua10, gpua40, gpul40s
+- **Python:** module `python3/3.12.11` (system Python 3.9 too old)
+- **CUDA:** module `cuda/12.6.3` (only available on GPU nodes)
+- **Setup:** Two-step — login node (clone repos, basic deps) then GPU node job (vLLM + flash-attn)
+- **Scripts:** `scripts/hpc/setup_bfcl.sh` (login), `setup_gpu.sh` (GPU), `run_poc.sh`, `run_bfcl.sh`
+- **GitHub issue:** #1 — HPC infrastructure setup & BFCL baseline evaluation
+
 ## Open Questions
 
 - What is the minimum model size that achieves acceptable tool-call accuracy with full optimization?
 - Can constrained decoding compensate for a model not fine-tuned on tool-use data?
-- Compute resources: what GPU access is available through DTU HPC?
+- ~~Compute resources: what GPU access is available through DTU HPC?~~ Answered: A100, V100, A10, A40, L40S via LSF queues
 - LoRA training data: Glaive (single-turn) + small synthetic ReAct traces from frontier API. Budget TBD.
