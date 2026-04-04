@@ -107,6 +107,44 @@ def format_result_python(fc: FunctionCall) -> str:
 # ── Evaluation ───────────────────────────────────────────────────────────
 
 
+def _resolve_checker_model_name(model_name: str) -> str:
+    """Return a model name recognised by BFCL's ast_checker.
+
+    The checker looks up *model_name* in ``MODEL_CONFIG_MAPPING`` to decide
+    whether to convert dots in function names to underscores.  Models not in
+    that mapping (e.g. Qwen2.5-7B-Instruct) cause a ``KeyError``.
+
+    We fall back to a known registered Qwen entry with the same
+    ``underscore_to_dot=False`` behaviour so the checker runs without
+    modification.  If no compatible registered model is available, raise
+    ``KeyError`` instead of returning an unregistered model name.
+    """
+    from bfcl_eval.constants.model_config import MODEL_CONFIG_MAPPING
+
+    escaped = model_name.replace("_", "/")
+    if escaped in MODEL_CONFIG_MAPPING:
+        return escaped
+
+    # Prefer deterministic known-safe Qwen fallbacks if BFCL has them.
+    for key in (
+        "Qwen/Qwen2.5-7B-Instruct",
+        "Qwen/Qwen2-7B-Instruct",
+        "Qwen/Qwen1.5-7B-Chat",
+    ):
+        if key in MODEL_CONFIG_MAPPING:
+            return key
+
+    # Otherwise, deterministically choose a registered Qwen model.
+    qwen_keys = sorted(key for key in MODEL_CONFIG_MAPPING if "Qwen" in key)
+    if qwen_keys:
+        return qwen_keys[0]
+
+    raise KeyError(
+        f"Model {model_name!r} is not registered in BFCL MODEL_CONFIG_MAPPING "
+        "and no safe Qwen fallback is available."
+    )
+
+
 def evaluate(
     results: list[dict],
     answers: dict[str, list],
@@ -120,6 +158,8 @@ def evaluate(
     """
     from bfcl_eval.eval_checker.ast_eval.ast_checker import ast_checker
     from bfcl_eval.constants.enums import Language
+
+    checker_model = _resolve_checker_model_name(model_name)
 
     correct = 0
     total = len(results)
@@ -135,7 +175,7 @@ def evaluate(
             possible_answer=ground_truth,
             language=Language.PYTHON,
             test_category=category,
-            model_name=model_name,
+            model_name=checker_model,
         )
 
         if checker_result["valid"]:
