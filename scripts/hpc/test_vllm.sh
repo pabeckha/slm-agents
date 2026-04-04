@@ -75,17 +75,18 @@ fi
 
 # ── Test 1: Basic completion ─────────────────────────────────────────
 echo "=== Test 1: Basic completion ==="
-curl -s "http://localhost:${VLLM_PORT}/v1/chat/completions" \
+curl -sf "http://localhost:${VLLM_PORT}/v1/chat/completions" \
     -H "Content-Type: application/json" \
     -d '{
         "model": "'"$MODEL"'",
         "messages": [{"role": "user", "content": "Say hello in one sentence."}],
         "max_tokens": 50
-    }' | python3 -m json.tool
+    }' > /tmp/test1_response.json
+python3 -m json.tool /tmp/test1_response.json
 
 # ── Test 2: Tool call ────────────────────────────────────────────────
 echo "=== Test 2: Tool call ==="
-curl -s "http://localhost:${VLLM_PORT}/v1/chat/completions" \
+curl -sf "http://localhost:${VLLM_PORT}/v1/chat/completions" \
     -H "Content-Type: application/json" \
     -d '{
         "model": "'"$MODEL"'",
@@ -105,7 +106,8 @@ curl -s "http://localhost:${VLLM_PORT}/v1/chat/completions" \
             }
         }],
         "max_tokens": 200
-    }' | python3 -m json.tool
+    }' > /tmp/test2_response.json
+python3 -m json.tool /tmp/test2_response.json
 
 # ── Cleanup ──────────────────────────────────────────────────────────
 echo "=== Stopping vLLM ==="
