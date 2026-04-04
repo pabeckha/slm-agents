@@ -55,7 +55,7 @@ uv run --group hpc python -m vllm.entrypoints.openai.api_server \
 VLLM_PID=$!
 
 echo "Waiting for vLLM server (PID $VLLM_PID) ..."
-for i in $(seq 1 180); do
+for i in $(seq 1 1800); do
     if curl -s "http://localhost:${VLLM_PORT}/health" > /dev/null 2>&1; then
         echo "vLLM ready after ${i}s"
         break

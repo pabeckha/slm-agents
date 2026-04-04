@@ -15,6 +15,9 @@ _TYPE_MAP = {
     "string": "string",
     "boolean": "boolean",
     "integer": "integer",
+    "float": "number",
+    "array": "array",
+    "dict": "object",
 }
 
 
@@ -38,10 +41,12 @@ def _build_args_json_schema(func: FunctionDef) -> dict:
         json_type = _TYPE_MAP.get(param.type, "string")
         properties[name] = {"type": json_type}
 
+    required = func.required if func.required is not None else list(func.parameters.keys())
+
     return {
         "type": "object",
         "properties": properties,
-        "required": list(func.parameters.keys()),
+        "required": required,
         "additionalProperties": False,
     }
 

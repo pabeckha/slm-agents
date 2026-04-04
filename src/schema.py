@@ -30,6 +30,7 @@ class FunctionDef(BaseModel):
     description: str
     parameters: dict[str, FunctionParameter]
     returns: FunctionParameter
+    required: list[str] | None = None
 
     @property
     def arg_names(self) -> list[str]:
