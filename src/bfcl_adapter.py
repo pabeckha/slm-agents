@@ -107,6 +107,29 @@ def format_result_python(fc: FunctionCall) -> str:
 # ── Evaluation ───────────────────────────────────────────────────────────
 
 
+def _resolve_checker_model_name(model_name: str) -> str:
+    """Return a model name recognised by BFCL's ast_checker.
+
+    The checker looks up *model_name* in ``MODEL_CONFIG_MAPPING`` to decide
+    whether to convert dots in function names to underscores.  Models not in
+    that mapping (e.g. Qwen2.5-7B-Instruct) cause a ``KeyError``.
+
+    We fall back to a known Qwen entry with the same ``underscore_to_dot=False``
+    behaviour so the checker runs without modification.
+    """
+    from bfcl_eval.constants.model_config import MODEL_CONFIG_MAPPING
+
+    escaped = model_name.replace("_", "/")
+    if escaped in MODEL_CONFIG_MAPPING:
+        return model_name
+
+    # Pick first registered Qwen model as a safe fallback.
+    for key in MODEL_CONFIG_MAPPING:
+        if "Qwen" in key:
+            return key
+    return model_name
+
+
 def evaluate(
     results: list[dict],
     answers: dict[str, list],
@@ -120,6 +143,8 @@ def evaluate(
     """
     from bfcl_eval.eval_checker.ast_eval.ast_checker import ast_checker
     from bfcl_eval.constants.enums import Language
+
+    checker_model = _resolve_checker_model_name(model_name)
 
     correct = 0
     total = len(results)
@@ -135,7 +160,7 @@ def evaluate(
             possible_answer=ground_truth,
             language=Language.PYTHON,
             test_category=category,
-            model_name=model_name,
+            model_name=checker_model,
         )
 
         if checker_result["valid"]:

@@ -27,6 +27,7 @@ hpc = [
   "vllm==0.8.5",
   "transformers>=4.40,<5",
   "bfcl-eval",
+  "soundfile>=0.13",
 ]
 
 [tool.uv.sources]

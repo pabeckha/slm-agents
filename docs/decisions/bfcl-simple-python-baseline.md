@@ -45,14 +45,14 @@ All 400 test cases selected the correct function name. Zero function selection e
 
 | Criterion | Target | Current | Gap |
 |-----------|--------|---------|-----|
-| BFCL Simple AST accuracy | ≥85% | ~70.8% | ~14.2 points |
+| BFCL Simple AST accuracy | ≥85% | 72.8% | 12.2 points |
 
 ## Implications for Thesis (RQ1, RQ2)
 
 ### RQ1 (Baseline gap)
-- Qwen 2.5 7B with basic constrained decoding achieves ~70.8% on BFCL simple_python
+- Qwen 2.5 7B with basic constrained decoding achieves 72.8% on BFCL simple_python (official ast_checker)
 - Frontier models (GPT-4, Claude) score 85-95%+ on this benchmark
-- **Gap to close: ~15-25 points** depending on the frontier baseline
+- **Gap to close: ~12-22 points** depending on the frontier baseline
 
 ### RQ2 (Marginal impact of each technique)
 The failure patterns suggest which methods will help most:
@@ -84,10 +84,26 @@ Many failures come from optional params being filled incorrectly. Updating `bfcl
 
 **Conclusion**: The optional params fix is architecturally correct but doesn't impact accuracy. The remaining failures are about the model's understanding of expected values, not about schema enforcement.
 
+## Experiment 3: Official ast_checker Score (job 28142188)
+
+**Change**: Ran full 400-case eval with BFCL's `ast_checker` via `src.bfcl_adapter`. Fixed float type coercion (`int` → `float` for params typed `"float"`), added `soundfile` dependency (required by `qwen_agent` transitive import in `bfcl-eval`), and added `_resolve_checker_model_name()` to handle models not registered in BFCL's `MODEL_CONFIG_MAPPING`.
+
+**Official AST accuracy: 72.8% (291/400)**
+
+Slightly higher than the manual estimate (70.8%) — the ast_checker is more lenient on some string comparisons and type coercion.
+
+### Updated failure breakdown (109 failures)
+
+| Category | Example | Root Cause |
+|----------|---------|------------|
+| Wrong default/optional value | `root_type=''` expected `'all'` | Model fills wrong value for optional params |
+| Nested type mismatch | `interval: [1, 3]` expected `[1.0, 3.0]` | Array element types not coerced |
+| String format mismatch | `"kilometers/hour"` vs `"km/h"` | Model uses full words |
+| Numeric precision | `9.8` vs `9.81`, `8987551792.3` vs `8990000000.0` | Model uses approximate values |
+| Location format | `"New York"` vs `"New York, NY"` | Missing qualifier |
+
 ## Next Steps
 
-1. Fix optional parameter handling in `bfcl_adapter.py` — only include `required` params in JSON schema
-2. Get official BFCL `ast_checker` score (job 28142010 pending)
-3. Run with few-shot prompting to fix format issues
-4. Establish frontier baseline (Claude Sonnet on same test set)
-5. Run LoRA fine-tuning experiment
+1. Run with few-shot prompting to fix format issues
+2. Establish frontier baseline (Claude Sonnet on same test set)
+3. Run LoRA fine-tuning experiment

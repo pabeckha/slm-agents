@@ -23,6 +23,9 @@
 # Exit on error
 set -e
 
+cleanup() { [ -n "${VLLM_PID:-}" ] && kill "$VLLM_PID" 2>/dev/null && wait "$VLLM_PID" 2>/dev/null || true; }
+trap cleanup EXIT INT TERM
+
 # Load HPC modules
 module load python3/3.12.11
 module load cuda/12.6.3
@@ -61,7 +64,7 @@ VLLM_PID=$!
 
 # Wait for vLLM to be ready
 echo "Waiting for vLLM server (PID $VLLM_PID) ..."
-for i in $(seq 1 120); do
+for i in $(seq 1 1800); do
     if curl -s "http://localhost:${VLLM_PORT}/health" > /dev/null 2>&1; then
         echo "vLLM ready after ${i}s"
         break
@@ -74,7 +77,7 @@ for i in $(seq 1 120); do
 done
 
 if ! curl -s "http://localhost:${VLLM_PORT}/health" > /dev/null 2>&1; then
-    echo "ERROR: vLLM failed to start within 120s"
+    echo "ERROR: vLLM failed to start within 1800s"
     kill "$VLLM_PID" 2>/dev/null
     exit 1
 fi
