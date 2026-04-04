@@ -1,6 +1,6 @@
 #!/bin/sh
 ### -- Job name --
-#BSUB -J slm_vllm_backend
+#BSUB -J bfcl_eval
 ### -- GPU queue --
 #BSUB -q gpua100
 ### -- 1 GPU --
@@ -11,10 +11,10 @@
 #BSUB -R "rusage[mem=8GB]"
 #BSUB -M 8GB
 ### -- Wall time --
-#BSUB -W 01:00
+#BSUB -W 02:00
 ### -- Output --
-#BSUB -o logs/vllm_backend_%J.out
-#BSUB -eo logs/vllm_backend_%J.err
+#BSUB -o logs/bfcl_eval_%J.out
+#BSUB -eo logs/bfcl_eval_%J.err
 #BSUB -B
 #BSUB -N
 
@@ -31,6 +31,7 @@ cd "$PROJECT_DIR"
 mkdir -p logs
 
 MODEL="Qwen/Qwen2.5-7B-Instruct"
+CATEGORY="simple_python"
 VLLM_PORT=8000
 
 echo "=== Job info ==="
@@ -38,14 +39,11 @@ echo "Job ID: $LSB_JOBID"
 echo "Host: $(hostname)"
 echo "Date: $(date)"
 echo "Model: $MODEL"
+echo "Category: $CATEGORY"
 nvidia-smi
 
 echo "=== Syncing dependencies ==="
 uv sync --group hpc
-
-# ── Pre-download model if needed ─────────────────────────────────────
-echo "=== Ensuring model is cached ==="
-uv run --group hpc python -c "from huggingface_hub import snapshot_download; snapshot_download('${MODEL}')"
 
 # ── Start vLLM server ────────────────────────────────────────────────
 echo "=== Starting vLLM server ==="
@@ -73,23 +71,31 @@ done
 
 if ! curl -s "http://localhost:${VLLM_PORT}/health" > /dev/null 2>&1; then
     echo "ERROR: vLLM failed to start within 1800s"
-    kill "$VLLM_PID" 2>/dev/null
     exit 1
 fi
 
-# ── Run pipeline with vLLM backend ──────────────────────────────────
-echo "=== Running pipeline with vLLM backend ==="
-uv run --group hpc python -m src \
+# ── Run BFCL evaluation ─────────────────────────────────────────────
+echo "=== Running BFCL evaluation ==="
+uv run --group hpc python -m src.bfcl_adapter \
     --backend vllm \
     --model "$MODEL" \
-    --vllm-url "http://localhost:${VLLM_PORT}/v1" \
-    --input data/input \
-    --output data/output/vllm_backend_results.json
+    --category "$CATEGORY" \
+    --vllm-url "http://localhost:${VLLM_PORT}/v1"
 
-# ── Cleanup ──────────────────────────────────────────────────────────
-echo "=== Stopping vLLM ==="
-kill "$VLLM_PID" 2>/dev/null
-wait "$VLLM_PID" 2>/dev/null || true
+# ── Run BFCL official evaluator as fallback ──────────────────────────
+echo "=== Running BFCL official evaluator ==="
+BFCL_DIR="vendor/gorilla/berkeley-function-call-leaderboard"
+RESULT_DIR="data/output/bfcl"
+
+# Copy results to where bfcl evaluate expects them
+mkdir -p "${BFCL_DIR}/result/$(echo $MODEL | tr '/' '_')/non_live"
+cp "${RESULT_DIR}/$(echo $MODEL | tr '/' '_')/non_live/BFCL_v4_${CATEGORY}_result.json" \
+   "${BFCL_DIR}/result/$(echo $MODEL | tr '/' '_')/non_live/" 2>/dev/null || true
+
+uv run --group hpc bfcl evaluate \
+    --model "$MODEL" \
+    --test-category "$CATEGORY" \
+    --result-dir "${BFCL_DIR}/result" \
+    --partial-eval 2>&1 || echo "BFCL evaluate failed (non-critical)"
 
 echo "=== Done ==="
-echo "Results written to data/output/vllm_backend_results.json"

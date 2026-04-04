@@ -15,6 +15,9 @@ _TYPE_MAP = {
     "string": "string",
     "boolean": "boolean",
     "integer": "integer",
+    "float": "number",
+    "array": "array",
+    "dict": "object",
 }
 
 
@@ -38,10 +41,12 @@ def _build_args_json_schema(func: FunctionDef) -> dict:
         json_type = _TYPE_MAP.get(param.type, "string")
         properties[name] = {"type": json_type}
 
+    required = func.required if func.required is not None else list(func.parameters.keys())
+
     return {
         "type": "object",
         "properties": properties,
-        "required": list(func.parameters.keys()),
+        "required": required,
         "additionalProperties": False,
     }
 
@@ -97,11 +102,14 @@ class VLLMBackend:
         raw = response.choices[0].text.strip()
         args = json.loads(raw)
 
-        # Cast number types: JSON parsing returns float, convert int-valued floats.
+        # Cast numeric types to match the declared parameter type.
         for name, param in func.parameters.items():
-            if param.type == "number" and name in args:
-                v = args[name]
-                if isinstance(v, float) and v == int(v):
-                    args[name] = int(v)
+            if name not in args:
+                continue
+            v = args[name]
+            if param.type == "number" and isinstance(v, float) and v == int(v):
+                args[name] = int(v)
+            elif param.type == "float" and isinstance(v, int):
+                args[name] = float(v)
 
         return args
