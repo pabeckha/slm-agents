@@ -72,7 +72,7 @@ for i in $(seq 1 1800); do
 done
 
 if ! curl -s "http://localhost:${VLLM_PORT}/health" > /dev/null 2>&1; then
-    echo "ERROR: vLLM failed to start within 300s"
+    echo "ERROR: vLLM failed to start within 1800s"
     kill "$VLLM_PID" 2>/dev/null
     exit 1
 fi

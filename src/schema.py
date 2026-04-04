@@ -24,6 +24,8 @@ class FunctionDef(BaseModel):
         description: Human-readable description of what the function does.
         parameters: Mapping from argument name to its parameter descriptor.
         returns: Descriptor for the function's return type.
+        required: Explicit list of required parameter names.  When ``None``,
+            all parameters are treated as required.
     """
 
     name: str

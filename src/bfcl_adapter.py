@@ -232,6 +232,12 @@ def main() -> None:
         from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
         from .local_backend import LocalBackend
 
+        print(
+            "WARNING: --backend local only supports number/boolean/string "
+            "types. BFCL entries with float/array/dict parameters will fall "
+            "back to string decoding, which may produce misleading scores.",
+            file=sys.stderr,
+        )
         backend = LocalBackend(Small_LLM_Model(args.model))
 
     # Run pipeline and collect results
