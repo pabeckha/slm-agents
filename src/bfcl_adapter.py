@@ -114,9 +114,10 @@ def _resolve_checker_model_name(model_name: str) -> str:
     whether to convert dots in function names to underscores.  Models not in
     that mapping (e.g. Qwen2.5-7B-Instruct) cause a ``KeyError``.
 
-    For unregistered models we fall back to a deterministic registered Qwen
-    entry (``underscore_to_dot=False``).  Raises ``KeyError`` if no suitable
-    fallback exists.
+    We fall back to a known registered Qwen entry with the same
+    ``underscore_to_dot=False`` behaviour so the checker runs without
+    modification.  If no compatible registered model is available, raise
+    ``KeyError`` instead of returning an unregistered model name.
     """
     from bfcl_eval.constants.model_config import MODEL_CONFIG_MAPPING
 
@@ -124,14 +125,23 @@ def _resolve_checker_model_name(model_name: str) -> str:
     if escaped in MODEL_CONFIG_MAPPING:
         return escaped
 
-    # Deterministic fallback: first registered Qwen model (sorted).
-    qwen_keys = sorted(k for k in MODEL_CONFIG_MAPPING if "Qwen" in k)
+    # Prefer deterministic known-safe Qwen fallbacks if BFCL has them.
+    for key in (
+        "Qwen/Qwen2.5-7B-Instruct",
+        "Qwen/Qwen2-7B-Instruct",
+        "Qwen/Qwen1.5-7B-Chat",
+    ):
+        if key in MODEL_CONFIG_MAPPING:
+            return key
+
+    # Otherwise, deterministically choose a registered Qwen model.
+    qwen_keys = sorted(key for key in MODEL_CONFIG_MAPPING if "Qwen" in key)
     if qwen_keys:
         return qwen_keys[0]
 
     raise KeyError(
-        f"Model {model_name!r} is not in BFCL MODEL_CONFIG_MAPPING "
-        "and no Qwen fallback is available."
+        f"Model {model_name!r} is not registered in BFCL MODEL_CONFIG_MAPPING "
+        "and no safe Qwen fallback is available."
     )
 
 
