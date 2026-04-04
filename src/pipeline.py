@@ -1,5 +1,8 @@
 """Orchestrates function calling: select function, extract args."""
 
+from __future__ import annotations
+
+from .backend import Backend
 from .schema import FunctionCall, FunctionDef
 from .decoder import ConstrainedDecoder, encode_prompt
 from .prompt import (
@@ -81,15 +84,14 @@ def process_prompt(
 def run_pipeline(
     prompts: list[str],
     functions: list[FunctionDef],
-    backend: object,
+    backend: Backend,
 ) -> list[FunctionCall]:
     """Run the full pipeline over all prompts.
 
     Args:
         prompts: List of natural-language requests.
         functions: Available function definitions.
-        backend: A backend with a ``process(prompt, functions)`` method
-            (see :class:`~src.backend.Backend`).
+        backend: A backend satisfying the :class:`~src.backend.Backend` protocol.
 
     Returns:
         A list of :class:`FunctionCall` results, one per prompt.
@@ -99,7 +101,7 @@ def run_pipeline(
     for i, prompt in enumerate(prompts):
         print(f"[{i + 1}/{len(prompts)}] Processing: {prompt}")
         try:
-            result = backend.process(prompt, functions)  # type: ignore[attr-defined]
+            result = backend.process(prompt, functions)
             print(f"  -> {result.fn_name}({result.args})")
             results.append(result)
         except Exception as exc:
