@@ -20,6 +20,9 @@
 
 set -e
 
+cleanup() { [ -n "${VLLM_PID:-}" ] && kill "$VLLM_PID" 2>/dev/null && wait "$VLLM_PID" 2>/dev/null || true; }
+trap cleanup EXIT INT TERM
+
 module load python3/3.12.11
 module load cuda/12.6.3
 
