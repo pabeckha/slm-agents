@@ -16,15 +16,19 @@ When small language models are used for these tasks without any optimization, th
 
 The central question is whether these failures stem from fundamental limitations in model capacity or from insufficient constraints and guidance during generation. If the latter, then a carefully chosen stack of optimization techniques should be able to make small models competitive with frontier models on agentic benchmarks.
 
-\section{Research Question}
+\section{Research Questions}
 
-This thesis addresses the following research question:
+This thesis addresses three research questions:
 
-\begin{quote}
-\textit{Which combination of optimization techniques enables a small language model to reason effectively and call the correct tools?}
-\end{quote}
+\begin{description}
+    \item[RQ1] \textit{What is the performance gap between unoptimized small language models (1B--8B parameters) and frontier models on tool-calling benchmarks?}
+    \item[RQ2] \textit{What is the marginal contribution of each optimization technique---constrained decoding, prompt engineering, retrieval-augmented generation, quantization, and LoRA fine-tuning---when applied cumulatively to small models for tool calling?}
+    \item[RQ3] \textit{Can a fully optimized small language model configuration achieve production-viable tool-calling accuracy on consumer hardware?}
+\end{description}
 
-To answer this question, the thesis evaluates a cumulative pipeline of methods, ordered by implementation cost. No-training methods are evaluated first (constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}), followed by training-based methods (LoRA fine-tuning~\cite{hu2022lora}, knowledge distillation~\cite{hinton2015distilling}). Each method is assessed both individually and in combination, measuring its marginal contribution to tool-calling accuracy and reasoning quality.
+\noindent RQ1 establishes the baseline gap that motivates the work. RQ2 is the core empirical contribution: a cumulative ablation study that isolates the marginal impact of each technique. RQ3 addresses the practical question of whether the optimized configuration is viable for real-world deployment.
+
+To answer these questions, the thesis evaluates a cumulative pipeline of methods, ordered by implementation cost. No-training methods are evaluated first (constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}), followed by training-based methods (LoRA fine-tuning~\cite{hu2022lora}). Each method is assessed both individually and in combination, measuring its marginal contribution to tool-calling accuracy and reasoning quality.
 
 \section{Contributions}
 
@@ -32,9 +36,8 @@ The main contributions of this thesis are:
 
 \begin{enumerate}
     \item A systematic evaluation of optimization techniques for small language models in agentic tasks, ordered from no-training to training-required methods.
-    \item An empirical analysis of constrained decoding as a foundation for reliable structured output generation in small models.
-    \item A cumulative evaluation framework that measures the marginal impact of each technique on tool-calling correctness and reasoning quality.
-    \item A comparison of optimized small language model configurations against frontier models on the Berkeley Function Calling Leaderboard (BFCL)~\cite{bfcl2024} and custom benchmarks.
+    \item A cumulative ablation study that isolates the marginal contribution of each technique---constrained decoding, prompt engineering, RAG, quantization, and LoRA---to tool-calling accuracy and reasoning quality.
+    \item A comparison of optimized small language model configurations against frontier models on the Berkeley Function Calling Leaderboard (BFCL)~\cite{bfcl2024} and $\tau$-bench~\cite{yao2024taubench}.
     \item Practical guidelines for deploying agentic systems with small models on consumer hardware.
 \end{enumerate}
 

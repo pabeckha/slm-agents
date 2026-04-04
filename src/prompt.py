@@ -79,3 +79,29 @@ def build_argument_extraction_prompt(
         lines.append("Value: ")
 
     return "\n".join(lines)
+
+
+def build_args_extraction_prompt(func: FunctionDef, query: str) -> str:
+    """Build a prompt for extracting all arguments as a single JSON object.
+
+    Used by the vLLM backend with ``guided_json`` to extract every argument
+    in one API call.
+
+    Args:
+        func: The function being called.
+        query: The natural-language user request.
+
+    Returns:
+        A formatted prompt string ending with ``JSON: ``.
+    """
+    arg_desc = ", ".join(
+        f"{name} ({param.type})" for name, param in func.parameters.items()
+    )
+    lines = [
+        f"Function: {_signature(func)}",
+        f"Description: {func.description}",
+        f"User request: {query}",
+        f"Extract the argument values as a JSON object with keys: {arg_desc}.",
+        "JSON: ",
+    ]
+    return "\n".join(lines)

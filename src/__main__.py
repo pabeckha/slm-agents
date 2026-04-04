@@ -1,10 +1,8 @@
-"""CLI entry point: uv run python -m src [--input <file>] [--output <file>]."""
+"""CLI entry point: uv run python -m src [--backend local|vllm] [--input <dir>] [--output <file>]."""
 
 import argparse
 import sys
 from pathlib import Path
-
-from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 
 from .io import load_function_definitions, load_test_prompts, write_results
 from .pipeline import run_pipeline
@@ -14,9 +12,33 @@ DEFAULT_OUTPUT_DIR = Path("data/output")
 
 
 def main() -> None:
-    """Parse arguments, load model, and run the function-calling pipeline."""
+    """Parse arguments, build backend, and run the function-calling pipeline."""
     parser = argparse.ArgumentParser(
         description="Function calling via constrained decoding",
+    )
+    parser.add_argument(
+        "--backend",
+        choices=["local", "vllm"],
+        default="local",
+        help="Inference backend: 'local' for HuggingFace, 'vllm' for vLLM API",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="Model name/path (default: Qwen/Qwen3-0.6B for local, Qwen/Qwen2.5-7B-Instruct for vllm)",
+    )
+    parser.add_argument(
+        "--vllm-url",
+        type=str,
+        default="http://localhost:8000/v1",
+        help="vLLM server base URL",
+    )
+    parser.add_argument(
+        "--vllm-key",
+        type=str,
+        default="EMPTY",
+        help="API key for vLLM server",
     )
     parser.add_argument(
         "--input",
@@ -54,20 +76,36 @@ def main() -> None:
     # Load inputs
     functions = load_function_definitions(defs_path)
     prompts = load_test_prompts(tests_path)
-
     print(f"Loaded {len(functions)} functions, {len(prompts)} prompts")
 
-    # Load model
-    print("Loading model...")
-    try:
-        model = Small_LLM_Model()
-    except Exception as exc:
-        print(f"Error loading model: {exc}", file=sys.stderr)
-        sys.exit(1)
-    print("Model loaded.")
+    # Build backend
+    if args.backend == "local":
+        from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
+        from .local_backend import LocalBackend
+
+        model_name = args.model or "Qwen/Qwen3-0.6B"
+        print(f"Loading model {model_name}...")
+        try:
+            model = Small_LLM_Model(model_name)
+        except Exception as exc:
+            print(f"Error loading model: {exc}", file=sys.stderr)
+            sys.exit(1)
+        print("Model loaded.")
+        backend = LocalBackend(model)
+
+    elif args.backend == "vllm":
+        from .vllm_backend import VLLMBackend
+
+        model_name = args.model or "Qwen/Qwen2.5-7B-Instruct"
+        print(f"Using vLLM backend at {args.vllm_url} with model {model_name}")
+        backend = VLLMBackend(
+            base_url=args.vllm_url,
+            api_key=args.vllm_key,
+            model_name=model_name,
+        )
 
     # Run pipeline
-    results = run_pipeline(prompts, functions, model)
+    results = run_pipeline(prompts, functions, backend)
 
     # Write output
     write_results(output_path, results)

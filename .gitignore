@@ -24,6 +24,7 @@ checkpoints/
 slurm-*.out
 *.job.log
 logs/
+docs/hpc/
 
 # Vendor (cloned benchmark repos)
 vendor/

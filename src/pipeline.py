@@ -81,25 +81,25 @@ def process_prompt(
 def run_pipeline(
     prompts: list[str],
     functions: list[FunctionDef],
-    model: object,
+    backend: object,
 ) -> list[FunctionCall]:
     """Run the full pipeline over all prompts.
 
     Args:
         prompts: List of natural-language requests.
         functions: Available function definitions.
-        model: The loaded LLM model.
+        backend: A backend with a ``process(prompt, functions)`` method
+            (see :class:`~src.backend.Backend`).
 
     Returns:
         A list of :class:`FunctionCall` results, one per prompt.
     """
-    decoder = ConstrainedDecoder(model)
     results: list[FunctionCall] = []
 
     for i, prompt in enumerate(prompts):
         print(f"[{i + 1}/{len(prompts)}] Processing: {prompt}")
         try:
-            result = process_prompt(prompt, functions, decoder, model)
+            result = backend.process(prompt, functions)  # type: ignore[attr-defined]
             print(f"  -> {result.fn_name}({result.args})")
             results.append(result)
         except Exception as exc:
