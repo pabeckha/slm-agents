@@ -2,7 +2,7 @@
 ### -- Job name --
 #BSUB -J slm_poc
 ### -- GPU queue --
-#BSUB -q gpua40
+#BSUB -q gpua100
 ### -- 1 GPU --
 #BSUB -gpu "num=1:mode=exclusive_process"
 ### -- 4 CPU cores --
