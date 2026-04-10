@@ -219,6 +219,7 @@ def write_run_manifest(
     category: str,
     backend: str,
     guided: bool,
+    few_shot: bool = False,
     scores: dict | None,
     output_dir: Path,
 ) -> Path:
@@ -226,6 +227,8 @@ def write_run_manifest(
     ts = datetime.now(timezone.utc)
     safe_model = model_name.replace("/", "_")
     config_tag = "guided" if guided else "no_guided"
+    if few_shot:
+        config_tag += "_few_shot"
     run_id = f"{ts:%Y-%m-%dT%H-%M-%S}_{safe_model}_{category}_{config_tag}"
 
     manifest = {
@@ -235,6 +238,7 @@ def write_run_manifest(
         "category": category,
         "backend": backend,
         "guided": guided,
+        "few_shot": few_shot,
     }
     if scores is not None:
         manifest["accuracy"] = scores["accuracy"]
@@ -274,6 +278,10 @@ def main() -> None:
         help="Disable guided decoding (free generation baseline)",
     )
     parser.add_argument(
+        "--few-shot", action="store_true",
+        help="Add few-shot examples to argument extraction prompts (Config PE)",
+    )
+    parser.add_argument(
         "--limit", type=int, default=None,
         help="Only process first N test cases",
     )
@@ -311,6 +319,7 @@ def main() -> None:
             api_key=args.vllm_key,
             model_name=args.model,
             guided=not args.no_guided,
+            few_shot=args.few_shot,
         )
     elif args.backend == "gpt":
         from .frontier_backend import GPTBackend
@@ -390,6 +399,7 @@ def main() -> None:
         category=args.category,
         backend=args.backend,
         guided=guided,
+        few_shot=args.few_shot,
         scores=scores,
         output_dir=output_dir,
     )
