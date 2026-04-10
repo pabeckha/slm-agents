@@ -257,7 +257,7 @@ def write_run_manifest(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run BFCL evaluation")
     parser.add_argument(
-        "--backend", choices=["local", "vllm"], default="vllm",
+        "--backend", choices=["local", "vllm", "gpt", "claude"], default="vllm",
     )
     parser.add_argument("--model", type=str, default="Qwen/Qwen2.5-7B-Instruct")
     parser.add_argument("--category", type=str, default="simple_python")
@@ -312,6 +312,14 @@ def main() -> None:
             model_name=args.model,
             guided=not args.no_guided,
         )
+    elif args.backend == "gpt":
+        from .frontier_backend import GPTBackend
+
+        backend = GPTBackend(model_name=args.model)
+    elif args.backend == "claude":
+        from .frontier_backend import ClaudeBackend
+
+        backend = ClaudeBackend(model_name=args.model)
     elif args.backend == "local":
         from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
         from .local_backend import LocalBackend
