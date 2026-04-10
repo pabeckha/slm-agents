@@ -2,6 +2,29 @@
 
 \section{Baseline Performance}
 
+Table~\ref{tab:baseline-results} summarizes the baseline results for Qwen~2.5 7B-Instruct on BFCL~v4 simple\_python (400 test cases).
+
+\begin{table}[h]
+\centering
+\caption{BFCL v4 Simple Function AST accuracy for Qwen~2.5 7B-Instruct across initial configurations.}
+\label{tab:baseline-results}
+\begin{tabular}{llrr}
+\toprule
+Config & Description & Correct & Accuracy \\
+\midrule
+B  & Raw model (no optimization)     & 6/400   & 1.5\% \\
+PE & Few-shot prompting + guided      & 281/400 & 70.25\% \\
+CD & Constrained decoding (guided)    & 291/400 & 72.75\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent Without constrained decoding (Config~B), the model achieves only 1.5\% accuracy. The dominant failure mode is format non-compliance: 394 out of 400 outputs fail to parse as valid JSON, producing \texttt{Extra data} errors or empty results. The model is not incapable of understanding the queries---it simply cannot express its answers in the required structured format.
+
+Constrained decoding (Config~CD) recovers 71.25 percentage points, achieving 72.75\% accuracy. Function selection reaches 100\% accuracy via \texttt{guided\_choice}, confirming that the format enforcement fully solves tool selection. The remaining 27.25\% failure rate is entirely in argument extraction: wrong numeric precision (e.g., 9.8 vs.\ 9.81), string format mismatches (e.g., ``kilometers/hour'' vs.\ ``km/h''), and incorrect optional parameter defaults.
+
+Few-shot prompting (Config~PE) decreases accuracy by 2.5 percentage points relative to Config~CD. The three few-shot examples, targeting known failure modes, did not transfer across function domains. This negative result indicates that the argument extraction errors reflect the model's learned associations rather than a formatting gap that in-context examples can bridge.
+
 \section{No-Training Methods}
 \subsection{Constrained Decoding}
 \subsection{Prompt Engineering and Few-Shot}
@@ -15,3 +38,36 @@
 \section{Combined Configurations}
 
 \section{Comparison with Frontier Models}
+
+Table~\ref{tab:frontier-comparison} compares the Qwen~2.5 7B-Instruct results against frontier models, using official scores from the BFCL~v4 leaderboard\footnote{\url{https://gorilla.cs.berkeley.edu/leaderboard.html}, accessed April 2026.} for the Non-Live Simple AST category.
+
+\begin{table}[h]
+\centering
+\caption{BFCL v4 Simple Function AST accuracy: Qwen~2.5 7B with constrained decoding vs.\ frontier models (official leaderboard scores).}
+\label{tab:frontier-comparison}
+\begin{tabular}{llr}
+\toprule
+Model & Type & Simple AST \\
+\midrule
+Claude Opus 4.5       & Frontier & 76.83\% \\
+Gemini 3 Pro          & Frontier & 79.58\% \\
+GPT-4.1               & Frontier & 72.67\% \\
+GPT-4.1-mini          & Frontier & 73.33\% \\
+Claude Sonnet 4.5     & Frontier & 72.58\% \\
+Claude Haiku 4.5      & Frontier & 71.00\% \\
+GPT-5-mini            & Frontier & 59.92\% \\
+\midrule
+Qwen 2.5 7B + CD      & SLM (ours) & 72.75\% \\
+Qwen 2.5 7B + PE      & SLM (ours) & 70.25\% \\
+Qwen 2.5 7B (raw)     & SLM (ours) & 1.50\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent The results reveal a surprising finding: Qwen~2.5 7B-Instruct with constrained decoding alone (72.75\%) already matches or exceeds several frontier models on Simple Function accuracy, including GPT-4.1 (72.67\%), Claude Sonnet~4.5 (72.58\%), and Claude Haiku~4.5 (71.00\%). The gap to the best frontier model (Gemini~3 Pro at 79.58\%) is only 6.83 percentage points.
+
+This suggests that for single-call function calling with a well-defined schema, constrained decoding on a 7B model closes the gap to frontier-level performance. The remaining gap is driven by argument value accuracy, not format compliance or function selection---the same bottleneck that limits the frontier models themselves.
+
+However, this result requires careful interpretation. The simple\_python category is the least demanding BFCL scenario: single-turn, single-function calls with no selection ambiguity (one candidate function per test case). Both constrained decoding and frontier models' native tool-calling APIs guarantee valid JSON and valid function names, levelling the playing field on format compliance. The only differentiator is argument value accuracy, where a 7B model can be competitive on straightforward lookups.
+
+Frontier models distinguish themselves on harder tasks. Their BFCL overall scores---which weight multi-turn (30\%) and agentic tasks (40\%)---remain substantially higher than what an SLM would likely achieve. Claude Opus~4.5 maintains 77.47\% overall, while GPT-4.1 drops to 53.96\%, suggesting that even among frontier models, simple function calling does not predict general agentic capability. The multi-step evaluation on $\tau$-bench (Chapter~\ref{ch:results}, later sections) is needed to determine where the SLM--frontier gap re-emerges.
