@@ -1,7 +1,7 @@
 # Thesis Status
 
-**Last updated:** 2026-04-06
-**Deadline:** 2026-07-05 (13 weeks remaining)
+**Last updated:** 2026-04-10
+**Deadline:** 2026-07-05 (12 weeks remaining)
 
 ## Research Question
 
