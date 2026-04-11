@@ -108,14 +108,6 @@ Beyond LoRA, several other PEFT methods exist. QLoRA~\cite{dettmers2023qlora} co
 
 This thesis primarily uses LoRA due to its simplicity, strong empirical performance, and wide support across frameworks and model architectures.
 
-\section{Knowledge Distillation}
-
-Knowledge distillation~\cite{hinton2015distilling} transfers knowledge from a larger teacher model to a smaller student model. The student is trained not only on ground-truth labels but also on the teacher's output distributions or generated responses. The idea is that the teacher's outputs contain richer information than hard labels alone, including relative confidence across alternatives and implicit reasoning patterns.
-
-For tool calling, knowledge distillation involves generating a dataset of tool-calling examples using a frontier model (the teacher), then fine-tuning the small model (the student) on these examples. The teacher provides high-quality demonstrations of tool selection, argument construction, and reasoning traces that the student can learn to replicate.
-
-This approach is particularly relevant when labeled tool-calling data is scarce, as the teacher model can generate large volumes of training data from unlabeled user requests. The trade-off is the cost of running the teacher model to generate the distillation dataset.
-
 \section{Related Work}
 
 Several lines of research are directly relevant to this thesis.
