@@ -1,6 +1,6 @@
 # Thesis Status
 
-**Last updated:** 2026-04-10
+**Last updated:** 2026-04-11
 **Deadline:** 2026-07-05 (12 weeks remaining)
 
 ## Research Question
@@ -11,147 +11,160 @@
 
 ## Task
 
-ReAct agent loop: reason -> call tool -> observe result -> repeat. Evaluated on BFCL Simple (single-call) and t-bench (multi-step agentic).
+Tool calling evaluated first on BFCL v4 simple_python (single-call). Multi-turn agentic evaluation on t-bench is scope-at-risk given the 12-week budget; see "Priority order" below.
 
 ## Models
 
 | Model | Size | Role |
 |-------|------|------|
-| **Qwen 2.5 7B** | 7B | Primary |
+| **Qwen 2.5 7B (AWQ INT4)** | 7B | Primary |
 | Qwen3-0.6B | 0.6B | Stretch goal |
 | Phi-4 Mini | 3.8B | Stretch goal |
 
 ## Methods
 
-| # | Method | Status | Phase | Notes |
-|---|--------|--------|-------|-------|
-| 0 | Baseline | **Done** | Reference | 1.5% AST accuracy (Config B, Job 28142319) |
-| 1 | Prompt Engineering / Few-shot | **Done** | No training | 70.25% AST accuracy, -2.5 pp vs CD (Config PE, Job 28148815) |
-| 2 | Constrained Decoding | **Done** | No training | 72.75% AST accuracy (Config CD, Job 28142188) |
-| 3 | Inference-Time Compute (CoT/ReAct) | **Not started** | No training | Needs hybrid free/constrained decoding mode |
-| 4 | RAG | **Not started** | No training | Retrieves relevant tool schemas |
-| 5 | Quantization (AWQ INT4) | **Done** | No training | 72.0% AST accuracy, -0.75 pp vs CD, 63.5% less VRAM (Config CD+Q, Job 28149459) |
-| 6 | LoRA / PEFT | **Not started** | Training | Highest expected impact |
+| # | Method | Status | Phase | Headline |
+|---|--------|--------|-------|----------|
+| 0 | Baseline (no guided decoding) | **Done** | Reference | 1.5% (Config B, Job 28142319) |
+| 1 | Prompt Engineering / Few-shot | **Done** | No training | 70.25%, −1.75 pp vs CD+Q (Config PE, Job 28148815) |
+| 2 | Constrained Decoding | **Done** | No training | 72.75% (Config CD, Job 28142188) |
+| 3 | Quantization (AWQ INT4) | **Done** | No training | 72.0%, −0.75 pp vs CD (Config CD+Q, Job 28149459) — 63.5% less VRAM |
+| 4 | Inference-Time Compute (CoT) | **Done** | No training | **65.5%, −6.5 pp vs CD+Q** (Config CD+Q+ITC, Job 28187017) — *strongly negative* |
+| 5 | RAG | **Not started** | No training | Next Phase 1 config (Issue #7) |
+| 6 | LoRA / PEFT | **Not started** | Training | Critical path for the 85% target (Issue #22) |
 
-## Experiment Configs (Ablation)
+Knowledge distillation has been dropped from the thesis scope (see `docs/planning/project-plan.md`).
 
-| Config | What it isolates | Status | BFCL Result |
-|--------|-----------------|--------|-------------|
-| B | Raw model baseline | **Done** | 1.5% (6/400) |
-| PE | Prompt engineering alone | **Done** | 70.25% (281/400) |
-| CD | Constrained decoding alone | **Done** | 72.75% (291/400) |
-| CD+Q | + Quantization | **Done** | 72.0% (288/400) |
-| FT | LoRA alone | Not started | - |
-| CD+FT | CD + LoRA compounding | Not started | - |
-| CD+Q+FT | + Quantization impact | Not started | - |
-| CD+Q+FT+ITC | + CoT/ReAct reasoning | Not started | - |
-| CD+Q+FT+RAG | + RAG tool retrieval | Not started | - |
-| CD+Q+FT+ITC+RAG | Full stack | Not started | - |
+## Experiment Configs (cumulative chain, aligned with project-plan.md)
+
+| Config | Status | BFCL simple_python | Notes |
+|--------|--------|--------------------|-------|
+| B | **Done** | 1.5% (6/400) | Raw model cannot produce valid JSON |
+| CD | **Done** | 72.75% (291/400) | Guided decoding alone |
+| CD+Q | **Done** | **72.0% (288/400)** | Baseline for all subsequent configs |
+| CD+Q+ITC | **Done** | **65.5% (262/400)** | Strongly negative — CoT argues model into wrong answers |
+| CD+Q+RAG | Not started | — | Issue #7 — next run |
+| CD+Q+FT | Not started | — | First LoRA run |
+| CD+Q+FT+RAG | Not started | — | Full no-training + LoRA stack |
+
+Side configs: PE (70.25%, 281/400) tested as an isolated prompt-engineering comparison vs CD; not in the cumulative chain.
+
+## Running-picture headline
+
+- **No-training ceiling is Config CD+Q at 72.0%.** Two prompt-only techniques (PE −1.75 pp, CoT −6.5 pp) have now *both* regressed against it, the second one with a clean mechanistic explanation: CoT reasoning moves the model toward linguistically natural values and away from BFCL's arbitrary-convention ground truths. Prompt-only interventions cannot close the gap.
+- **The 13 pp gap to the 85% target must come from LoRA** (or a different training approach). The rest of the thesis depends on LoRA working.
+- **Quantization is effectively free.** AWQ INT4 costs 0.75 pp and fits comfortably on an RTX 4090 (5.2 GiB model memory, 78% VRAM headroom).
 
 ## Metrics
 
-- **BFCL Simple:** AST accuracy (primary)
-- **t-bench:** Task success rate (primary)
-- **Secondary:** Per-step tool accuracy, failure mode breakdown, latency, memory
+- **BFCL simple_python:** AST accuracy (primary)
+- **t-bench:** task success rate (planned — scope at risk)
+- **Secondary:** failure-mode breakdown, latency, memory, flip analysis (CD+Q vs later configs)
 
 ## Frontier Baselines
 
-Using published BFCL v4 leaderboard scores (accessed April 2026). Key references:
-- Claude Opus 4.5: 76.83% | Claude Sonnet 4.5: 72.58% | GPT-4.1: 72.67% | Gemini 3 Pro: 79.58%
-- Our CD config (72.75%) matches GPT-4.1 and Claude Sonnet on Simple Function.
-- See `docs/decisions/frontier-baselines-bfcl.md` for full table and caveats.
+Two tracks:
+
+1. **Published leaderboard scores** (BFCL v4, accessed April 2026): Claude Opus 4.5 76.83%, Gemini 3 Pro 79.58%, GPT-4.1 72.67%, Claude Sonnet 4.5 72.58%, Claude Haiku 4.5 71.00%. The Qwen 2.5 7B + CD result (72.75%) already matches GPT-4.1 and Claude Sonnet on this single category.
+2. **Our own frontier runs** via `src/frontier_backend.py` — GPT and Claude backends implemented, full BFCL runs pending.
+
+See `docs/decisions/frontier-baselines-bfcl.md` for the full table and caveats about why simple_python alone does not predict general agentic capability.
 
 ## Success Criteria
 
 | Criterion | Target | Current | Status |
 |-----------|--------|---------|--------|
-| BFCL Simple AST accuracy | >=85% | 72.75% (CD) / 72.0% (CD+Q) | Note: BFCL v4 ceiling is ~80%. Target may need revision. |
-| Gap to Sonnet 4.6 on t-bench | <=15% | TBD | Pending |
+| BFCL simple_python AST accuracy | ≥85% | 72.0% (CD+Q) | No-training ceiling reached; LoRA is the only remaining path |
+| Gap to Sonnet 4.5 on t-bench | ≤15% | TBD | Pending; t-bench at risk of being deferred |
 | Format validity with CD | <2% errors | ~0.3% | Met |
-| Runs on RTX 4090 | 24GB VRAM | 5.2 GiB (AWQ) | Met — 78% headroom |
+| Runs on RTX 4090 | 24 GB VRAM | 5.2 GiB (AWQ) | Met — 78% headroom |
 
 ---
 
-## Revised Timeline (April 6 - July 5, 2026)
+## Revised Timeline (2026-04-14 → 2026-07-05)
 
-### Phase 1: No-training methods + writing start (Weeks 1-2, Apr 7-20)
+### Phase 1 closeout + writing start (Week 1, Apr 14–20)
 
 - [x] Config B baseline (1.5%)
 - [x] Config CD baseline (72.75%)
-- [x] Config PE (70.25%, -2.5 pp — few-shot hurts slightly)
-- [x] Config CD+Q (72.0%, -0.75 pp — quantization is neutral, 63.5% less VRAM)
-- [x] Frontier baselines from BFCL leaderboard (CD matches GPT-4.1 and Claude Sonnet)
-- [ ] Start writing Methodology chapter
+- [x] Config PE (70.25%, −1.75 pp vs CD+Q)
+- [x] Config CD+Q (72.0%, −0.75 pp vs CD — 63.5% less VRAM)
+- [x] Config CD+Q+ITC (65.5%, −6.5 pp vs CD+Q — negative)
+- [x] Frontier leaderboard baselines referenced; own GPT + Claude backends built
+- [ ] **Config CD+Q+RAG** (Issue #7) — closes Phase 1 no-training stack
+- [ ] **Methodology chapter outline** — start this week, draft from `docs/decisions/`
+- [ ] Full BFCL run of own GPT + Claude backends for the frontier comparison table
+- [ ] Supervision meeting 2026-04-13 (online, Nicki)
 
-### Phase 2: LoRA fine-tuning + t-bench (Weeks 3-4, Apr 21 - May 4)
+### Phase 2 LoRA (Weeks 2–4, Apr 21 – May 11)
 
-- [ ] Prepare LoRA training data (Glaive + synthetic) -- issue #9
-- [ ] LoRA training pipeline on HPC
-- [ ] Config FT, CD+FT, CD+Q+FT runs
-- [ ] t-bench integration -- issue #4
-- [ ] Continue Methodology chapter, start Results sections
+- [ ] Prepare LoRA training data — Glaive single-turn + BFCL train split (Issue #9)
+- [ ] LoRA training pipeline on HPC (Issue #22)
+- [ ] Config CD+Q+FT — first LoRA run
+- [ ] LoRA hyperparameter iteration (2–3 runs)
+- [ ] Config CD+Q+FT+RAG — full stack headline
+- [ ] Methodology chapter complete; Results chapter Phase 1 section written
 
-### Phase 3: Reasoning + RAG + ablation matrix (Weeks 5-6, May 5-18)
+### Phase 3 breadth and analysis (Weeks 5–6, May 12–25)
 
-- [ ] CoT/ReAct hybrid decoding mode (free reasoning + constrained tool calls)
-- [ ] RAG pipeline for tool schema retrieval -- issue #7
-- [ ] Config CD+Q+FT+ITC, CD+Q+FT+RAG, CD+Q+FT+ITC+RAG runs
-- [ ] Full ablation matrix on BFCL
-- [ ] Draft Results chapter as numbers come in
+- [ ] Optional: one additional BFCL category (multi_turn or multiple) for breadth
+- [ ] Failure-mode analysis and latency / memory profiling across all configs
+- [ ] Cascade escalation-rate analysis per configuration
+- [ ] Results chapter Phase 2 section; Discussion chapter started
 
-### Phase 4: Additional models + analysis (Weeks 7-8, May 19 - Jun 1)
+### Phase 4 writing-only (Weeks 7–12, May 26 – Jul 5)
 
-- [ ] Run best configs on additional SLMs (Phi-4 Mini, Qwen3-0.6B) -- issue #16
-- [ ] t-bench runs on key configs (if not done in Phase 2)
-- [ ] Failure mode analysis and statistical tests
-- [ ] Finish Results chapter, start Discussion
-
-### Phase 5: Writing (Weeks 9-11, Jun 2-22)
-
-- [ ] Finish Background chapter (currently has placeholder sections)
-- [ ] Discussion chapter
+- [ ] Background chapter finished
+- [ ] Discussion chapter (cascade framing, cost analysis, limitations)
 - [ ] Conclusion chapter
-- [ ] Abstract
-- [ ] Polish Introduction
-
-### Phase 6: Review + submission (Weeks 12-13, Jun 23 - Jul 5)
-
-- [ ] Full draft review
-- [ ] Revisions and formatting
-- [ ] Final submission
+- [ ] Introduction polish + abstract
+- [ ] Full-draft review cycle with Nicki
+- [ ] Revisions, figure regeneration, formatting
+- [ ] **2026-07-05** — submission
 
 ---
+
+## Scope-at-risk (likely deferred or cut)
+
+| Item | Reason |
+|------|--------|
+| t-bench (Issue #4) | Multi-turn eval is expensive to set up; may be written as future work |
+| Additional SLMs (Phi-4 Mini, Llama 3.2, Qwen3-0.6B — Issue #16) | Breadth over depth; LoRA on Qwen 2.5 7B is the contribution |
+| Full ablation matrix across all BFCL categories (Issue #24) | Limit to simple_python + one additional category |
+| Architecture comparison (MoE, Flash Attention, GQA) | Cite from literature rather than run experiments |
+| Pruning | Already discarded as risky in the March 16 slides |
 
 ## Key Risks
 
 | Risk | Mitigation |
 |------|-----------|
-| LoRA training pipeline issues | Start in Week 3 (not Week 4). Budget 2 weeks. |
-| t-bench user simulator needs frontier API key | Sort out API access in Week 2. Can deprioritize if blocked. |
-| Writing falls behind | Write methodology NOW, results as experiments complete. Never batch writing to the end. |
-| Scope creep (9 configs x 3 models x 2 benchmarks) | Cut additional SLMs and t-bench before cutting BFCL ablation depth. |
+| LoRA training pipeline issues | Start prep in Week 1 (not Week 2); budget 3 weeks |
+| LoRA result is disappointing | Start early enough to iterate on training data, hyperparameters, and data source (Glaive → BFCL train → synthetic) |
+| Writing falls behind | Write Methodology NOW, Results as experiments complete. Never batch writing to the end. |
+| Scope creep | Hard cut list above; revisit weekly |
 
 ## Priority order (if time runs short)
 
-1. **Must have:** Full BFCL ablation (all 9 configs) on Qwen 2.5 7B + frontier baselines + complete thesis
-2. **Should have:** t-bench on top 3 configs + 1 additional SLM
-3. **Nice to have:** t-bench on all configs + all 3 SLMs
+1. **Must have:** CD+Q+RAG, CD+Q+FT, CD+Q+FT+RAG, fresh frontier runs on BFCL, complete thesis draft
+2. **Should have:** One additional BFCL category for breadth; latency/memory profiling
+3. **Nice to have:** t-bench on key configs; additional SLMs
 
 ---
 
 ## HPC Infrastructure
 
-- **Scheduler:** LSF (bsub), not SLURM
-- **GPU queues:** gpua100, gpuv100, gpua10, gpua40, gpul40s
-- **Python:** module `python3/3.12.11` (system Python 3.9 too old)
-- **CUDA:** module `cuda/12.6.3` (only available on GPU nodes)
-- **Setup:** Two-step -- login node (clone repos, basic deps) then GPU node job (vLLM + flash-attn)
-- **Scripts:** `scripts/hpc/` -- `run_bfcl.sh` (CD), `run_bfcl_no_guided.sh` (B), `run_bfcl_few_shot.sh` (PE), `run_bfcl_quant.sh` (CD+Q)
+- **Scheduler:** LSF (`bsub`)
+- **GPU queues:** gpua100, gpul40s (primary — runs CD+Q+ITC validated here), gpuv100, gpua10, gpua40, gpuh100
+- **Python:** module `python3/3.12.11`
+- **CUDA:** module `cuda/12.6.3` (GPU nodes only)
+- **Setup:** Two-step — login node (clone repos, basic deps) then GPU node job (vLLM + flash-attn)
+- **Scripts:** `scripts/hpc/` — `run_bfcl.sh` (CD), `run_bfcl_no_guided.sh` (B), `run_bfcl_few_shot.sh` (PE), `run_bfcl_quant.sh` (CD+Q), `run_bfcl_itc.sh` (CD+Q+ITC)
 - **Environment spec:** `docs/infrastructure/hpc-environment.md`
 
-## Open Questions
+## Open Questions (for supervision meeting 2026-04-13)
 
-- What is the minimum model size that achieves acceptable tool-call accuracy with full optimization?
-- Can constrained decoding compensate for a model not fine-tuned on tool-use data?
-- ~~Compute resources: what GPU access is available through DTU HPC?~~ Answered: A100, V100, A10, A40, L40S via LSF queues
-- LoRA training data: Glaive (single-turn) + small synthetic ReAct traces from frontier API. Budget TBD.
+- Is two-out-of-two prompt-only failures enough evidence to commit hard to LoRA as the answer for RQ2?
+- τ-bench pulled forward or cut entirely?
+- Ceiling gap: is 13 pp realistic on Qwen 2.5 7B with Glaive? Alternative data sources?
+- Breadth (more SLMs) vs depth (Qwen-only + training)?
+- Methodology chapter writing cadence — start this week or wait for Phase 2?
