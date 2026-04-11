@@ -29,6 +29,9 @@ docs/hpc/
 # Vendor (cloned benchmark repos)
 vendor/
 
+# External reference repo — Skafte's thesis recommendations
+dtu_cs_thesis/
+
 # Hugging Face cache
 .cache/
 
