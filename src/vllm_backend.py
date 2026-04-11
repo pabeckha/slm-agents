@@ -60,10 +60,12 @@ class VLLMBackend:
         api_key: str = "EMPTY",
         model_name: str = "Qwen/Qwen2.5-7B-Instruct",
         guided: bool = True,
+        few_shot: bool = False,
     ) -> None:
         self._client = OpenAI(base_url=base_url, api_key=api_key)
         self._model = model_name
         self._guided = guided
+        self._few_shot = few_shot
 
     def process(self, prompt: str, functions: list[FunctionDef]) -> FunctionCall:
         fn_name = self._select_function(prompt, functions)
@@ -105,7 +107,7 @@ class VLLMBackend:
     ) -> dict:
         """Extract arguments, optionally using guided_json."""
         schema = _build_args_json_schema(func)
-        ext_prompt = build_args_extraction_prompt(func, prompt)
+        ext_prompt = build_args_extraction_prompt(func, prompt, few_shot=self._few_shot)
 
         kwargs: dict = {}
         if self._guided:

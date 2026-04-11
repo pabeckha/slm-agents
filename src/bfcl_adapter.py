@@ -219,6 +219,7 @@ def write_run_manifest(
     category: str,
     backend: str,
     guided: bool,
+    few_shot: bool = False,
     scores: dict | None,
     output_dir: Path,
 ) -> Path:
@@ -226,6 +227,8 @@ def write_run_manifest(
     ts = datetime.now(timezone.utc)
     safe_model = model_name.replace("/", "_")
     config_tag = "guided" if guided else "no_guided"
+    if few_shot:
+        config_tag += "_few_shot"
     run_id = f"{ts:%Y-%m-%dT%H-%M-%S}_{safe_model}_{category}_{config_tag}"
 
     manifest = {
@@ -235,6 +238,7 @@ def write_run_manifest(
         "category": category,
         "backend": backend,
         "guided": guided,
+        "few_shot": few_shot,
     }
     if scores is not None:
         manifest["accuracy"] = scores["accuracy"]
@@ -257,7 +261,7 @@ def write_run_manifest(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run BFCL evaluation")
     parser.add_argument(
-        "--backend", choices=["local", "vllm"], default="vllm",
+        "--backend", choices=["local", "vllm", "gpt", "claude"], default="vllm",
     )
     parser.add_argument("--model", type=str, default="Qwen/Qwen2.5-7B-Instruct")
     parser.add_argument("--category", type=str, default="simple_python")
@@ -272,6 +276,10 @@ def main() -> None:
     parser.add_argument(
         "--no-guided", action="store_true",
         help="Disable guided decoding (free generation baseline)",
+    )
+    parser.add_argument(
+        "--few-shot", action="store_true",
+        help="Add few-shot examples to argument extraction prompts (Config PE)",
     )
     parser.add_argument(
         "--limit", type=int, default=None,
@@ -311,7 +319,16 @@ def main() -> None:
             api_key=args.vllm_key,
             model_name=args.model,
             guided=not args.no_guided,
+            few_shot=args.few_shot,
         )
+    elif args.backend == "gpt":
+        from .frontier_backend import GPTBackend
+
+        backend = GPTBackend(model_name=args.model)
+    elif args.backend == "claude":
+        from .frontier_backend import ClaudeBackend
+
+        backend = ClaudeBackend(model_name=args.model)
     elif args.backend == "local":
         from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
         from .local_backend import LocalBackend
@@ -382,6 +399,7 @@ def main() -> None:
         category=args.category,
         backend=args.backend,
         guided=guided,
+        few_shot=args.few_shot,
         scores=scores,
         output_dir=output_dir,
     )

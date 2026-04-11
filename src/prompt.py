@@ -1,6 +1,53 @@
 """Prompt builders for function selection and argument extraction."""
 
+from __future__ import annotations
+
 from .schema import FunctionDef
+
+
+# ── Few-shot examples for argument extraction ──────────────────────────
+# Each example targets a known failure mode from Config CD evaluation:
+# - Numeric precision: use exact values from the query, don't round
+# - String format: preserve the user's phrasing (abbreviations, qualifiers)
+# - Optional parameters: use sensible defaults when user doesn't specify
+
+_FEW_SHOT_EXAMPLES = [
+    {
+        "function": "calculate_force(mass: number, acceleration: number, unit: string) -> number",
+        "description": "Calculate force using mass and acceleration",
+        "query": "What force is needed to accelerate a 9.81 kg object at 3.2 m/s²?",
+        "arg_desc": "mass (number), acceleration (number), unit (string)",
+        "json": '{"mass": 9.81, "acceleration": 3.2, "unit": "m/s²"}',
+    },
+    {
+        "function": "find_restaurant(location: string, cuisine: string, max_distance: number) -> string",
+        "description": "Find restaurants near a location",
+        "query": "Find me a Thai restaurant near San Francisco, CA",
+        "arg_desc": "location (string), cuisine (string), max_distance (number)",
+        "json": '{"location": "San Francisco, CA", "cuisine": "Thai", "max_distance": 0}',
+    },
+    {
+        "function": "solve_equation(expression: string, variable: string) -> number",
+        "description": "Solve a mathematical equation",
+        "query": "Solve the equation 3*x**2 + 2*x - 5 = 0 for x",
+        "arg_desc": 'expression (string), variable (string)',
+        "json": '{"expression": "3*x**2 + 2*x - 5", "variable": "x"}',
+    },
+]
+
+
+def _format_few_shot_block() -> str:
+    """Format few-shot examples as a prompt block."""
+    parts = []
+    for ex in _FEW_SHOT_EXAMPLES:
+        parts.append(
+            f"Function: {ex['function']}\n"
+            f"Description: {ex['description']}\n"
+            f"User request: {ex['query']}\n"
+            f"Extract the argument values as a JSON object with keys: {ex['arg_desc']}.\n"
+            f"JSON: {ex['json']}"
+        )
+    return "\n\n".join(parts)
 
 
 def _signature(func: FunctionDef) -> str:
@@ -81,7 +128,9 @@ def build_argument_extraction_prompt(
     return "\n".join(lines)
 
 
-def build_args_extraction_prompt(func: FunctionDef, query: str) -> str:
+def build_args_extraction_prompt(
+    func: FunctionDef, query: str, *, few_shot: bool = False,
+) -> str:
     """Build a prompt for extracting all arguments as a single JSON object.
 
     Used by the vLLM backend with ``guided_json`` to extract every argument
@@ -90,6 +139,7 @@ def build_args_extraction_prompt(func: FunctionDef, query: str) -> str:
     Args:
         func: The function being called.
         query: The natural-language user request.
+        few_shot: If True, prepend few-shot examples to the prompt.
 
     Returns:
         A formatted prompt string ending with ``JSON: ``.
@@ -97,11 +147,17 @@ def build_args_extraction_prompt(func: FunctionDef, query: str) -> str:
     arg_desc = ", ".join(
         f"{name} ({param.type})" for name, param in func.parameters.items()
     )
-    lines = [
-        f"Function: {_signature(func)}",
-        f"Description: {func.description}",
-        f"User request: {query}",
-        f"Extract the argument values as a JSON object with keys: {arg_desc}.",
-        "JSON: ",
-    ]
-    return "\n".join(lines)
+
+    parts: list[str] = []
+    if few_shot:
+        parts.append(_format_few_shot_block())
+        parts.append("")  # blank line separator
+
+    parts.append(
+        f"Function: {_signature(func)}\n"
+        f"Description: {func.description}\n"
+        f"User request: {query}\n"
+        f"Extract the argument values as a JSON object with keys: {arg_desc}.\n"
+        f"JSON: "
+    )
+    return "\n".join(parts)
