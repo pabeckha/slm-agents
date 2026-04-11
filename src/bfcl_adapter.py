@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .schema import FunctionCall, FunctionDef, FunctionParameter
@@ -212,6 +213,44 @@ def write_results_jsonl(
     return path
 
 
+def write_run_manifest(
+    *,
+    model_name: str,
+    category: str,
+    backend: str,
+    guided: bool,
+    scores: dict | None,
+    output_dir: Path,
+) -> Path:
+    """Write a structured run manifest for experiment tracking."""
+    ts = datetime.now(timezone.utc)
+    safe_model = model_name.replace("/", "_")
+    config_tag = "guided" if guided else "no_guided"
+    run_id = f"{ts:%Y-%m-%dT%H-%M-%S}_{safe_model}_{category}_{config_tag}"
+
+    manifest = {
+        "run_id": run_id,
+        "timestamp": ts.isoformat(),
+        "model": model_name,
+        "category": category,
+        "backend": backend,
+        "guided": guided,
+    }
+    if scores is not None:
+        manifest["accuracy"] = scores["accuracy"]
+        manifest["correct_count"] = scores["correct_count"]
+        manifest["total_count"] = scores["total_count"]
+        manifest["failure_count"] = len(scores.get("failures", []))
+
+    manifest_dir = output_dir / "runs"
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    path = manifest_dir / f"{run_id}.json"
+    with open(path, "w") as f:
+        json.dump(manifest, f, indent=2)
+
+    return path
+
+
 # ── Main ─────────────────────────────────────────────────────────────────
 
 
@@ -229,6 +268,10 @@ def main() -> None:
     parser.add_argument(
         "--dry-run", action="store_true",
         help="Load data and print stats without running inference",
+    )
+    parser.add_argument(
+        "--no-guided", action="store_true",
+        help="Disable guided decoding (free generation baseline)",
     )
     parser.add_argument(
         "--limit", type=int, default=None,
@@ -267,6 +310,7 @@ def main() -> None:
             base_url=args.vllm_url,
             api_key=args.vllm_key,
             model_name=args.model,
+            guided=not args.no_guided,
         )
     elif args.backend == "local":
         from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
@@ -309,6 +353,8 @@ def main() -> None:
 
     # Evaluate
     print("\n=== Evaluating ===")
+    scores = None
+    guided = not args.no_guided
     try:
         scores = evaluate(results, answers, test_data, args.category, args.model)
         print(f"Accuracy: {scores['accuracy']:.1%} ({scores['correct_count']}/{scores['total_count']})")
@@ -329,6 +375,17 @@ def main() -> None:
     except ImportError as exc:
         print(f"Could not import ast_checker ({exc}), skipping inline evaluation.")
         print(f"Run manually: bfcl evaluate --model {args.model} --test-category {args.category} --partial-eval")
+
+    # Write run manifest
+    manifest_path = write_run_manifest(
+        model_name=args.model,
+        category=args.category,
+        backend=args.backend,
+        guided=guided,
+        scores=scores,
+        output_dir=output_dir,
+    )
+    print(f"Run manifest written to {manifest_path}")
 
 
 if __name__ == "__main__":

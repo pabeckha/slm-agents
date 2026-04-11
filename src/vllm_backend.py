@@ -59,9 +59,11 @@ class VLLMBackend:
         base_url: str = "http://localhost:8000/v1",
         api_key: str = "EMPTY",
         model_name: str = "Qwen/Qwen2.5-7B-Instruct",
+        guided: bool = True,
     ) -> None:
         self._client = OpenAI(base_url=base_url, api_key=api_key)
         self._model = model_name
+        self._guided = guided
 
     def process(self, prompt: str, functions: list[FunctionDef]) -> FunctionCall:
         fn_name = self._select_function(prompt, functions)
@@ -72,34 +74,59 @@ class VLLMBackend:
     def _select_function(
         self, prompt: str, functions: list[FunctionDef],
     ) -> str:
-        """Pick the function name using guided_choice."""
+        """Pick the function name, optionally using guided_choice."""
         fn_names = [f.name for f in functions]
         sel_prompt = build_function_selection_prompt(functions, prompt)
+
+        kwargs: dict = {}
+        if self._guided:
+            kwargs["extra_body"] = {"guided_choice": fn_names}
 
         response = self._client.completions.create(
             model=self._model,
             prompt=sel_prompt,
             max_tokens=50,
             temperature=0,
-            extra_body={"guided_choice": fn_names},
+            **kwargs,
         )
-        return response.choices[0].text.strip()
+        raw = response.choices[0].text.strip()
+
+        # Without guided decoding the model may wrap the name in quotes or
+        # extra text.  Try to match against valid function names.
+        if raw in fn_names:
+            return raw
+        for name in fn_names:
+            if name in raw:
+                return name
+        return raw
 
     def _extract_args(
         self, prompt: str, func: FunctionDef,
     ) -> dict:
-        """Extract all arguments at once using guided_json."""
+        """Extract arguments, optionally using guided_json."""
         schema = _build_args_json_schema(func)
         ext_prompt = build_args_extraction_prompt(func, prompt)
+
+        kwargs: dict = {}
+        if self._guided:
+            kwargs["extra_body"] = {"guided_json": json.dumps(schema)}
 
         response = self._client.completions.create(
             model=self._model,
             prompt=ext_prompt,
             max_tokens=512,
             temperature=0,
-            extra_body={"guided_json": json.dumps(schema)},
+            **kwargs,
         )
         raw = response.choices[0].text.strip()
+
+        # Without guided decoding the model may emit extra text around JSON.
+        if not self._guided:
+            start = raw.find("{")
+            end = raw.rfind("}") + 1
+            if start != -1 and end > start:
+                raw = raw[start:end]
+
         args = json.loads(raw)
 
         # Cast numeric types to match the declared parameter type.
