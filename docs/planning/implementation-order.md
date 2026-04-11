@@ -1,12 +1,14 @@
 ---
 title: "Implementation Order — Optimization Methods"
-lastUpdated: "2026-03-12"
+lastUpdated: "2026-04-11"
 status: "active"
 ---
 
 # Implementation Order — Optimization Methods
 
-The methods are ordered by: **no retraining first** (highest signal for lowest effort), then **training-based** improvements on top of a strong baseline, then **benchmarking only**.
+The methods are ordered by: **no retraining first** (highest signal for lowest effort), then **training-based** improvement on top of a strong baseline.
+
+Knowledge distillation is out of scope for this thesis; see `docs/planning/project-plan.md` for the current plan of record.
 
 ---
 
@@ -24,14 +26,6 @@ The methods are ordered by: **no retraining first** (highest signal for lowest e
 | # | Method | Folder | Rationale |
 |---|---|---|---|
 | 5 | **LoRA / PEFT** | `methods/lora-peft` | Highest direct impact — teaches the model the exact JSON schema and tool-call decision logic. |
-| 6 | **Knowledge Distillation** | `methods/knowledge-distilation` | CoT traces from Claude Opus. Builds on the LoRA setup already in place. |
-| 7 | **Pruning** | `methods/pruning` | Risky — can degrade instruction-following. Evaluate only after the model is already performing well. |
-
-## Phase 3 — Benchmarking only
-
-| # | Method | Folder | Rationale |
-|---|---|---|---|
-| 8 | **Architecture** | `methods/architecture` | Pre-trained variants only (Flash Attention, MoE, GQA). Compare, don't modify. |
 
 ---
 
@@ -50,18 +44,14 @@ CD+Q+RAG             + RAG (tool-definition retrieval)
   ↓
 CD+Q+FT              + LoRA Fine-tuning
   ↓
-CD+Q+KD              + Knowledge Distillation
+CD+Q+FT+RAG          + LoRA + RAG (full stack, best expected combo)
   ↓
-CD+Q+FT+KD           + LoRA + Distillation
-  ↓
-CD+Q+FT+KD+RAG       Full stack (best expected combo)
-  ↓
-Compare all vs. Claude Opus / GPT-4 on BFCL
+Compare all vs. Claude Opus / GPT-4.1 / Claude Sonnet on BFCL
 ```
 
 ---
 
 ## Related
 
-- [`docs/PRD.md`](PRD.md) — full experimental design and success criteria
-- `methods/` — one folder per method
+- [`docs/planning/project-plan.md`](project-plan.md) — plan of record
+- [`docs/planning/experiment-spec.md`](experiment-spec.md) — method inventory and success criteria
