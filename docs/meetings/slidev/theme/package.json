@@ -9,7 +9,8 @@
     "defaults": {
       "fonts": {
         "sans": "Arial",
-        "mono": "Fira Code"
+        "mono": "Fira Code",
+        "provider": "none"
       }
     }
   }
