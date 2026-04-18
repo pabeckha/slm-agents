@@ -96,6 +96,15 @@ class FunctionIndex:
         """Load a previously saved index from disk."""
         import faiss
 
+        with open(path / "corpus.json") as fh:
+            saved_names = [entry["name"] for entry in json.load(fh)]
+        corpus_names = [f.name for f in corpus]
+        if saved_names != corpus_names:
+            raise ValueError(
+                f"Corpus order mismatch: saved index has {len(saved_names)} functions "
+                f"but caller provided {len(corpus_names)}. Rebuild the index."
+            )
+
         idx = cls(corpus, model_name)
         idx._index = faiss.read_index(str(path / "index.faiss"))
         return idx
