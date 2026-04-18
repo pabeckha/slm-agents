@@ -361,7 +361,7 @@ def main() -> None:
                 print(f"RAG top-{args.rag_top_k}: {[f.name for f in retrieved]}  (recall: {'HIT' if hit else 'MISS'})")
 
         if rag_index is not None:
-            # Compute recall over all test data
+            # Compute recall over the current test set (possibly limited by --limit)
             hits = 0
             for entry in test_data:
                 retrieved = retrieve_functions(rag_index, entry["prompt"], top_k=args.rag_top_k)
