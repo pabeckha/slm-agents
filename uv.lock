@@ -4938,6 +4938,10 @@ dev = [
 ]
 hpc = [
     { name = "bfcl-eval" },
+    { name = "faiss-cpu" },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "sentence-transformers" },
     { name = "soundfile" },
     { name = "transformers" },
     { name = "vllm" },
@@ -4958,6 +4962,9 @@ dev = [
 ]
 hpc = [
     { name = "bfcl-eval", editable = "vendor/gorilla/berkeley-function-call-leaderboard" },
+    { name = "faiss-cpu", specifier = ">=1.7" },
+    { name = "scikit-learn", specifier = ">=1.0" },
+    { name = "sentence-transformers", specifier = ">=2.0" },
     { name = "soundfile", specifier = ">=0.13" },
     { name = "transformers", specifier = ">=4.40,<5" },
     { name = "vllm", specifier = "==0.8.5" },
