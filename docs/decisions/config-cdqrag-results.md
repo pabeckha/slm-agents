@@ -80,5 +80,5 @@ The 97.2% recall@5 means the retrieval stage is not the bottleneck — the casca
 - Results: `data/output/bfcl_rag/Qwen_Qwen2.5-7B-Instruct-AWQ/non_live/BFCL_v4_simple_python_result.json`
 - Scores: `data/output/bfcl_rag/scores/simple_python_scores.json`
 - Run manifest: `data/output/bfcl_rag/runs/2026-04-13T07-08-50_Qwen_Qwen2.5-7B-Instruct-AWQ_simple_python_guided_rag_top5.json`
-- FAISS index: `data/output/bfcl/rag_index/`
+- FAISS index: `data/output/bfcl_rag/rag_index/`
 - Logs: `logs/bfcl_rag_28193415.out` (crashed), `logs/bfcl_rag_28194208.out` (completed)
