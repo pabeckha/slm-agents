@@ -28,6 +28,9 @@ hpc = [
   "transformers>=4.40,<5",
   "bfcl-eval",
   "soundfile>=0.13",
+  "sentence-transformers>=2.0",
+  "scikit-learn>=1.0",
+  "faiss-cpu>=1.7",
 ]
 
 [tool.uv.sources]

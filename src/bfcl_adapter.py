@@ -220,6 +220,9 @@ def write_run_manifest(
     backend: str,
     guided: bool,
     few_shot: bool = False,
+    rag: bool = False,
+    rag_top_k: int | None = None,
+    rag_recall: float | None = None,
     scores: dict | None,
     output_dir: Path,
 ) -> Path:
@@ -229,6 +232,8 @@ def write_run_manifest(
     config_tag = "guided" if guided else "no_guided"
     if few_shot:
         config_tag += "_few_shot"
+    if rag:
+        config_tag += f"_rag_top{rag_top_k}"
     run_id = f"{ts:%Y-%m-%dT%H-%M-%S}_{safe_model}_{category}_{config_tag}"
 
     manifest = {
@@ -239,7 +244,12 @@ def write_run_manifest(
         "backend": backend,
         "guided": guided,
         "few_shot": few_shot,
+        "rag": rag,
     }
+    if rag:
+        manifest["rag_top_k"] = rag_top_k
+        if rag_recall is not None:
+            manifest["rag_recall"] = rag_recall
     if scores is not None:
         manifest["accuracy"] = scores["accuracy"]
         manifest["correct_count"] = scores["correct_count"]
@@ -285,6 +295,18 @@ def main() -> None:
         "--limit", type=int, default=None,
         help="Only process first N test cases",
     )
+    parser.add_argument(
+        "--rag", action="store_true",
+        help="Enable RAG: retrieve top-k functions from a pooled corpus instead of using ground-truth functions",
+    )
+    parser.add_argument(
+        "--rag-top-k", type=int, default=5,
+        help="Number of functions to retrieve per query (default: 5)",
+    )
+    parser.add_argument(
+        "--rag-index-dir", type=str, default=None,
+        help="Directory to save/load the FAISS index (default: <output-dir>/rag_index)",
+    )
     args = parser.parse_args()
 
     data_dir = Path(args.bfcl_dir)
@@ -300,6 +322,31 @@ def main() -> None:
         test_data = test_data[: args.limit]
         print(f"Limited to first {args.limit} test cases")
 
+    # ── RAG index ──────────────────────────────────────────────────────
+    rag_index = None
+    rag_corpus = None
+    if args.rag:
+        from .rag import FunctionIndex, build_corpus, recall_at_k, retrieve_functions
+
+        # Build corpus from ALL test data (before limiting), so the pool
+        # contains the full set of functions as distractors.
+        all_test_data = load_bfcl_test_data(args.category, data_dir)
+        rag_corpus = build_corpus(all_test_data)
+        print(f"RAG corpus: {len(rag_corpus)} unique functions")
+
+        index_dir = Path(args.rag_index_dir) if args.rag_index_dir else output_dir / "rag_index"
+        index_faiss = index_dir / "index.faiss"
+
+        if index_faiss.exists():
+            print(f"Loading existing FAISS index from {index_dir}")
+            rag_index = FunctionIndex.load(index_dir, rag_corpus)
+        else:
+            print("Building FAISS index (this may take a moment)...")
+            rag_index = FunctionIndex(rag_corpus)
+            rag_index.build()
+            rag_index.save(index_dir)
+            print(f"Index saved to {index_dir}")
+
     if args.dry_run:
         print("\n=== Dry run: sample entries ===")
         for entry in test_data[:3]:
@@ -308,6 +355,19 @@ def main() -> None:
             print(f"Functions: {[f.name for f in entry['functions']]}")
             gt = answers.get(entry["id"], [])
             print(f"Ground truth: {gt}")
+            if rag_index is not None:
+                retrieved = retrieve_functions(rag_index, entry["prompt"], top_k=args.rag_top_k)
+                hit = recall_at_k(retrieved, entry["functions"])
+                print(f"RAG top-{args.rag_top_k}: {[f.name for f in retrieved]}  (recall: {'HIT' if hit else 'MISS'})")
+
+        if rag_index is not None:
+            # Compute recall over all test data
+            hits = 0
+            for entry in test_data:
+                retrieved = retrieve_functions(rag_index, entry["prompt"], top_k=args.rag_top_k)
+                if recall_at_k(retrieved, entry["functions"]):
+                    hits += 1
+            print(f"\nRAG recall@{args.rag_top_k}: {hits}/{len(test_data)} ({hits/len(test_data):.1%})")
         return
 
     # Build backend
@@ -344,10 +404,22 @@ def main() -> None:
     # Run pipeline and collect results
     print(f"\n=== Running {len(test_data)} test cases ===")
     results = []
+    rag_hits = 0
     for i, entry in enumerate(test_data):
         print(f"[{i + 1}/{len(test_data)}] {entry['id']}: {entry['prompt'][:60]}...")
+
+        # Replace functions with RAG-retrieved candidates when enabled.
+        functions = entry["functions"]
+        if rag_index is not None:
+            functions = retrieve_functions(rag_index, entry["prompt"], top_k=args.rag_top_k)
+            hit = recall_at_k(functions, entry["functions"])
+            if hit:
+                rag_hits += 1
+            else:
+                print(f"  RAG MISS: correct={[f.name for f in entry['functions']]}")
+
         try:
-            fc = backend.process(entry["prompt"], entry["functions"])
+            fc = backend.process(entry["prompt"], functions)
             decoded = format_result_dict(fc)
             python_str = format_result_python(fc)
             print(f"  -> {fc.fn_name}({fc.args})")
@@ -363,6 +435,9 @@ def main() -> None:
                 "decoded": [{}],
                 "python_str": "[]",
             })
+
+    if rag_index is not None:
+        print(f"\nRAG recall@{args.rag_top_k}: {rag_hits}/{len(test_data)} ({rag_hits/len(test_data):.1%})")
 
     # Write result files
     result_path = write_results_jsonl(results, args.model, args.category, output_dir)
@@ -400,6 +475,9 @@ def main() -> None:
         backend=args.backend,
         guided=guided,
         few_shot=args.few_shot,
+        rag=args.rag,
+        rag_top_k=args.rag_top_k if args.rag else None,
+        rag_recall=rag_hits / len(test_data) if rag_index is not None else None,
         scores=scores,
         output_dir=output_dir,
     )
