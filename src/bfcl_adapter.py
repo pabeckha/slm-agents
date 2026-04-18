@@ -330,7 +330,7 @@ def main() -> None:
 
         # Build corpus from ALL test data (before limiting), so the pool
         # contains the full set of functions as distractors.
-        all_test_data = load_bfcl_test_data(args.category, data_dir)
+        all_test_data = test_data if args.limit is None else load_bfcl_test_data(args.category, data_dir)
         rag_corpus = build_corpus(all_test_data)
         print(f"RAG corpus: {len(rag_corpus)} unique functions")
 
