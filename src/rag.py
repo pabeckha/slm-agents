@@ -88,7 +88,7 @@ class FunctionIndex:
             {"name": f.name, "text": _function_text(f)}
             for f in self._corpus
         ]
-        with open(path / "corpus.json", "w") as fh:
+        with open(path / "corpus.json", "w", encoding="utf-8") as fh:
             json.dump(meta, fh)
 
     @classmethod
@@ -96,7 +96,7 @@ class FunctionIndex:
         """Load a previously saved index from disk."""
         import faiss
 
-        with open(path / "corpus.json") as fh:
+        with open(path / "corpus.json", encoding="utf-8") as fh:
             saved_names = [entry["name"] for entry in json.load(fh)]
         corpus_names = [f.name for f in corpus]
         if saved_names != corpus_names:
