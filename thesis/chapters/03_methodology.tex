@@ -52,26 +52,158 @@ retrieval-augmented generation to Config CD+Q.
 \draw[darr](B)   -- node[right, font=\footnotesize]{parallel} (PE);
 
 \end{tikzpicture}
-\caption{Cumulative evaluation ladder. Each configuration in the main chain (top row)
-extends the previous one by adding a single technique. Config CD+Q+RAG and Config PE
-are evaluated as parallel tracks.}
+\caption{Cumulative evaluation ladder. Each configuration in the main
+chain (top row) extends the previous one by adding a single technique.
+Config CD+Q+RAG and Config PE are evaluated as parallel tracks.}
 \label{fig:eval-ladder}
 \end{figure}
 
 \subsection{Hardware and Infrastructure}
 
+All experiments are conducted on the DTU HPC cluster
+(gbar.dtu.dk), running AlmaLinux~9.7 under the LSF job
+scheduler. Each job is allocated one NVIDIA A100 80\,GB PCIe
+GPU in exclusive process mode, eight CPU cores, and 64\,GB
+of RAM. Inference jobs use a two-hour wall-time limit; LoRA
+training jobs use three hours for models up to 1.5B parameters
+and eight hours for the 7B model.
+
+Model inference is served via vLLM~0.8.5, which exposes a
+REST API on localhost that the evaluation client connects to,
+with GPU memory utilisation limited to 90\,\%. Full-precision models are loaded in bfloat16 (14\,GB
+VRAM for the 7B model); quantized models are loaded in float16
+under the AWQ Marlin backend (4--5\,GB VRAM). The software
+environment uses uv~0.5.13, Python~3.12.11, and CUDA~12.6.3.
+Model weights are cached from the Hugging Face Hub on cluster
+storage.
+
 \section{Evaluation Framework}
+
+Two benchmarks are used to evaluate the configurations.
+The Berkeley Function Calling Leaderboard covers single-turn
+tool-calling accuracy across categories of increasing
+complexity. $\tau$-bench covers multi-step agentic task
+completion, where the model must reason, call tools, observe
+results, and iterate until a task is done.
+
 \subsection{Berkeley Function Calling Leaderboard}
-\subsection{Metrics}
+
+All configurations are evaluated on the Berkeley Function
+Calling Leaderboard (BFCL) v4~\cite{bfcl2024}. Three
+categories are used: \texttt{simple\_python} (400 test
+cases, one candidate function per test), \texttt{multiple\_function}
+(the model must select the correct function from several
+candidates), and \texttt{parallel\_function} (the model
+must produce multiple function calls simultaneously). Each
+test case consists of a user prompt and one or more function
+definitions; the model is required to produce the correct
+function call with the correct arguments. Frontier model
+scores are taken from the published BFCL leaderboard rather
+than re-evaluated, as the official scores are the canonical
+reference for the benchmark.
+
+The primary metric is AST accuracy: the model output is
+parsed and compared structurally against the ground truth,
+checking function name, argument names, argument values, and
+argument types. Evaluation is performed using the BFCL
+\texttt{ast\_checker}, which applies lenient type coercion
+between compatible types (e.g., integer and float). All
+inference runs use temperature 0 to ensure deterministic
+outputs across configurations. Function selection accuracy
+and argument extraction accuracy are reported separately to
+identify where failures occur along the prediction pipeline.
+
+\subsection{$\tau$-bench}
 
 \section{Models}
 \subsection{Qwen 2.5}
 
+The Qwen 2.5 model family~\cite{qwen2024qwen25} is used
+across all experiments. Four sizes are evaluated: 0.5B,
+1.5B, 3B, and 7B parameters, all in the Instruct variant.
+The 7B model is the primary subject of analysis; the
+smaller sizes are included to study how model scale
+interacts with each optimization technique.
+
+Qwen 2.5 is selected for three reasons. First, the family
+covers a continuous size range under a single architecture
+and training regime, which allows scale effects to be
+isolated without confounding differences in model design.
+Second, native AWQ INT4 quantized variants are available
+for all sizes on the Hugging Face Hub, avoiding the need
+for manual quantization. Third, recent surveys of SLMs for
+agentic systems identify Qwen 2.5 7B as one of the
+strongest open-weight models for tool use and function
+calling at this parameter scale~\cite{sharma2025slmagents}.
+All models are served under an Apache 2.0 licence.
+
 \section{Baseline Definition}
+
+Config~B is the baseline configuration: the model is prompted
+without constrained decoding, at full precision (bfloat16),
+with no quantization, no fine-tuning, and no few-shot
+examples. The pipeline is two-stage. In the first stage,
+the available function signatures and descriptions are
+presented to the model, and the prompt ends with
+\texttt{Function name:~}; the model completes freely.
+In the second stage, the selected function signature and
+the user query are presented, and the prompt ends with
+\texttt{JSON:~}; the model generates argument values as
+free-form text. A JSON extraction heuristic is applied to
+the output, capturing the substring from the first
+opening brace to the last closing brace. Temperature is set
+to 0 across all configurations to ensure deterministic
+outputs, removing randomness as a confound when comparing
+techniques.
+
+% RESULTS TODO: Report Config B AST accuracy (1.5%, 6/400),
+% dominant failure mode (format non-compliance: conversational
+% wrapping, multiple JSON objects), and establish it as the
+% lower bound reference for all technique comparisons.
 
 \section{Constrained Decoding}
 
+Config~CD adds constrained decoding to Config~B; all other
+settings remain unchanged. Constrained decoding is
+implemented via vLLM's guided decoding
+feature~\cite{kwon2023vllm, willard2023efficient}, which
+applies logit masking at each generation step to restrict
+the output to a valid token sequence.
+
+Two mechanisms are used in the two-stage pipeline. In the
+function selection stage, \texttt{guided\_choice} restricts
+the output to one of the valid function names, guaranteeing
+that the selected name exists in the available function
+set. In the argument extraction stage, \texttt{guided\_json}
+restricts the output to a JSON object that conforms to a
+schema derived from the function definition, with parameter
+names, types, and required fields enforced, and
+\texttt{additionalProperties} set to false.
+
+% RESULTS TODO: Report Config CD AST accuracy (72.75%, 291/400,
+% +71.25 pp over Config B). Function selection 100% -- CD
+% eliminates all function name errors. Remaining failures are
+% semantic (wrong argument values), not format errors.
+
 \section{Quantization}
+
+Config~CD+Q adds AWQ INT4 quantization~\cite{lin2024awq}
+to Config~CD. The pre-quantized model
+\texttt{Qwen/Qwen2.5-7B-Instruct-AWQ} is used, loaded via
+vLLM with the \texttt{awq\_marlin} backend, which applies
+optimized Marlin kernels for efficient INT4 inference on
+GPU. All other settings remain unchanged.
+
+AWQ is selected because activation-aware weight quantization
+preserves accuracy better than uniform quantization by
+protecting weights that correspond to large activation
+values. Pre-quantized variants for all Qwen~2.5 sizes are
+available on the Hugging Face Hub, avoiding the need for
+a local quantization step.
+
+% RESULTS TODO: Report Config CD+Q AST accuracy (72.0%, 288/400,
+% -0.75 pp vs CD). Memory: 14.25 GiB -> 5.20 GiB (63.5% reduction).
+% Load time: 212s -> 35s. No new failure modes introduced.
 
 \section{Prompt Engineering and Few-Shot}
 
