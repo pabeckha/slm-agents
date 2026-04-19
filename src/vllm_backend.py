@@ -6,7 +6,7 @@ import json
 
 from openai import OpenAI
 
-from .prompt import build_function_selection_prompt, build_args_extraction_prompt
+from .prompt import build_function_selection_prompt, build_args_extraction_prompt, build_parallel_selection_prompt
 from .schema import FunctionCall, FunctionDef
 
 # Map our simple type names to JSON Schema types.
@@ -72,6 +72,60 @@ class VLLMBackend:
         func = next(f for f in functions if f.name == fn_name)
         args = self._extract_args(prompt, func)
         return FunctionCall(prompt=prompt, fn_name=fn_name, args=args)
+
+    def process_parallel(
+        self, prompt: str, functions: list[FunctionDef]
+    ) -> list[FunctionCall]:
+        """Select and call multiple functions for parallel-category queries.
+
+        Step 1: guided_json to get list of function names to call.
+        Step 2: extract args for each selected function (same as single-call path).
+        """
+        fn_names = [f.name for f in functions]
+
+        calls_schema = {
+            "type": "object",
+            "properties": {
+                "calls": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": fn_names},
+                    "minItems": 1,
+                    "maxItems": min(len(fn_names), 5),
+                }
+            },
+            "required": ["calls"],
+            "additionalProperties": False,
+        }
+
+        sel_prompt = build_parallel_selection_prompt(functions, prompt)
+        kwargs: dict = {}
+        if self._guided:
+            kwargs["extra_body"] = {"guided_json": json.dumps(calls_schema)}
+
+        response = self._client.completions.create(
+            model=self._model,
+            prompt=sel_prompt,
+            max_tokens=200,
+            temperature=0,
+            **kwargs,
+        )
+        raw = response.choices[0].text.strip()
+
+        try:
+            selected_names = json.loads(raw)["calls"]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            # Fallback: try to pick names mentioned in the raw output.
+            selected_names = [n for n in fn_names if n in raw] or fn_names[:1]
+
+        results: list[FunctionCall] = []
+        for name in selected_names:
+            func = next((f for f in functions if f.name == name), None)
+            if func is None:
+                continue
+            args = self._extract_args(prompt, func)
+            results.append(FunctionCall(prompt=prompt, fn_name=name, args=args))
+
+        return results or [self.process(prompt, functions)]
 
     def _select_function(
         self, prompt: str, functions: list[FunctionDef],

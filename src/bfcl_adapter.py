@@ -23,6 +23,9 @@ BFCL_DATA_DIR = Path(
     "vendor/gorilla/berkeley-function-call-leaderboard/bfcl_eval/data"
 )
 
+# Categories that require returning multiple parallel function calls.
+_PARALLEL_CATEGORIES = frozenset({"parallel", "parallel_multiple", "java_parallel", "javascript_parallel"})
+
 
 # ── BFCL data loading ───────────────────────────────────────────────────
 
@@ -103,6 +106,22 @@ def format_result_python(fc: FunctionCall) -> str:
     """
     args_str = ", ".join(f"{k}={repr(v)}" for k, v in fc.args.items())
     return f"[{fc.fn_name}({args_str})]"
+
+
+def format_parallel_results(fcs: list[FunctionCall]) -> tuple[list[dict], str]:
+    """Convert a list of FunctionCalls to BFCL parallel result formats.
+
+    Returns:
+        decoded: list of {fn_name: {args}} dicts (for ast_checker)
+        python_str: '[fn1(a=v), fn2(a=v)]'
+    """
+    decoded = [{fc.fn_name: dict(fc.args)} for fc in fcs]
+    calls_str = ", ".join(
+        f"{fc.fn_name}({', '.join(f'{k}={repr(v)}' for k, v in fc.args.items())})"
+        for fc in fcs
+    )
+    python_str = f"[{calls_str}]"
+    return decoded, python_str
 
 
 # ── Evaluation ───────────────────────────────────────────────────────────
@@ -223,6 +242,8 @@ def write_run_manifest(
     rag: bool = False,
     rag_top_k: int | None = None,
     rag_recall: float | None = None,
+    lora_base_model: str | None = None,
+    parallel: bool = False,
     scores: dict | None,
     output_dir: Path,
 ) -> Path:
@@ -234,6 +255,8 @@ def write_run_manifest(
         config_tag += "_few_shot"
     if rag:
         config_tag += f"_rag_top{rag_top_k}"
+    if lora_base_model:
+        config_tag += "_lora_ft"
     run_id = f"{ts:%Y-%m-%dT%H-%M-%S}_{safe_model}_{category}_{config_tag}"
 
     manifest = {
@@ -245,11 +268,14 @@ def write_run_manifest(
         "guided": guided,
         "few_shot": few_shot,
         "rag": rag,
+        "parallel": parallel,
     }
     if rag:
         manifest["rag_top_k"] = rag_top_k
         if rag_recall is not None:
             manifest["rag_recall"] = rag_recall
+    if lora_base_model:
+        manifest["lora_base_model"] = lora_base_model
     if scores is not None:
         manifest["accuracy"] = scores["accuracy"]
         manifest["correct_count"] = scores["correct_count"]
@@ -306,6 +332,10 @@ def main() -> None:
     parser.add_argument(
         "--rag-index-dir", type=str, default=None,
         help="Directory to save/load the FAISS index (default: <output-dir>/rag_index)",
+    )
+    parser.add_argument(
+        "--lora-base-model", type=str, default=None,
+        help="Original base model ID when serving a LoRA-merged checkpoint (recorded in manifest only)",
     )
     args = parser.parse_args()
 
@@ -401,8 +431,11 @@ def main() -> None:
         )
         backend = LocalBackend(Small_LLM_Model(args.model))
 
+    # Detect whether this category requires parallel multi-call output.
+    use_parallel = args.category in _PARALLEL_CATEGORIES and hasattr(backend, "process_parallel")
+
     # Run pipeline and collect results
-    print(f"\n=== Running {len(test_data)} test cases ===")
+    print(f"\n=== Running {len(test_data)} test cases (parallel={use_parallel}) ===")
     results = []
     rag_hits = 0
     for i, entry in enumerate(test_data):
@@ -419,10 +452,15 @@ def main() -> None:
                 print(f"  RAG MISS: correct={[f.name for f in entry['functions']]}")
 
         try:
-            fc = backend.process(entry["prompt"], functions)
-            decoded = format_result_dict(fc)
-            python_str = format_result_python(fc)
-            print(f"  -> {fc.fn_name}({fc.args})")
+            if use_parallel:
+                fcs = backend.process_parallel(entry["prompt"], functions)
+                decoded, python_str = format_parallel_results(fcs)
+                print(f"  -> [{', '.join(fc.fn_name for fc in fcs)}]")
+            else:
+                fc = backend.process(entry["prompt"], functions)
+                decoded = format_result_dict(fc)
+                python_str = format_result_python(fc)
+                print(f"  -> {fc.fn_name}({fc.args})")
             results.append({
                 "id": entry["id"],
                 "decoded": decoded,
@@ -478,6 +516,8 @@ def main() -> None:
         rag=args.rag,
         rag_top_k=args.rag_top_k if args.rag else None,
         rag_recall=rag_hits / len(test_data) if rag_index is not None else None,
+        lora_base_model=args.lora_base_model,
+        parallel=use_parallel,
         scores=scores,
         output_dir=output_dir,
     )

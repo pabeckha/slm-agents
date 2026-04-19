@@ -66,6 +66,26 @@ def _signature(func: FunctionDef) -> str:
     return f"{func.name}({params}) -> {func.returns.type}"
 
 
+def build_parallel_selection_prompt(
+    functions: list[FunctionDef], query: str
+) -> str:
+    """Build a prompt asking which functions to call in parallel.
+
+    The model should output JSON: {"calls": ["fn1", "fn2", ...]}
+    """
+    lines = ["Available functions:"]
+    for func in functions:
+        lines.append(f"- {_signature(func)}: {func.description}")
+
+    lines.append(f"\nUser request: {query}")
+    lines.append(
+        "List ALL function names that must be called to fulfil this request."
+        " Output a JSON object with a 'calls' key containing the list."
+    )
+    lines.append("JSON: ")
+    return "\n".join(lines)
+
+
 def build_function_selection_prompt(
     functions: list[FunctionDef], query: str
 ) -> str:
