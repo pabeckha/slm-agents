@@ -56,6 +56,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="LoRA fine-tuning for function calling")
     parser.add_argument("--model", default="Qwen/Qwen2.5-7B-Instruct")
     parser.add_argument("--dataset", default="Salesforce/xlam-function-calling-60k")
+    parser.add_argument("--data-path", type=str, default=None,
+                        help="Local JSONL file from prepare_lora_data.py (skips HF download)")
     parser.add_argument("--output-dir", default="models/lora/Qwen2.5-7B-FT")
     parser.add_argument("--epochs", type=int, default=2)
     parser.add_argument("--rank", type=int, default=16, help="LoRA rank")
@@ -102,11 +104,16 @@ def main() -> None:
     model = get_peft_model(model, lora_config)
     model.print_trainable_parameters()
 
-    print(f"Loading dataset: {args.dataset}")
-    ds = load_dataset(args.dataset, split="train")
+    if args.data_path:
+        print(f"Loading local dataset: {args.data_path}")
+        ds = load_dataset("json", data_files=args.data_path, split="train")
+    else:
+        print(f"Loading dataset: {args.dataset}")
+        ds = load_dataset(args.dataset, split="train")
+
     if args.max_samples:
         ds = ds.select(range(min(args.max_samples, len(ds))))
-        print(f"Using {len(ds)} samples")
+    print(f"Using {len(ds)} samples")
 
     print("Formatting dataset...")
     formatted = ds.map(
@@ -152,7 +159,7 @@ def main() -> None:
     # Save a metadata file for traceability.
     meta = {
         "base_model": args.model,
-        "dataset": args.dataset,
+        "dataset": args.data_path if args.data_path else args.dataset,
         "epochs": args.epochs,
         "rank": args.rank,
         "alpha": args.alpha,

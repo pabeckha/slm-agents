@@ -1,8 +1,8 @@
 #!/bin/sh
 ### -- Job name --
 #BSUB -J train_lora
-### -- GPU queue (A100 for training) --
-#BSUB -q gpua40
+### -- GPU queue --
+#BSUB -q gpua100
 ### -- 1 GPU --
 #BSUB -gpu "num=1:mode=exclusive_process"
 ### -- 8 CPU cores --
@@ -53,6 +53,16 @@ nvidia-smi
 echo "=== Syncing dependencies ==="
 uv sync --group hpc
 
+# Use pre-split local data if available; otherwise fall back to HF download.
+TRAIN_DATA="data/input/lora_train.jsonl"
+DATA_PATH_ARG=""
+if [ -f "$TRAIN_DATA" ]; then
+    echo "Using local training data: $TRAIN_DATA"
+    DATA_PATH_ARG="--data-path $TRAIN_DATA"
+else
+    echo "Local data not found — downloading from HuggingFace (set HF_TOKEN)"
+fi
+
 echo "=== Starting LoRA training ==="
 MAX_SAMPLES_ARG=""
 [ -n "$MAX_SAMPLES" ] && MAX_SAMPLES_ARG="--max-samples $MAX_SAMPLES"
@@ -63,6 +73,7 @@ uv run --group hpc python scripts/train_lora.py \
     --epochs "$EPOCHS" \
     --rank "$RANK" \
     --bf16 \
+    ${DATA_PATH_ARG} \
     ${MAX_SAMPLES_ARG}
 
 echo "=== Training complete ==="
