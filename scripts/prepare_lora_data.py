@@ -27,6 +27,8 @@ def load_row(row: dict) -> dict:
 
 
 def stats_block(rows: list[dict], label: str) -> str:
+    if not rows:
+        return f"\n{label} (0 examples)"
     n_tools = [len(r["tools"]) for r in rows]
     n_calls = [len(r["answers"]) if isinstance(r["answers"], list) else 1 for r in rows]
     fn_counts: Counter = Counter()
@@ -80,6 +82,10 @@ def main() -> None:
         rng = random.Random(args.seed)
         rows = rng.sample(rows, args.max_samples)
         print(f"Capped to {len(rows):,} samples (--max-samples)")
+
+    if not (0 < args.val_ratio < 1):
+        print(f"ERROR: --val-ratio must be between 0 and 1 (got {args.val_ratio})")
+        raise SystemExit(1)
 
     rng = random.Random(args.seed)
     rng.shuffle(rows)
