@@ -105,13 +105,10 @@ def main() -> None:
     model.print_trainable_parameters()
 
     if args.data_path:
-        import json as _json
         print(f"Loading local dataset: {args.data_path}")
-        from datasets import Dataset
-        raw = [_json.loads(l) for l in open(args.data_path) if l.strip()]
+        ds = load_dataset("json", data_files=args.data_path, split="train")
         if args.max_samples:
-            raw = raw[: args.max_samples]
-        ds = Dataset.from_list(raw)
+            ds = ds.select(range(min(args.max_samples, len(ds))))
     else:
         print(f"Loading dataset: {args.dataset}")
         ds = load_dataset(args.dataset, split="train")
