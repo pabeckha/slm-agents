@@ -31,6 +31,7 @@ vendor/
 
 # External reference repo — Skafte's thesis recommendations
 dtu_cs_thesis/
+dtu-cs-thesis/
 
 # Hugging Face cache
 .cache/

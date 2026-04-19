@@ -1,61 +1,86 @@
 # SLM Agents
 
-DTU Master Thesis investigating which optimization techniques enable Small Language Models (SLMs) to perform reliable tool calling and agentic reasoning on consumer hardware.
+DTU Master Thesis investigating which optimization techniques enable Small Language Models
+(SLMs) to perform reliable tool calling, framed as expanding the boundary of a cascade
+LLM architecture.
 
-## Research Question
+## Research Questions
 
-> Which combination of constrained decoding, fine-tuning, and inference optimizations closes the gap between SLMs and large frontier models on agentic benchmarks, while running locally on consumer hardware?
-
-## The Problem
-
-Frontier models (Claude Opus, GPT-4) handle tool calling well but require cloud access and are expensive. SLMs (1B-13B parameters) are fast and cheap but fail at structured output: they hallucinate tool names, produce invalid JSON, and mis-reason about arguments.
+- **RQ1:** What is the baseline gap between SLMs and frontier models on tool calling?
+- **RQ2:** What is the marginal contribution of each optimization technique?
+- **RQ3:** Is a quantized, fine-tuned SLM viable for production tool calling?
 
 ## Approach
 
-Each optimization method expands the boundary of what a local SLM can handle reliably in a cascade architecture, reducing dependence on expensive frontier models:
+A cumulative ablation study over Qwen 2.5 (0.5B, 1.5B, 3B, 7B) across five techniques,
+evaluated on BFCL v4 and tau-bench:
 
-1. **Constrained Decoding** - Force valid JSON output via logit masking (PoC complete, 95%+ accuracy on Qwen3-0.6B)
-2. **Quantization** - AWQ INT4 compression for reduced memory/latency
-3. **Inference-Time Compute** - CoT and ReAct prompting
-4. **RAG** - Runtime tool schema retrieval
-5. **LoRA / PEFT** - Fine-tuning on function-calling datasets
-6. **Pruning** - Structured model compression
-7. **Architecture benchmarking** - Compare pre-trained variants (Flash Attention, MoE)
+| Config | Techniques | Status |
+|--------|-----------|--------|
+| Config B | Baseline (no optimization) | Done — 1.5% AST accuracy |
+| Config CD | + Constrained decoding | Done — 72.75% AST accuracy |
+| Config PE | + Few-shot prompting | Done — 70.25% AST accuracy |
+| Config CD+Q | + AWQ INT4 quantization | Done — 72.0% AST accuracy |
+| Config CD+Q+RAG | + Retrieval-augmented generation | Done |
+| Config CD+Q+FT | + LoRA fine-tuning | Running on HPC |
 
-Evaluated on [BFCL (Berkeley Function Calling Leaderboard)](https://gorilla.cs.berkeley.edu/leaderboard.html) and compared against Claude Opus 4.6 and GPT-4.1.
+## Key Finding (so far)
+
+Constrained decoding alone closes ~95% of the gap between a raw 7B SLM (1.5%) and
+frontier models on BFCL simple\_python. Qwen 2.5 7B + CD (72.75%) matches GPT-4.1
+(72.67%) and Claude Sonnet 4.5 (72.58%) on this category.
 
 ## Project Structure
 
 ```
-src/                       # Constrained decoding pipeline
-llm_sdk/                   # Model wrapper (Small_LLM_Model)
-scripts/                   # HPC job scripts, evaluation scripts
-data/                      # Input/output datasets
-notebooks/                 # Experiment notebooks
-docs/                      # Research, planning, decisions
-project_plan/              # Formal project plan and bibliography
-thesis/                    # LaTeX thesis document
+src/                  # Constrained decoding pipeline (vLLM backend, prompts, schema)
+scripts/              # HPC job scripts, evaluation scripts, LoRA training
+data/                 # Input datasets and output results
+docs/                 # Decisions, research, planning, meeting notes
+thesis/               # LaTeX thesis document (main.tex)
+project_plan/         # Formal project plan and bibliography
+```
+
+## Thesis Progress
+
+| Chapter | Status |
+|---------|--------|
+| Introduction | Draft |
+| Background | Draft |
+| Methodology | In progress (28 pages total so far) |
+| Results | Empty — pending experiment completion |
+| Discussion | Empty |
+| Conclusion | Empty |
+
+## Running Experiments
+
+All experiments run on DTU HPC (`gbar.dtu.dk`) via LSF. Submit jobs from the login node:
+
+```bash
+bsub < scripts/hpc/run_bfcl.sh         # Config CD
+bsub < scripts/hpc/run_bfcl_quant.sh   # Config CD+Q
+bsub < scripts/hpc/run_bfcl_few_shot.sh # Config PE
+bsub < scripts/hpc/run_bfcl_rag.sh     # Config CD+Q+RAG
+bsub < scripts/hpc/train_lora.sh        # LoRA training
+bsub < scripts/hpc/run_bfcl_ft.sh      # Config CD+Q+FT
+```
+
+Monitor jobs:
+
+```bash
+bstat
+bjobs
+tail -f logs/<jobid>.out
 ```
 
 ## Setup
 
 ```bash
-uv sync
+uv sync --group hpc
 ```
 
-Requires `HF_TOKEN` environment variable for model access:
-
-```bash
-cp .env.example .env  # Add your HuggingFace token
-source .env
-```
-
-### Run constrained decoding PoC
-
-```bash
-uv run python -m src
-```
+Requires `HF_TOKEN` for model downloads and `HF_HOME` pointing to scratch storage on HPC.
 
 ## Supervisor
 
-Nick (DTU) - meetings tracked in `docs/meetings/`
+Niklas Skafte (DTU) — meetings tracked in `docs/meetings/`
