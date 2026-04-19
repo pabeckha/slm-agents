@@ -23,6 +23,8 @@
 
 set -e
 
+export HF_HOME="${HF_HOME:-/work3/s242779/huggingface}"
+
 cleanup() { [ -n "${VLLM_PID:-}" ] && kill "$VLLM_PID" 2>/dev/null && wait "$VLLM_PID" 2>/dev/null || true; }
 trap cleanup EXIT INT TERM
 
@@ -33,9 +35,16 @@ PROJECT_DIR="$HOME/Documents/slm-agents"
 cd "$PROJECT_DIR"
 mkdir -p logs
 
-MODEL="Qwen/Qwen2.5-7B-Instruct-AWQ"
-CATEGORY="simple_python"
+MODEL="${MODEL:-Qwen/Qwen2.5-7B-Instruct-AWQ}"
+CATEGORY="${CATEGORY:-simple_python}"
 VLLM_PORT=8000
+
+# Auto-detect quantization from model name (AWQ/GPTQ).
+QUANT_FLAGS=""
+case "$MODEL" in
+    *-AWQ*|*-awq*) QUANT_FLAGS="--quantization awq_marlin --enforce-eager" ;;
+    *-GPTQ*|*-gptq*) QUANT_FLAGS="--quantization gptq" ;;
+esac
 
 echo "=== Job info ==="
 echo "Job ID: $LSB_JOBID"
@@ -43,22 +52,22 @@ echo "Host: $(hostname)"
 echo "Date: $(date)"
 echo "Model: $MODEL"
 echo "Category: $CATEGORY"
-echo "Config: CD+Q (guided decoding + AWQ INT4 quantization)"
+echo "Quant flags: ${QUANT_FLAGS:-none}"
+echo "Config: CD+Q (guided decoding + quantization)"
 nvidia-smi
 
 echo "=== Syncing dependencies ==="
 uv sync --group hpc
 
-# ── Start vLLM server (AWQ quantized) ───────────────────────────────
-echo "=== Starting vLLM server (AWQ INT4) ==="
+# ── Start vLLM server ────────────────────────────────────────────────
+echo "=== Starting vLLM server ==="
 uv run --group hpc python -m vllm.entrypoints.openai.api_server \
     --model "$MODEL" \
     --port "$VLLM_PORT" \
-    --quantization awq_marlin \
     --dtype auto \
     --max-model-len 4096 \
     --gpu-memory-utilization 0.9 \
-    --enforce-eager \
+    ${QUANT_FLAGS} \
     &
 VLLM_PID=$!
 

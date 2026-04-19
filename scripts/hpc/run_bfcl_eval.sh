@@ -20,6 +20,8 @@
 
 set -e
 
+export HF_HOME="${HF_HOME:-/work3/s242779/huggingface}"
+
 cleanup() { [ -n "${VLLM_PID:-}" ] && kill "$VLLM_PID" 2>/dev/null && wait "$VLLM_PID" 2>/dev/null || true; }
 trap cleanup EXIT INT TERM
 
@@ -30,8 +32,8 @@ PROJECT_DIR="$HOME/Documents/slm-agents"
 cd "$PROJECT_DIR"
 mkdir -p logs
 
-MODEL="Qwen/Qwen2.5-7B-Instruct"
-CATEGORY="simple_python"
+MODEL="${MODEL:-Qwen/Qwen2.5-7B-Instruct}"
+CATEGORY="${CATEGORY:-simple_python}"
 VLLM_PORT=8000
 
 echo "=== Job info ==="

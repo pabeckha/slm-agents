@@ -19,6 +19,8 @@ set -e
 
 module load python3/3.12.11
 
+export HF_HOME="${HF_HOME:-/work3/s242779/huggingface}"
+
 PROJECT_DIR="$HOME/Documents/slm-agents"
 cd "$PROJECT_DIR"
 mkdir -p logs
