@@ -61,9 +61,11 @@ def main() -> None:
     from datasets import load_dataset
 
     hf_token = os.environ.get("HF_TOKEN")
-    if hf_token:
-        from huggingface_hub import login
-        login(token=hf_token, add_to_git_credential=False)
+    if not hf_token:
+        print("ERROR: HF_TOKEN not set. The xlam dataset is gated — export HF_TOKEN=<your_token> and retry.")
+        raise SystemExit(1)
+    from huggingface_hub import login
+    login(token=hf_token, add_to_git_credential=False)
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
