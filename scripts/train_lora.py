@@ -107,13 +107,12 @@ def main() -> None:
     if args.data_path:
         print(f"Loading local dataset: {args.data_path}")
         ds = load_dataset("json", data_files=args.data_path, split="train")
-        if args.max_samples:
-            ds = ds.select(range(min(args.max_samples, len(ds))))
     else:
         print(f"Loading dataset: {args.dataset}")
         ds = load_dataset(args.dataset, split="train")
-        if args.max_samples:
-            ds = ds.select(range(min(args.max_samples, len(ds))))
+
+    if args.max_samples:
+        ds = ds.select(range(min(args.max_samples, len(ds))))
     print(f"Using {len(ds)} samples")
 
     print("Formatting dataset...")
