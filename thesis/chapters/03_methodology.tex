@@ -1,30 +1,80 @@
 \chapter{Methodology} \label{ch:methodology}
 
+The experiments are structured around a simple logic: a bare baseline is defined first,
+and one technique is added at a time. The Qwen 2.5 model family is used, tested across
+four sizes from 0.5B to 7B. Five techniques are covered: constrained decoding,
+quantization, few-shot prompting, RAG, and LoRA fine-tuning. All configurations are
+evaluated on the Berkeley Function Calling Leaderboard.
+
 \section{Experimental Design}
+The experimental design is based on controlled comparisons. A baseline configuration
+is established first, and each technique is added one at a time. This isolates the
+effect of each technique on tool-calling accuracy.
+
 \subsection{Cumulative Evaluation Ladder}
+
+Five configurations are evaluated, each building on the previous one. Config B is
+the baseline: the model is prompted without constrained decoding at full precision.
+In Config CD, constrained decoding is added, forcing the output to conform to a
+valid JSON schema. In Config CD+Q, AWQ INT4 quantization is applied to reduce memory footprint
+while preserving accuracy as much as possible. In Config CD+Q+FT, LoRA
+fine-tuning is added to the quantized model. Two parallel configurations are also
+evaluated: Config PE uses few-shot prompting, and Config CD+Q+RAG adds
+retrieval-augmented generation to Config CD+Q.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    box/.style={
+        rectangle, draw, rounded corners=4pt,
+        minimum width=3.0cm, minimum height=0.9cm,
+        align=center, font=\small
+    },
+    main/.style={box, fill=blue!8},
+    side/.style={box, fill=orange!8},
+    para/.style={box, fill=gray!10, draw=gray!60},
+    arr/.style={-{Stealth}, thick},
+    darr/.style={-{Stealth}, thick, dashed, gray!70}
+]
+
+\node[main] (B)     {Config B};
+\node[main, right=1.6cm of B]   (CD)    {Config CD};
+\node[main, right=1.6cm of CD]  (CDQ)   {Config CD+Q};
+\node[main, right=1.6cm of CDQ] (CDQFT) {Config CD+Q+FT};
+
+\node[side, below=1.2cm of CDQ]  (CDQRAG) {Config CD+Q+RAG};
+\node[para, below=1.2cm of B]    (PE)     {Config PE};
+
+\draw[arr] (B)   -- node[above, font=\footnotesize]{$+$CD}  (CD);
+\draw[arr] (CD)  -- node[above, font=\footnotesize]{$+$Q}   (CDQ);
+\draw[arr] (CDQ) -- node[above, font=\footnotesize]{$+$FT}  (CDQFT);
+\draw[arr] (CDQ) -- node[right, font=\footnotesize]{$+$RAG} (CDQRAG);
+\draw[darr](B)   -- node[right, font=\footnotesize]{parallel} (PE);
+
+\end{tikzpicture}
+\caption{Cumulative evaluation ladder. Each configuration in the main chain (top row)
+extends the previous one by adding a single technique. Config CD+Q+RAG and Config PE
+are evaluated as parallel tracks.}
+\label{fig:eval-ladder}
+\end{figure}
+
 \subsection{Hardware and Infrastructure}
+
+\section{Evaluation Framework}
+\subsection{Berkeley Function Calling Leaderboard}
+\subsection{Metrics}
 
 \section{Models}
 \subsection{Qwen 2.5}
-\subsection{Llama 3.2}
-\subsection{Phi-4 Mini}
-\subsection{Other Candidates}
 
 \section{Baseline Definition}
 
 \section{Constrained Decoding}
 
-\section{Prompt Engineering and Few-Shot}
+\section{Quantization}
 
-\section{Inference-Time Compute}
-\subsection{Chain-of-Thought}
-\subsection{ReAct}
+\section{Prompt Engineering and Few-Shot}
 
 \section{Retrieval-Augmented Generation}
 
 \section{LoRA Fine-Tuning}
-
-\section{Evaluation Framework}
-\subsection{Berkeley Function Calling Leaderboard}
-\subsection{Custom Tool-Calling Benchmark}
-\subsection{Metrics}

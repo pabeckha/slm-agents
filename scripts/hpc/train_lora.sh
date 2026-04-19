@@ -2,7 +2,7 @@
 ### -- Job name --
 #BSUB -J train_lora
 ### -- GPU queue (A100 for training) --
-#BSUB -q gpua100
+#BSUB -q gpua40
 ### -- 1 GPU --
 #BSUB -gpu "num=1:mode=exclusive_process"
 ### -- 8 CPU cores --
