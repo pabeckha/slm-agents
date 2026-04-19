@@ -38,6 +38,9 @@ dtu_cs_thesis/
 # Data outputs (regenerable)
 data/output/
 
+# Large training data splits (regenerate with scripts/prepare_lora_data.py)
+data/input/*.jsonl
+
 # OS files
 .DS_Store
 
