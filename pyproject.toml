@@ -31,6 +31,11 @@ hpc = [
   "sentence-transformers>=2.0",
   "scikit-learn>=1.0",
   "faiss-cpu>=1.7",
+  # LoRA training (used by scripts/train_lora.py and scripts/merge_lora.py)
+  "peft>=0.10",
+  "trl>=0.8",
+  "accelerate>=0.27",
+  "datasets>=2.18",
 ]
 
 [tool.uv.sources]
