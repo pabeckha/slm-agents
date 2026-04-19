@@ -36,6 +36,7 @@ Over half the training examples (52.6%) contain multiple function calls, but the
 
 ## BFCL Test Set
 
-**Source:** `vendor/gorilla/berkeley-function-call-leaderboard/bfcl_eval/data/BFCL_v4_simple_python.json`  
+**Source:** Gorilla repository checked out locally at `vendor/gorilla/` (not tracked by git). File: `vendor/gorilla/berkeley-function-call-leaderboard/bfcl_eval/data/BFCL_v4_simple_python.json`  
+**How to obtain:** `git clone https://github.com/ShishirPatil/gorilla vendor/gorilla`  
 **Size:** 400 entries, 1 function per entry, single-call answers  
-**Format:** JSONL with `id`, `question`, `function` keys
+**Format:** One JSON object per line (`id`, `question`, `function` keys) — `.json` extension but JSONL content, as produced by the BFCL repo
