@@ -76,7 +76,7 @@ def main() -> None:
     ds = load_dataset(args.dataset, split="train")
     print(f"Raw dataset size: {len(ds):,} rows")
 
-    rows = [load_row(ds[i]) for i in range(len(ds))]
+    rows = [load_row(row) for row in ds]
 
     if args.max_samples and args.max_samples < len(rows):
         rng = random.Random(args.seed)
