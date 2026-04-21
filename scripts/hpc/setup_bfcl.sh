@@ -25,6 +25,15 @@ else
     git clone https://github.com/ShishirPatil/gorilla.git
 fi
 
+echo "=== Cloning tau-bench ==="
+if [ -d "tau-bench" ]; then
+    echo "tau-bench already cloned, pulling latest..."
+    cd tau-bench && git pull && cd ..
+else
+    git clone https://github.com/sierra-research/tau-bench.git
+fi
+
+cd "$PROJECT_DIR"
 echo "=== Login node setup complete ==="
 echo ""
 echo "Next: submit the GPU setup job to install vLLM + BFCL on a GPU node:"

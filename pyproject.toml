@@ -36,11 +36,16 @@ hpc = [
   "trl>=0.8",
   "accelerate>=0.27",
   "datasets>=2.18",
+  # tau-bench (multi-step agentic benchmark)
+  "tau-bench",
+  "litellm>=1.41",
+  "anthropic>=0.26",
 ]
 
 [tool.uv.sources]
 llm-sdk = { path = "llm_sdk" }
 bfcl-eval = { path = "vendor/gorilla/berkeley-function-call-leaderboard", editable = true }
+tau-bench = { path = "vendor/tau-bench", editable = true }
 
 [tool.uv]
 override-dependencies = [
