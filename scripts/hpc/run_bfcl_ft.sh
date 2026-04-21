@@ -38,7 +38,7 @@ PROJECT_DIR="$HOME/Documents/slm-agents"
 cd "$PROJECT_DIR"
 mkdir -p logs
 
-MERGED_MODEL="${MERGED_MODEL:-${MODEL:-models/merged/Qwen2.5-7B-FT-merged}}"
+MERGED_MODEL="${MERGED_MODEL:-${MODEL:-models/merged/Qwen_Qwen2.5-7B-Instruct-merged}}"
 LORA_BASE="${LORA_BASE:-Qwen/Qwen2.5-7B-Instruct}"
 CATEGORY="${CATEGORY:-simple_python}"
 VLLM_PORT=8000
