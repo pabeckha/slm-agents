@@ -20,7 +20,7 @@
 
 # tau-bench evaluation: multi-step agentic benchmark (retail + airline domains).
 # Agent model: vLLM-served Qwen2.5-7B (OpenAI-compatible endpoint).
-# User simulator: Anthropic claude-haiku (requires ANTHROPIC_API_KEY in env).
+# User simulator: OpenAI gpt-4o-mini (requires OPENAI_API_KEY in env).
 #
 # Configs:
 #   AGENT_STRATEGY: tool-calling | react  (default: tool-calling)
@@ -36,10 +36,10 @@ set -e
 
 export HF_HOME="${HF_HOME:-/work3/s242779/huggingface}"
 
-# Required: ANTHROPIC_API_KEY must be set in your HPC environment.
-# Add to ~/.bashrc on HPC: export ANTHROPIC_API_KEY=sk-ant-...
-if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-    echo "ERROR: ANTHROPIC_API_KEY is not set. Add it to your HPC environment."
+# Required: OPENAI_API_KEY must be set in your HPC environment.
+# Add to ~/.bashrc on HPC: export OPENAI_API_KEY=sk-...
+if [ -z "${OPENAI_API_KEY:-}" ]; then
+    echo "ERROR: OPENAI_API_KEY is not set. Add it to your HPC environment."
     exit 1
 fi
 
@@ -56,7 +56,7 @@ mkdir -p logs
 MODEL="${MODEL:-Qwen/Qwen2.5-7B-Instruct}"
 ENV="${ENV:-retail}"
 AGENT_STRATEGY="${AGENT_STRATEGY:-tool-calling}"
-USER_MODEL="${USER_MODEL:-claude-haiku-4-5-20251001}"
+USER_MODEL="${USER_MODEL:-gpt-4o-mini}"
 END_INDEX="${END_INDEX:--1}"
 VLLM_PORT=8000
 
@@ -67,7 +67,7 @@ echo "Date: $(date)"
 echo "Agent model: $MODEL"
 echo "Agent strategy: $AGENT_STRATEGY"
 echo "Environment: $ENV"
-echo "User simulator: $USER_MODEL (Anthropic)"
+echo "User simulator: $USER_MODEL (OpenAI)"
 echo "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader)"
 nvidia-smi
 
@@ -121,7 +121,7 @@ uv run --group hpc python vendor/tau-bench/run.py \
     --model "$MODEL" \
     --model-provider openai \
     --user-model "$USER_MODEL" \
-    --user-model-provider anthropic \
+    --user-model-provider openai \
     --user-strategy llm \
     --task-split test \
     --end-index "$END_INDEX" \

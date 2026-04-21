@@ -39,7 +39,6 @@ hpc = [
   # tau-bench (multi-step agentic benchmark)
   "tau-bench",
   "litellm>=1.41",
-  "anthropic>=0.26",
 ]
 
 [tool.uv.sources]
