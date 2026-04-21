@@ -11,6 +11,8 @@
 
 **AST accuracy: 72.0% (288/400)**
 
+> **Note (2026-04-21):** Six subsequent re-runs (jobs 28238159–28238169) consistently produced 72.25% (289/400). The 0.25 pp difference is within run-to-run noise; the current scores file reflects 72.25%. All analysis in this document remains valid.
+
 ### Comparison across configs
 
 | Config | Accuracy | Correct | Model Size | Delta vs CD |
@@ -18,7 +20,7 @@
 | B (no guided) | 1.5% | 6/400 | 14.25 GiB | -71.25 pp |
 | PE (few-shot + guided) | 70.25% | 281/400 | 14.25 GiB | -2.5 pp |
 | CD (guided, full precision) | 72.75% | 291/400 | 14.25 GiB | baseline |
-| **CD+Q (guided, AWQ INT4)** | **72.0%** | **288/400** | **5.20 GiB** | **-0.75 pp** |
+| **CD+Q (guided, AWQ INT4)** | **72.25%** | **289/400** | **5.20 GiB** | **-0.5 pp** |
 
 ### Memory reduction
 
