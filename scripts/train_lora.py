@@ -26,7 +26,14 @@ def format_xlam_example(row: dict, tokenizer) -> str:
 
     fn_lines = []
     for t in tools:
-        params = t.get("parameters", {}).get("properties", {})
+        params_raw = t.get("parameters", {})
+        # HF xlam format: parameters.properties.{name}: {type, description}
+        # Local format:   parameters.{name}: {type, description}
+        props = params_raw.get("properties")
+        if isinstance(props, dict) and all(isinstance(v, dict) for v in props.values()):
+            params = props
+        else:
+            params = {k: v for k, v in params_raw.items() if isinstance(v, dict)}
         param_str = ", ".join(
             f"{n}: {p.get('type', 'string')}" for n, p in params.items()
         )
