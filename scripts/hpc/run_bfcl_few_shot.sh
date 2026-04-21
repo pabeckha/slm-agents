@@ -47,6 +47,7 @@ echo "Date: $(date)"
 echo "Model: $MODEL"
 echo "Category: $CATEGORY"
 echo "Config: PE (guided decoding + few-shot prompting)"
+echo "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader)"
 nvidia-smi
 
 echo "=== Syncing dependencies ==="

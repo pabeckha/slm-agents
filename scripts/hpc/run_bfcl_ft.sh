@@ -51,6 +51,7 @@ echo "Merged model: $MERGED_MODEL"
 echo "Base model (for manifest): $LORA_BASE"
 echo "Category: $CATEGORY"
 echo "Config: CD+Q+FT (guided decoding + LoRA fine-tuned)"
+echo "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader)"
 nvidia-smi
 
 echo "=== Syncing dependencies ==="

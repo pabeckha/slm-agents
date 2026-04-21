@@ -54,6 +54,7 @@ echo "Model: $MODEL"
 echo "Category: $CATEGORY"
 echo "Quant flags: ${QUANT_FLAGS:-none}"
 echo "Config: CD+Q (guided decoding + quantization)"
+echo "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader)"
 nvidia-smi
 
 echo "=== Syncing dependencies ==="

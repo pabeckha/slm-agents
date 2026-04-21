@@ -47,6 +47,7 @@ echo "Job ID: $LSB_JOBID"
 echo "Host: $(hostname)"
 echo "Date: $(date)"
 echo "Model: $MODEL"
+echo "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader)"
 nvidia-smi
 
 # ── Step 0: Ensure hpc deps are installed ─────────────────────────────

@@ -2,7 +2,7 @@
 ### -- Job name --
 #BSUB -J train_lora
 ### -- GPU queue --
-#BSUB -q gpua100
+#BSUB -q gpul40s
 ### -- 1 GPU --
 #BSUB -gpu "num=1:mode=exclusive_process"
 ### -- 8 CPU cores --
@@ -48,6 +48,7 @@ echo "Date: $(date)"
 echo "Base model: $MODEL"
 echo "Adapter output: $ADAPTER_DIR"
 echo "Epochs: $EPOCHS  Rank: $RANK"
+echo "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader)"
 nvidia-smi
 
 echo "=== Syncing dependencies ==="
