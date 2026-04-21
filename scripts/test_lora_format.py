@@ -49,9 +49,10 @@ def main():
                 errors.append((i, "empty output", row))
         except Exception as e:
             errors.append((i, str(e), line[:200]))
-            if len(errors) >= 10:
-                print(f"  Stopping early after 10 errors (row {i})")
-                break
+
+        if len(errors) >= 10:
+            print(f"  Stopping early after 10 errors (row {i})")
+            break
 
     if errors:
         print(f"\nFAIL — {len(errors)} error(s):")

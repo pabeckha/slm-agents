@@ -213,7 +213,7 @@ The result is directly predicted. Geng et al. show GCD "substantially outperform
 ### AWQ quantization (−0.5 pp, −63.5% VRAM)
 AWQ (Lin et al.) is the methodological standard. Lee et al. warn of severe drops at 4-bit for *smaller* models but note 7B-scale models maintain stable performance. Li et al. report up to 32.39% degradation on *mathematical reasoning* — tool calling is structurally simpler (schema-constrained generation vs. open-ended arithmetic), which explains why the thesis sees only −0.5 pp. The result is consistent with, and explained by, the literature.
 
-### LoRA fine-tuning (results pending job 28248383)
+### LoRA fine-tuning (results pending)
 Hu et al. is the foundation (14,222 citations). The Sharma et al. survey recommends LoRA/QLoRA as the standard lightweight adaptation method for SLM agent stacks. Li et al. show fine-tuning a quantized model on ~500 task-specific examples fully recovers quantization-induced accuracy loss — relevant if CD+Q+FT outperforms CD+Q by a significant margin.
 
 ### RAG negative result (−24.5 pp)
