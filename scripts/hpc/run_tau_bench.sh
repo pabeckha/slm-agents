@@ -36,8 +36,8 @@ set -e
 
 export HF_HOME="${HF_HOME:-/work3/s242779/huggingface}"
 
-# Load API keys from ~/.secrets if present (create with: export OPENAI_API_KEY=sk-...)
-[ -f "$HOME/.secrets" ] && . "$HOME/.secrets"
+# Load API keys from project .secrets if present (create with: export OPENAI_API_KEY=sk-...)
+[ -f "$PROJECT_DIR/.secrets" ] && . "$PROJECT_DIR/.secrets"
 
 if [ -z "${OPENAI_API_KEY:-}" ]; then
     echo "ERROR: OPENAI_API_KEY is not set. Add 'export OPENAI_API_KEY=sk-...' to ~/.secrets"

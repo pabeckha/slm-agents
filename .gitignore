@@ -1,6 +1,7 @@
 # Secrets and local config
 .env
 .env.*
+.secrets
 .mcp.json
 
 # Claude Code
