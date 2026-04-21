@@ -36,10 +36,11 @@ set -e
 
 export HF_HOME="${HF_HOME:-/work3/s242779/huggingface}"
 
-# Required: OPENAI_API_KEY must be set in your HPC environment.
-# Add to ~/.bashrc on HPC: export OPENAI_API_KEY=sk-...
+# Load API keys from ~/.secrets if present (create with: export OPENAI_API_KEY=sk-...)
+[ -f "$HOME/.secrets" ] && . "$HOME/.secrets"
+
 if [ -z "${OPENAI_API_KEY:-}" ]; then
-    echo "ERROR: OPENAI_API_KEY is not set. Add it to your HPC environment."
+    echo "ERROR: OPENAI_API_KEY is not set. Add 'export OPENAI_API_KEY=sk-...' to ~/.secrets"
     exit 1
 fi
 
