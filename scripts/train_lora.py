@@ -80,8 +80,8 @@ def main() -> None:
     import torch
     from datasets import load_dataset
     from peft import LoraConfig, TaskType, get_peft_model
-    from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
-    from trl import SFTTrainer
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from trl import SFTConfig, SFTTrainer
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -129,7 +129,7 @@ def main() -> None:
         num_proc=4,
     )
 
-    training_args = TrainingArguments(
+    training_args = SFTConfig(
         output_dir=str(output_dir),
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,
@@ -145,14 +145,14 @@ def main() -> None:
         report_to="none",
         dataloader_num_workers=2,
         remove_unused_columns=False,
+        dataset_text_field="text",
+        max_length=args.max_length,
     )
 
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         train_dataset=formatted,
-        dataset_text_field="text",
-        max_seq_length=args.max_length,
         args=training_args,
     )
 

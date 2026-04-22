@@ -19,14 +19,16 @@
 #BSUB -N
 
 # tau-bench evaluation: multi-step agentic benchmark (retail + airline domains).
-# Agent model: vLLM-served Qwen2.5-7B (OpenAI-compatible endpoint).
-# User simulator: OpenAI gpt-4o-mini (requires OPENAI_API_KEY in env).
+# Agent model: vLLM-served Qwen2.5-7B (OpenAI-compatible endpoint at localhost).
+# User simulator: same local vLLM by default (set USER_MODEL_PROVIDER=openai and
+#   add a real OPENAI_API_KEY to ~/.secrets to use gpt-4o-mini instead).
 #
 # Configs:
-#   AGENT_STRATEGY: tool-calling | react  (default: tool-calling)
-#   ENV:            retail | airline      (default: retail)
-#   MODEL:          HuggingFace model ID  (default: Qwen/Qwen2.5-7B-Instruct)
-#   END_INDEX:      number of tasks       (default: -1 = all)
+#   AGENT_STRATEGY:    tool-calling | react  (default: tool-calling)
+#   TBENV:             retail | airline      (default: retail)
+#   MODEL:             HuggingFace model ID  (default: Qwen/Qwen2.5-7B-Instruct)
+#   USER_MODEL:        user-sim model        (default: same as MODEL)
+#   END_INDEX:         number of tasks       (default: -1 = all)
 #
 # Usage:
 #   bsub < scripts/hpc/run_tau_bench.sh
@@ -36,28 +38,25 @@ set -e
 
 export HF_HOME="${HF_HOME:-/work3/s242779/huggingface}"
 
-# Load API keys from project .secrets if present (create with: export OPENAI_API_KEY=sk-...)
-[ -f "$PROJECT_DIR/.secrets" ] && . "$PROJECT_DIR/.secrets"
+PROJECT_DIR="$HOME/Documents/slm-agents"
 
-if [ -z "${OPENAI_API_KEY:-}" ]; then
-    echo "ERROR: OPENAI_API_KEY is not set. Add 'export OPENAI_API_KEY=sk-...' to ~/.secrets"
-    exit 1
-fi
+# Load API keys from ~/.secrets or project .secrets if present.
+[ -f "$HOME/.secrets" ] && . "$HOME/.secrets"
+[ -f "$PROJECT_DIR/.secrets" ] && . "$PROJECT_DIR/.secrets"
 
 cleanup() { [ -n "${VLLM_PID:-}" ] && kill "$VLLM_PID" 2>/dev/null && wait "$VLLM_PID" 2>/dev/null || true; }
 trap cleanup EXIT INT TERM
 
 module load python3/3.12.11
 module load cuda/12.6.3
-
-PROJECT_DIR="$HOME/Documents/slm-agents"
 cd "$PROJECT_DIR"
 mkdir -p logs
 
 MODEL="${MODEL:-Qwen/Qwen2.5-7B-Instruct}"
-ENV="${ENV:-retail}"
+TBENV="${TBENV:-retail}"
 AGENT_STRATEGY="${AGENT_STRATEGY:-tool-calling}"
-USER_MODEL="${USER_MODEL:-gpt-4o-mini}"
+# Default: route user simulator through the same local vLLM (no real API key needed).
+USER_MODEL="${USER_MODEL:-$MODEL}"
 END_INDEX="${END_INDEX:--1}"
 VLLM_PORT=8000
 
@@ -67,8 +66,8 @@ echo "Host: $(hostname)"
 echo "Date: $(date)"
 echo "Agent model: $MODEL"
 echo "Agent strategy: $AGENT_STRATEGY"
-echo "Environment: $ENV"
-echo "User simulator: $USER_MODEL (OpenAI)"
+echo "Environment: $TBENV"
+echo "User simulator: $USER_MODEL (local vLLM)"
 echo "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader)"
 nvidia-smi
 
@@ -83,6 +82,8 @@ uv run --group hpc python -m vllm.entrypoints.openai.api_server \
     --dtype bfloat16 \
     --max-model-len 4096 \
     --gpu-memory-utilization 0.9 \
+    --enable-auto-tool-choice \
+    --tool-call-parser qwen2.5 \
     &
 VLLM_PID=$!
 
@@ -108,17 +109,17 @@ echo "=== GPU memory after model load ==="
 nvidia-smi
 
 # ── Run tau-bench ────────────────────────────────────────────────────
-# Point litellm at the local vLLM endpoint via OPENAI_API_BASE.
+# Both agent and user-sim route through local vLLM via OPENAI_API_BASE.
 export OPENAI_API_BASE="http://localhost:${VLLM_PORT}/v1"
-export OPENAI_API_KEY="vllm-local"  # vLLM accepts any key
+export OPENAI_API_KEY="${OPENAI_API_KEY:-vllm-local}"
 
-LOG_DIR="data/output/tau_bench/${AGENT_STRATEGY}/${ENV}"
+LOG_DIR="data/output/tau_bench/${AGENT_STRATEGY}/${TBENV}"
 mkdir -p "$LOG_DIR"
 
-echo "=== Running tau-bench (strategy=$AGENT_STRATEGY, env=$ENV) ==="
+echo "=== Running tau-bench (strategy=$AGENT_STRATEGY, env=$TBENV) ==="
 uv run --group hpc python vendor/tau-bench/run.py \
     --agent-strategy "$AGENT_STRATEGY" \
-    --env "$ENV" \
+    --env "$TBENV" \
     --model "$MODEL" \
     --model-provider openai \
     --user-model "$USER_MODEL" \
