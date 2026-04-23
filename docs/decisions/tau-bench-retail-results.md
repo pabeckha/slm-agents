@@ -9,14 +9,24 @@
 
 ## Results
 
-**Pass rate: 4.3% (5/115)**
-**Average reward: 0.043**
+**Pass rate: 4.3% (5/115) — mean across three runs**
+
+Three full runs of the same configuration were completed (all 115 tasks, temperature 0.0, seed 42). Despite deterministic model temperature, run-to-run variance exists because the user simulator generates stochastic responses.
+
+| Run | Job | Passed | Pass rate |
+|-----|-----|--------|-----------|
+| 1 | 28258755 | 5/115 | 4.35% |
+| 2 | 28263173 | 6/115 | 5.22% |
+| 3 | 28263174 | 4/115 | 3.48% |
+| **Mean** | | **5/115** | **4.35%** |
+
+Range: 3.5%–5.2%. At n=115 binary tasks the standard error is ~1.9 pp, so ±1 correct task is within noise. A meaningful improvement over this baseline would require ≥3 additional correct tasks (~2.6 pp).
 
 | Metric | Value |
 |--------|-------|
 | Tasks completed | 115/115 |
-| Passed (reward = 1.0) | 5 |
-| Failed (reward = 0.0) | 110 |
+| Passed (reward = 1.0) | 4–6 across runs |
+| Failed (reward = 0.0) | 109–111 |
 | Errors | 0 |
 | Reward distribution | Binary: 0.0 or 1.0 only |
 
