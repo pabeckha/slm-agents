@@ -60,6 +60,12 @@ USER_MODEL="${USER_MODEL:-$MODEL}"
 END_INDEX="${END_INDEX:--1}"
 VLLM_PORT=8000
 
+# Auto-detect quantization from model name.
+case "$MODEL" in
+    *-AWQ*|*-awq*) QUANT_FLAGS="--quantization awq_marlin --enforce-eager --dtype auto" ;;
+    *)              QUANT_FLAGS="--dtype bfloat16" ;;
+esac
+
 echo "=== Job info ==="
 echo "Job ID: $LSB_JOBID"
 echo "Host: $(hostname)"
@@ -79,11 +85,11 @@ echo "=== Starting vLLM server ==="
 uv run --group hpc python -m vllm.entrypoints.openai.api_server \
     --model "$MODEL" \
     --port "$VLLM_PORT" \
-    --dtype bfloat16 \
-    --max-model-len 4096 \
+    $QUANT_FLAGS \
+    --max-model-len 8192 \
     --gpu-memory-utilization 0.9 \
     --enable-auto-tool-choice \
-    --tool-call-parser qwen2.5 \
+    --tool-call-parser hermes \
     &
 VLLM_PID=$!
 

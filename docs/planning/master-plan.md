@@ -1,7 +1,7 @@
 ---
 title: "Master Plan: SLM Agents Thesis"
 category: "project"
-lastUpdated: "2026-04-21"
+lastUpdated: "2026-04-22"
 status: "active"
 ---
 
@@ -21,15 +21,16 @@ Single source of truth for project state.
 | Config CD+Q | + AWQ INT4 quantization | Done — 72.25% AST |
 | Config CD+Q+ITC | + Chain-of-thought | Done — 65.5% AST (negative) |
 | Config CD+Q+RAG | + RAG top-5 retrieval | Done — 47.75% AST (negative) |
-| Config CD+Q+FT | + LoRA fine-tuning | **Running** — job 28248383 on gpul40s |
-| Config FT | LoRA alone, no CD | Not started |
-| Config CD+FT | CD + LoRA, no quantization | Not started |
+| Config CD+FT | + LoRA fine-tuning (no AWQ — LoRA trained on base model) | Done — 69.8% AST |
+| Config FT | LoRA alone, no CD or Q | Not started |
+| Config CD+Q+FT | CD + AWQ quant + LoRA (requires QLoRA or post-merge AWQ) | Not started |
+| τ-bench CD (retail) | Multi-step agentic, tool-calling, 115 tasks | Done — **4.3% pass rate** |
 
 Full Phase 1 summary: `docs/decisions/phase1-ablation-summary.md`
 
-Next: run model-size sweep (0.5B, 1.5B, 3B) × CD + B configs once queue clears.
+Next: run model-size sweep (0.5B, 1.5B, 3B) × CD + B configs.
 Then run BFCL multiple + parallel categories for breadth.
-τ-bench smoke test running (job 28248389). Full run after validation.
+τ-bench retail done: **4.3% pass rate** (5/115). See `docs/decisions/tau-bench-retail-results.md`.
 
 ---
 
@@ -52,18 +53,17 @@ Current page count: ~28 pages. Target: 50–60 pages.
 ## Open Tasks
 
 ### Experiments
-- [ ] CD+Q+FT result (job 28248383)
-- [ ] τ-bench smoke test validation (job 28248389)
-- [ ] FT alone + CD+FT ablation configs
+- [ ] FT alone (no CD/Q): submit `run_bfcl_ft_no_guided.sh`
+- [ ] CD+Q+FT: requires QLoRA or post-merge AWQ quantization of merged model
 - [ ] Model-size sweep: 0.5B, 1.5B, 3B × CD + B (script ready: `run_bfcl_sweep.sh`)
 - [ ] BFCL multiple + parallel categories
-- [ ] τ-bench full run (retail domain)
+- [x] τ-bench full run (retail domain) — **done, 4.3% pass rate**
 
 ### Writing (Methodology remaining)
 - [ ] Section: Prompt Engineering and Few-Shot
 - [ ] Section: Retrieval-Augmented Generation
 - [ ] Section: LoRA Fine-Tuning
-- [ ] Section: τ-bench (after running it)
+- [ ] Section: τ-bench (data in hand — write now)
 - [ ] Section: Background — Agents with LLMs stub
 
 ### Writing (Pending experiments)
