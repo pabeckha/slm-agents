@@ -2,7 +2,7 @@
 ### -- Job name --
 #BSUB -J bfcl_no_guided
 ### -- GPU queue --
-#BSUB -q gpua100
+#BSUB -q gpul40s
 ### -- 1 GPU --
 #BSUB -gpu "num=1:mode=exclusive_process"
 ### -- 4 CPU cores --
