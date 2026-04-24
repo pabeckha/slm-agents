@@ -1,11 +1,9 @@
 # Phase 1 Ablation Summary — Qwen 2.5 7B on BFCL Simple Python
 
-**Date compiled**: 2026-04-21
+**Date compiled**: 2026-04-24
 **Benchmark**: BFCL v4 simple_python (400 test cases, AST accuracy)
-**Model family**: Qwen/Qwen2.5-7B-Instruct (FP16) and Qwen/Qwen2.5-7B-Instruct-AWQ (INT4)
+**Model family**: Qwen/Qwen2.5-7B-Instruct (FP16), Qwen/Qwen2.5-7B-Instruct-AWQ (INT4), and LoRA merged (bfloat16)
 **Infrastructure**: DTU HPC (A100 40GB, L40S 46GB)
-
-All results are final; no further Phase 1 runs planned.
 
 ## Results
 
@@ -17,6 +15,8 @@ All results are final; no further Phase 1 runs planned.
 | CD+Q | Constrained decoding + AWQ INT4 | 7B INT4 | 72.25% | 289/400 | -0.5 pp |
 | CD+Q+ITC | CD+Q + chain-of-thought reasoning | 7B INT4 | 65.5% | 262/400 | -7.25 pp |
 | CD+Q+RAG | CD+Q + FAISS top-5 tool retrieval | 7B INT4 | 47.75% | 191/400 | -25 pp |
+| FT-only | LoRA merged, no constrained decoding | 7B bf16 | 13.75% | 55/400 | -59 pp |
+| CD+FT | Constrained decoding + LoRA merged | 7B bf16 | 69.75% | 279/400 | -3 pp |
 
 ## Key findings
 
@@ -51,15 +51,15 @@ The best no-training configuration is **CD at 72.75%** (or CD+Q at 72.25%, which
 
 The remaining 27–28% failure rate is a semantic problem: the model consistently picks wrong default values for optional parameters, uses incorrect numeric precision (9.8 vs 9.81), uses full words instead of abbreviations, and fails on string format conventions. These are learned-association problems that prompting cannot fix — the model's internal priors about value formats do not match BFCL's ground truth labels.
 
-## Implications for Phase 2
+## LoRA fine-tuning results (Phase 2)
 
-The Phase 1 picture strengthens the case for LoRA in two ways:
+LoRA training on the xlam-function-calling-60k dataset did not improve on the CD baseline. CD+FT reached **69.75%** — a -3 pp regression. FT-only (no guided decoding) reached **13.75%** (+12.25 pp over the unguided base, but -59 pp vs CD).
 
-1. **Positive evidence**: Constrained decoding solves format compliance completely. The only remaining problem is value-level semantics — exactly the kind of association between schema context and output format that fine-tuning can change.
+The regression under CD+FT is attributed to a format mismatch: xlam trains the model to produce Python call syntax (`func(arg=val)`), while BFCL evaluation expects JSON argument objects. Constrained decoding forces the surface format, but the model's argument value predictions are biased toward xlam conventions, degrading value-level accuracy.
 
-2. **Negative evidence**: Two independent prompting strategies failed, the second with a clear mechanistic explanation. The model is not missing reasoning capability; it has wrong conventions. LoRA on BFCL-style (schema, query, tool-call) training data directly targets the mismatch.
+This reframes the Phase 2 conclusion: **general-purpose function-calling fine-tuning is not sufficient**. Fine-tuning must be aligned to the target evaluation's format and argument conventions to improve over constrained decoding alone. The FT-only result confirms that fine-tuning and constrained decoding are complementary — neither alone reaches the CD baseline, and combining them with a mismatched training distribution produces a small regression.
 
-The thesis target is ≥85% on BFCL simple_python. The gap from the no-training ceiling to the target is ~12–13 pp. This is the expected contribution of LoRA fine-tuning (Phase 2).
+See `config-ft-lora-results.md` for the full analysis.
 
 ## Result files
 
@@ -71,6 +71,8 @@ The thesis target is ≥85% on BFCL simple_python. The gap from the no-training 
 | CD+Q | `data/output/bfcl_quant/scores/simple_python_scores.json` | `data/output/bfcl_quant/runs/` |
 | CD+Q+ITC | `data/output/bfcl_itc/scores/simple_python_scores.json` | `data/output/bfcl_itc/runs/` |
 | CD+Q+RAG | `data/output/bfcl_rag/scores/simple_python_scores.json` | `data/output/bfcl_rag/runs/` |
+| FT-only | `data/output/bfcl_ft_no_guided/scores/` | `data/output/bfcl_ft_no_guided/runs/` |
+| CD+FT | `data/output/bfcl_ft/scores/` | `data/output/bfcl_ft/runs/` |
 
 ## Detailed per-config docs
 
@@ -80,3 +82,4 @@ The thesis target is ≥85% on BFCL simple_python. The gap from the no-training 
 - `config-cdq-quantization-results.md` — AWQ memory/accuracy tradeoff
 - `config-cdq-itc-results.md` — CoT case studies, flip analysis
 - `config-cdqrag-results.md` — RAG recall@5, disambiguation failure analysis
+- `config-ft-lora-results.md` — LoRA fine-tuning, format mismatch analysis
