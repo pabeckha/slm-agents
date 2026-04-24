@@ -51,7 +51,40 @@ System prompt: `"You are a function-calling assistant. Extract argument values a
 | Prompt structure | `Available functions: ...\nUser request:` | `Function: ...\nDescription: ...\nUser request: ...\nExtract ...\nJSON:` |
 | System prompt | Hints at function-call syntax | Neutral: "extract as JSON" |
 
-**What is NOT fixed**: the chat-template-vs-raw-completions mismatch. Training still uses Qwen's chat template (`<|im_start|>system...`), while inference uses raw `completions.create` with plain text. The content inside the turns now matches; the framing tokens still differ. Addressing this would require changing the inference backend to use `chat.completions.create`, which is a larger refactor.
+**What is NOT fixed**: the chat-template-vs-raw-completions mismatch — see below.
+
+## Remaining mismatch: chat template vs raw completions
+
+Training uses Qwen's chat template (`apply_chat_template`), so the model sees:
+
+```
+<|im_start|>system
+You are a function-calling assistant...<|im_end|>
+<|im_start|>user
+Function: autocomplete_places(q: string, ...) -> any
+Description: ...
+User request: Find places starting with San...
+Extract the argument values as a JSON object with keys: q (string), ...
+JSON: <|im_end|>
+<|im_start|>assistant
+{"q": "San", "country": "US,CA", "limit": 5}<|im_end|>
+```
+
+At inference, `vllm_backend.py` uses `client.completions.create` (raw text completion), so the model sees:
+
+```
+Function: autocomplete_places(q: string, ...) -> string
+Description: ...
+User request: Find places starting with San...
+Extract the argument values as a JSON object with keys: q (string), ...
+JSON: 
+```
+
+No `<|im_start|>` / `<|im_end|>` tokens, no system prompt, no role markers. The model was pre-trained on chat-template format and fine-tuned with it — at inference it receives plain text with no framing.
+
+This matters because Qwen's generation behavior is conditioned on those role tokens: the model expects to complete after `<|im_start|>assistant\n`, not after a bare `JSON: `. In practice the content alignment (v2 fix) is the dominant factor, but this residual mismatch could suppress gains.
+
+**Fixing this** would require switching `vllm_backend.py` to `chat.completions.create` and restructuring the prompt builders to return message lists rather than raw strings. That is a meaningful refactor touching `VLLMBackend`, `build_args_extraction_prompt`, and `build_function_selection_prompt`. It is deferred — if CD+FT-aligned still regresses relative to CD, closing this mismatch is the natural next step.
 
 ## What the ablation tests
 
