@@ -20,39 +20,63 @@ from pathlib import Path
 
 
 def format_xlam_example(row: dict, tokenizer) -> str:
-    """Convert an xlam-function-calling-60k row to a chat-template string."""
+    """Convert an xlam row to the argument-extraction format used by the inference pipeline.
+
+    The prompt and output format match src/prompt.py::build_args_extraction_prompt
+    and src/vllm_backend.py::_extract_args exactly:
+    - User message: "Function: name(p: t) -> any\nDescription: ...\nUser request: ...\nExtract ...\nJSON: "
+    - Assistant turn: JSON object of argument values
+
+    This replaces the original Python call syntax format (name(arg=val, ...))
+    which caused a regression in CD+FT: the model learned the wrong output
+    convention relative to what guided_json constrains at eval time.
+    """
     tools = json.loads(row["tools"]) if isinstance(row["tools"], str) else row["tools"]
     answers = json.loads(row["answers"]) if isinstance(row["answers"], str) else row["answers"]
 
-    fn_lines = []
-    for t in tools:
-        params_raw = t.get("parameters", {})
-        # HF xlam format: parameters.properties.{name}: {type, description}
-        # Local format:   parameters.{name}: {type, description}
-        props = params_raw.get("properties")
-        if isinstance(props, dict) and all(isinstance(v, dict) for v in props.values()):
-            params = props
-        else:
-            params = {k: v for k, v in params_raw.items() if isinstance(v, dict)}
-        param_str = ", ".join(
-            f"{n}: {p.get('type', 'string')}" for n, p in params.items()
-        )
-        fn_lines.append(f"- {t['name']}({param_str}): {t.get('description', '')}")
+    if not isinstance(answers, list) or not answers:
+        return ""
 
-    fn_block = "\n".join(fn_lines)
-    user_msg = f"Available functions:\n{fn_block}\n\nUser request: {row['query']}"
+    call = answers[0]
+    name = call.get("name", "")
+    args = call.get("arguments", {})
 
-    if isinstance(answers, list) and answers:
-        call = answers[0]
-        name = call.get("name", "")
-        args = call.get("arguments", {})
-        args_str = ", ".join(f"{k}={repr(v)}" for k, v in args.items())
-        assistant_msg = f"{name}({args_str})"
+    tool = next((t for t in tools if t["name"] == name), None)
+    if tool is None:
+        return ""
+
+    params_raw = tool.get("parameters", {})
+    # HF xlam format: parameters.properties.{name}: {type, description}
+    # Local format:   parameters.{name}: {type, description}
+    props = params_raw.get("properties")
+    if isinstance(props, dict) and all(isinstance(v, dict) for v in props.values()):
+        params = props
     else:
-        assistant_msg = str(answers)
+        params = {k: v for k, v in params_raw.items() if isinstance(v, dict)}
+
+    # Signature matching src/prompt.py::_signature(): "name(p: type) -> return_type"
+    # Return type "any": xlam has no return type info; inference uses "string" (hardcoded).
+    param_str = ", ".join(f"{n}: {p.get('type', 'string')}" for n, p in params.items())
+    signature = f"{name}({param_str}) -> any"
+
+    # arg_desc matching build_args_extraction_prompt: "p1 (type1), p2 (type2)"
+    arg_desc = ", ".join(f"{n} ({p.get('type', 'string')})" for n, p in params.items())
+
+    # User message matches build_args_extraction_prompt (src/prompt.py:176)
+    user_msg = (
+        f"Function: {signature}\n"
+        f"Description: {tool.get('description', '')}\n"
+        f"User request: {row['query']}\n"
+        f"Extract the argument values as a JSON object with keys: {arg_desc}.\n"
+        f"JSON: "
+    )
+
+    # Filter args to declared parameters only, then serialize as JSON
+    filtered_args = {k: v for k, v in args.items() if k in params}
+    assistant_msg = json.dumps(filtered_args)
 
     messages = [
-        {"role": "system", "content": "You are a helpful assistant that calls functions to answer user requests. Output only the function call, nothing else."},
+        {"role": "system", "content": "You are a function-calling assistant. Extract argument values as a JSON object."},
         {"role": "user", "content": user_msg},
         {"role": "assistant", "content": assistant_msg},
     ]

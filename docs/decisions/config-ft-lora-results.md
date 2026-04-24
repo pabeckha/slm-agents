@@ -1,4 +1,4 @@
-# Config CD+FT Results — LoRA Fine-Tuning + Guided Decoding
+# Config CD+FT Results — LoRA Fine-Tuning + Guided Decoding (v1, format-misaligned)
 
 **Date**: 2026-04-24
 **Jobs**: bfcl_ft (Apr 22, guided), bfcl_ft_no_guided (Apr 24, unguided)
@@ -55,6 +55,10 @@ This is itself a thesis finding: **general function-calling fine-tuning is not s
 For the cascade architecture framing, this is relevant: if the SLM component is fine-tuned, it must be fine-tuned on data that matches the production tool schema and argument conventions, not on a generic function-calling corpus.
 
 The FT-only result (13.75%) confirms the complementarity of the two techniques: fine-tuning improves unguided format compliance; constrained decoding provides the floor. Neither alone reaches the CD baseline.
+
+## Follow-up ablation
+
+To test whether format mismatch was the primary cause, a format-aligned v2 uses the same xlam data reformatted to match the inference pipeline's exact prompt and output format. See `config-ft-lora-aligned-ablation.md`.
 
 ## Result files
 
