@@ -6,8 +6,8 @@
 ### -- 8 CPU cores --
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
-#BSUB -R "rusage[mem=5GB]"
-#BSUB -M 5GB
+#BSUB -R "rusage[mem=24GB]"
+#BSUB -M 24GB
 ### -- Wall time --
 #BSUB -W 02:00
 ### -- Output --
@@ -22,6 +22,7 @@
 set -e
 
 export HF_HOME="${HF_HOME:-/work3/s242779/huggingface}"
+export PYTHONUNBUFFERED=1
 
 module load python3/3.12.11
 
@@ -30,7 +31,7 @@ cd "$PROJECT_DIR"
 mkdir -p logs
 
 ADAPTER_DIR="${ADAPTER_DIR:-models/lora/Qwen_Qwen2.5-7B-Instruct-aligned}"
-OUTPUT_DIR="${OUTPUT_DIR:-models/merged/Qwen_Qwen2.5-7B-Instruct-merged-aligned}"
+OUTPUT_DIR="${OUTPUT_DIR:-/work3/s242779/models/models/merged/Qwen_Qwen2.5-7B-Instruct-merged-aligned}"
 
 echo "=== Job info ==="
 echo "Job ID: $LSB_JOBID"

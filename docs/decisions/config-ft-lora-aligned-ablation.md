@@ -1,7 +1,7 @@
 # Ablation: Format-Aligned LoRA Training (v2)
 
 **Date**: 2026-04-24
-**Status**: Pending — training not yet submitted
+**Status**: Complete — results available 2026-04-29
 **Hypothesis**: The CD+FT v1 regression (69.75%, -3 pp vs CD) was caused by format mismatch between training data and inference pipeline, not by xlam's semantic content conflicting with BFCL's argument conventions.
 
 ## What changed from v1
@@ -131,25 +131,46 @@ bsub < scripts/hpc/run_bfcl_ft_aligned.sh
 bsub < scripts/hpc/run_bfcl_ft_aligned_no_guided.sh
 ```
 
-## Results (pending)
+## Results
 
-| Config | Guided | Accuracy | Delta vs CD |
-|--------|--------|----------|-------------|
-| CD (base) | Yes | 72.75% | baseline |
-| CD+FT v1 | Yes | 69.75% | -3 pp |
-| **CD+FT-aligned** | **Yes** | **TBD** | **TBD** |
-| B (base) | No | 1.5% | — |
-| FT-only v1 | No | 13.75% | — |
-| **FT-aligned-ng** | **No** | **TBD** | **TBD** |
+| Config | Guided | Accuracy | Correct | Delta vs CD |
+|--------|--------|----------|---------|-------------|
+| CD (base) | Yes | 72.75% | 291/400 | baseline |
+| CD+FT v1 | Yes | 69.75% | 279/400 | -3 pp |
+| **CD+FT-aligned** | **Yes** | **76.8%** | **307/400** | **+4.05 pp** |
+| B (base) | No | 1.5% | 6/400 | — |
+| FT-only v1 | No | 13.75% | 55/400 | — |
+| **FT-aligned-ng** | **No** | **13.2%** | **53/400** | **—** |
+
+Job IDs: merge 28320841, eval 28320861 (guided), eval 28320862 (no-guided). Run date: 2026-04-28.
+
+### Outcome interpretation
+
+CD+FT-aligned at 76.8% lands in the first prediction bucket (> 72.75%): **format fix unlocked improvement and xlam semantic content helps**. The hypothesis is confirmed — the v1 regression was caused by format mismatch, not by xlam's argument conventions conflicting with BFCL.
+
+FT-aligned-ng at 13.2% is slightly below FT-only v1 (13.75%). The aligned training format (JSON args only, no function name in output) removed the function name from the assistant turn entirely. Without guided decoding, the evaluator cannot identify which function was called, so nearly all cases fail with "Function name not found in model output." The original Python-call format (`func(arg=val)`) at least included the function name in the output. This is a side effect of optimizing the training format for the guided path: the args-only JSON format is correct for the args extraction step under constrained decoding, but renders the model useless on the unguided path.
+
+### Key numbers for the thesis
+
+- Format alignment: +7.05 pp over misaligned FT (69.75% → 76.8%)
+- CD+FT-aligned vs CD baseline: **+4.05 pp** — fine-tuning with aligned format is the first configuration to beat the no-training ceiling
+- Constrained decoding gap remains: 76.8% vs 13.2% (+63.6 pp) — guided generation is still the essential enabler even after format-aligned FT
+
+### Representative failures (CD+FT-aligned, 93/400 remaining)
+
+- Optional parameter not provided and not marked optional
+- Type mismatch: inner array element type (e.g., `[1, 3]` where `float[]` expected)
+- Invalid enum value: `'dict'` instead of `'dictionary'`, `'km'` instead of `'km/h'`
+- String format: `'New York'` instead of `'New York, NY'`
+
+These are the same failure categories as the CD baseline — value-level semantic errors that fine-tuning on xlam did not fix, confirming that xlam's argument conventions partially align with BFCL but do not fully close the semantic gap.
 
 ## Thesis implications
 
-This ablation directly addresses a key methodological question: *does LoRA fine-tuning on a general function-calling corpus improve tool-calling accuracy when training format is aligned to evaluation format?*
+The hypothesis is confirmed. The v1 regression was a methodology artifact, not an inherent property of LoRA fine-tuning. The thesis narrative is:
 
-The v1 result (-3 pp) could not answer this question because format mismatch confounded the comparison. The v2 result isolates the effect of the training data's semantic content independently of format.
+> LoRA fine-tuning on a general function-calling corpus can improve over the constrained decoding baseline, but only when training format is aligned to the inference pipeline. Naively applying a standard function-calling dataset (xlam Python-call format) actively hurts performance (-3 pp). Aligning the training format to the evaluation pipeline converts the regression into a gain (+4.05 pp). This is the first configuration to exceed the no-training ceiling of ~72–73%.
 
-If the hypothesis is confirmed (v2 > v1), the thesis narrative becomes:
-> LoRA fine-tuning can improve over the CD baseline, but only when training format matches the inference pipeline. General-purpose function-calling datasets require careful format alignment before fine-tuning; naively applying a standard function-calling dataset with the wrong output convention actively hurts performance.
+The remaining 23.2% failure rate is driven by value-level semantic errors (wrong default values, unit conventions, string formats) that xlam's training signal does not correct. Closing this gap would require training data whose argument value distributions match BFCL's ground truth labels, or a fundamentally different training strategy.
 
-If the hypothesis is refuted (v2 ≈ v1), the narrative becomes:
-> The xlam dataset's argument conventions are too distant from BFCL's ground truth for fine-tuning to help, regardless of format. BFCL-specific training data or stronger alignment between training corpus and target schema conventions would be required to improve over the CD baseline.
+The FT-aligned-ng result is a caution: format alignment must be designed end-to-end. Optimizing the training format for one inference path (guided, args-only JSON) can break the other path (unguided, where function name must appear in the output).

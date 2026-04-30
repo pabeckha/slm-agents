@@ -16,7 +16,9 @@
 | CD+Q+ITC | CD+Q + chain-of-thought reasoning | 7B INT4 | 65.5% | 262/400 | -7.25 pp |
 | CD+Q+RAG | CD+Q + FAISS top-5 tool retrieval | 7B INT4 | 47.75% | 191/400 | -25 pp |
 | FT-only | LoRA merged, no constrained decoding | 7B bf16 | 13.75% | 55/400 | -59 pp |
-| CD+FT | Constrained decoding + LoRA merged | 7B bf16 | 69.75% | 279/400 | -3 pp |
+| CD+FT | Constrained decoding + LoRA merged (misaligned) | 7B bf16 | 69.75% | 279/400 | -3 pp |
+| FT-aligned-ng | Format-aligned LoRA, no constrained decoding | 7B bf16 | 13.2% | 53/400 | -59.55 pp |
+| **CD+FT-aligned** | **Constrained decoding + format-aligned LoRA** | **7B bf16** | **76.8%** | **307/400** | **+4.05 pp** |
 
 ## Key findings
 
@@ -51,15 +53,19 @@ The best no-training configuration is **CD at 72.75%** (or CD+Q at 72.25%, which
 
 The remaining 27–28% failure rate is a semantic problem: the model consistently picks wrong default values for optional parameters, uses incorrect numeric precision (9.8 vs 9.81), uses full words instead of abbreviations, and fails on string format conventions. These are learned-association problems that prompting cannot fix — the model's internal priors about value formats do not match BFCL's ground truth labels.
 
-## LoRA fine-tuning results (Phase 2)
+## LoRA fine-tuning results (Phase 2 + format-aligned ablation)
 
-LoRA training on the xlam-function-calling-60k dataset did not improve on the CD baseline. CD+FT reached **69.75%** — a -3 pp regression. FT-only (no guided decoding) reached **13.75%** (+12.25 pp over the unguided base, but -59 pp vs CD).
+Initial LoRA training (CD+FT, misaligned format) produced a -3 pp regression to 69.75%. Fixing the training format to match the inference pipeline reversed this into a **+4.05 pp gain** — CD+FT-aligned at **76.8%** is the first configuration to beat the no-training ceiling.
 
-The regression under CD+FT is attributed to a format mismatch: xlam trains the model to produce Python call syntax (`func(arg=val)`), while BFCL evaluation expects JSON argument objects. Constrained decoding forces the surface format, but the model's argument value predictions are biased toward xlam conventions, degrading value-level accuracy.
+The format mismatch in v1: xlam trained the model to produce Python call syntax (`func(arg=val)`), while the inference pipeline sends a bare prompt expecting JSON. Rewriting `format_xlam_example` to match `build_args_extraction_prompt` exactly (JSON-only output, same prompt structure, same system prompt) fixed this.
 
-This reframes the Phase 2 conclusion: **general-purpose function-calling fine-tuning is not sufficient**. Fine-tuning must be aligned to the target evaluation's format and argument conventions to improve over constrained decoding alone. The FT-only result confirms that fine-tuning and constrained decoding are complementary — neither alone reaches the CD baseline, and combining them with a mismatched training distribution produces a small regression.
+FT-aligned-ng (no guided decoding, format-aligned) reached **13.2%** — slightly below the misaligned FT-only (13.75%). Format alignment optimized for the guided path (JSON args only, no function name in output), which breaks the unguided evaluator that must identify the function name from the raw output. This is a design tradeoff: aligning the training format to one inference mode can degrade the other.
 
-See `config-ft-lora-results.md` for the full analysis.
+The remaining 23.2% failure rate under CD+FT-aligned mirrors the CD baseline's failure taxonomy — optional parameter handling, type precision, enum value conventions, string format — errors that xlam's training signal does not correct. The training data's argument value distributions do not match BFCL's ground truth labels closely enough to close the semantic gap.
+
+**Phase 2 conclusion**: format alignment is the critical variable. General-purpose function-calling fine-tuning requires the training format to match the inference pipeline exactly; the semantic content of xlam provides a modest positive signal once format interference is removed.
+
+See `config-ft-lora-results.md` for the v1 analysis and `config-ft-lora-aligned-ablation.md` for the format-aligned ablation.
 
 ## Result files
 
@@ -73,6 +79,8 @@ See `config-ft-lora-results.md` for the full analysis.
 | CD+Q+RAG | `data/output/bfcl_rag/scores/simple_python_scores.json` | `data/output/bfcl_rag/runs/` |
 | FT-only | `data/output/bfcl_ft_no_guided/scores/` | `data/output/bfcl_ft_no_guided/runs/` |
 | CD+FT | `data/output/bfcl_ft/scores/` | `data/output/bfcl_ft/runs/` |
+| FT-aligned-ng | `data/output/bfcl_ft_aligned_no_guided/scores/` | `data/output/bfcl_ft_aligned_no_guided/runs/` |
+| CD+FT-aligned | `data/output/bfcl_ft_aligned/scores/` | `data/output/bfcl_ft_aligned/runs/` |
 
 ## Detailed per-config docs
 
@@ -83,3 +91,4 @@ See `config-ft-lora-results.md` for the full analysis.
 - `config-cdq-itc-results.md` — CoT case studies, flip analysis
 - `config-cdqrag-results.md` — RAG recall@5, disambiguation failure analysis
 - `config-ft-lora-results.md` — LoRA fine-tuning, format mismatch analysis
+- `config-ft-lora-aligned-ablation.md` — format-aligned LoRA ablation, outcome interpretation
