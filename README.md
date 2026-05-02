@@ -25,7 +25,7 @@ evaluated on BFCL v4 (simple_python, 400 tasks) and τ-bench (retail, 115 tasks)
 | CD+Q+RAG | + RAG top-5 retrieval | 47.75% |
 | FT-only | LoRA alone, no CD | 13.75% |
 | CD+FT | + LoRA (misaligned format) | 69.75% |
-| CD+FT-aligned | + LoRA (format-aligned) | **76.8%** |
+| CD+FT-aligned | + LoRA (format-aligned) | **76.75%** |
 
 τ-bench retail (Config CD): **4.3% pass rate** (5/115 tasks) — multi-step agentic baseline.
 
@@ -36,9 +36,10 @@ frontier models on BFCL simple\_python. Qwen 2.5 7B + CD (72.75%) matches GPT-4.
 (72.67%) and Claude Sonnet 4.5 (72.58%).
 
 Format-aligned LoRA fine-tuning pushes past the no-training ceiling: CD+FT-aligned at
-**76.8%** exceeds Claude Opus 4.5 (76.83%) on simple_python and is the best result
-in the study. The key was aligning training format exactly to the inference pipeline —
-general-purpose xlam training with format mismatch caused a regression (-3 pp).
+**76.75%** comes within 0.08 pp of Claude Opus 4.5 (76.83%) on simple_python and is
+the best result in the study. The key was aligning training format exactly to the
+inference pipeline — general-purpose xlam training with format mismatch caused a
+regression (-3 pp).
 
 ## Project Structure
 

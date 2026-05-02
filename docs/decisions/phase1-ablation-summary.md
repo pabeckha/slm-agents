@@ -1,6 +1,6 @@
 # Phase 1 Ablation Summary — Qwen 2.5 7B on BFCL Simple Python
 
-**Date compiled**: 2026-04-24
+**Date compiled**: 2026-04-24; last updated 2026-05-02 (all jobs confirmed complete)
 **Benchmark**: BFCL v4 simple_python (400 test cases, AST accuracy)
 **Model family**: Qwen/Qwen2.5-7B-Instruct (FP16), Qwen/Qwen2.5-7B-Instruct-AWQ (INT4), and LoRA merged (bfloat16)
 **Infrastructure**: DTU HPC (A100 40GB, L40S 46GB)
@@ -17,8 +17,8 @@
 | CD+Q+RAG | CD+Q + FAISS top-5 tool retrieval | 7B INT4 | 47.75% | 191/400 | -25 pp |
 | FT-only | LoRA merged, no constrained decoding | 7B bf16 | 13.75% | 55/400 | -59 pp |
 | CD+FT | Constrained decoding + LoRA merged (misaligned) | 7B bf16 | 69.75% | 279/400 | -3 pp |
-| FT-aligned-ng | Format-aligned LoRA, no constrained decoding | 7B bf16 | 13.2% | 53/400 | -59.55 pp |
-| **CD+FT-aligned** | **Constrained decoding + format-aligned LoRA** | **7B bf16** | **76.8%** | **307/400** | **+4.05 pp** |
+| FT-aligned-ng | Format-aligned LoRA, no constrained decoding | 7B bf16 | 13.25% | 53/400 | -59.5 pp |
+| **CD+FT-aligned** | **Constrained decoding + format-aligned LoRA** | **7B bf16** | **76.75%** | **307/400** | **+4.0 pp** |
 
 ## Key findings
 
@@ -55,13 +55,13 @@ The remaining 27–28% failure rate is a semantic problem: the model consistentl
 
 ## LoRA fine-tuning results (Phase 2 + format-aligned ablation)
 
-Initial LoRA training (CD+FT, misaligned format) produced a -3 pp regression to 69.75%. Fixing the training format to match the inference pipeline reversed this into a **+4.05 pp gain** — CD+FT-aligned at **76.8%** is the first configuration to beat the no-training ceiling.
+Initial LoRA training (CD+FT, misaligned format) produced a -3 pp regression to 69.75%. Fixing the training format to match the inference pipeline reversed this into a **+4.0 pp gain** — CD+FT-aligned at **76.75%** is the first configuration to beat the no-training ceiling.
 
 The format mismatch in v1: xlam trained the model to produce Python call syntax (`func(arg=val)`), while the inference pipeline sends a bare prompt expecting JSON. Rewriting `format_xlam_example` to match `build_args_extraction_prompt` exactly (JSON-only output, same prompt structure, same system prompt) fixed this.
 
-FT-aligned-ng (no guided decoding, format-aligned) reached **13.2%** — slightly below the misaligned FT-only (13.75%). Format alignment optimized for the guided path (JSON args only, no function name in output), which breaks the unguided evaluator that must identify the function name from the raw output. This is a design tradeoff: aligning the training format to one inference mode can degrade the other.
+FT-aligned-ng (no guided decoding, format-aligned) reached **13.25%** — slightly below the misaligned FT-only (13.75%). Format alignment optimized for the guided path (JSON args only, no function name in output), which breaks the unguided evaluator that must identify the function name from the raw output. This is a design tradeoff: aligning the training format to one inference mode can degrade the other.
 
-The remaining 23.2% failure rate under CD+FT-aligned mirrors the CD baseline's failure taxonomy — optional parameter handling, type precision, enum value conventions, string format — errors that xlam's training signal does not correct. The training data's argument value distributions do not match BFCL's ground truth labels closely enough to close the semantic gap.
+The remaining 23.25% failure rate under CD+FT-aligned mirrors the CD baseline's failure taxonomy — optional parameter handling, type precision, enum value conventions, string format — errors that xlam's training signal does not correct. The training data's argument value distributions do not match BFCL's ground truth labels closely enough to close the semantic gap.
 
 **Phase 2 conclusion**: format alignment is the critical variable. General-purpose function-calling fine-tuning requires the training format to match the inference pipeline exactly; the semantic content of xlam provides a modest positive signal once format interference is removed.
 

@@ -34,20 +34,26 @@ Use published BFCL leaderboard scores as frontier baselines rather than running 
 
 | Config | Simple AST |
 |--------|-----------|
+| **Qwen 2.5 7B + CD + FT-aligned** | **76.75%** |
 | Qwen 2.5 7B + CD | 72.75% |
 | Qwen 2.5 7B + PE | 70.25% |
 | Qwen 2.5 7B (raw) | 1.50% |
 
 ## Key Finding
 
-**Qwen 2.5 7B with constrained decoding (72.75%) matches frontier models on Simple Function:**
+**Qwen 2.5 7B + CD (72.75%) matches frontier models on Simple Function:**
 - Exceeds GPT-4.1 (72.67%) by 0.08 pp
 - Exceeds Claude Sonnet 4.5 (72.58%) by 0.17 pp
 - Exceeds Claude Haiku 4.5 (71.00%) by 1.75 pp
 - Gap to best (Gemini 3 Pro Prompt, 79.58%): 6.83 pp
 - Gap to Claude Opus 4.5 (76.83%): 4.08 pp
 
-This is a strong thesis finding for RQ1: the baseline gap on simple function calling is effectively **zero** against mid-tier frontier models when constrained decoding is applied. The remaining gap to top-tier models (4-7 pp) may be closable with LoRA fine-tuning.
+**Qwen 2.5 7B + CD + format-aligned LoRA (76.75%) closes most of the remaining gap:**
+- Within 0.08 pp of Claude Opus 4.5 (76.83%) — effectively matching top-tier FC performance
+- Above Gemini 3 Pro FC (75.50%) and o3 Prompt (74.25%)
+- Gap to best overall (Gemini 3 Pro Prompt, 79.58%): 2.83 pp
+
+This is a strong thesis finding for RQ1: the baseline gap on simple function calling is effectively **zero** against mid-tier frontier models when constrained decoding is applied. Format-aligned LoRA fine-tuning closes the remaining 4 pp gap to top-tier models, reaching Claude Opus 4.5-level performance on this task.
 
 ## Implications
 

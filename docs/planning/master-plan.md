@@ -23,8 +23,8 @@ Single source of truth for project state.
 | Config CD+Q+RAG | + RAG top-5 retrieval | Done — 47.75% AST (negative) |
 | Config CD+FT | + LoRA fine-tuning, misaligned format | Done — 69.75% AST |
 | Config FT-only | LoRA alone, no CD or Q | Done — 13.75% AST |
-| Config FT-aligned-ng | Format-aligned LoRA, no CD | Done — 13.2% AST |
-| Config CD+FT-aligned | CD + format-aligned LoRA | Done — **76.8% AST** ← best |
+| Config FT-aligned-ng | Format-aligned LoRA, no CD | Done — 13.25% AST |
+| Config CD+FT-aligned | CD + format-aligned LoRA | Done — **76.75% AST** ← best |
 | Config CD+Q+FT | CD + AWQ quant + LoRA (requires QLoRA or post-merge AWQ) | Not started |
 | τ-bench CD (retail) | Multi-step agentic, tool-calling, 115 tasks | Done — **4.3% pass rate** |
 
@@ -52,8 +52,8 @@ Current page count: ~28 pages. Target: 50–60 pages.
 
 ### Experiments
 - [x] FT alone (no CD/Q) — done, 13.75%
-- [x] FT-aligned-ng — done, 13.2%
-- [x] CD+FT-aligned — done, 76.8%
+- [x] FT-aligned-ng — done, 13.25%
+- [x] CD+FT-aligned — done, 76.75%
 - [x] τ-bench full run (retail domain) — done, 4.3% pass rate
 - [ ] CD+Q+FT: requires QLoRA or post-merge AWQ quantization of merged model
 - [ ] Model-size sweep: 0.5B, 1.5B, 3B × CD + B (script ready: `run_bfcl_sweep.sh`)

@@ -32,8 +32,8 @@ Phi-4 Mini, Llama 3.2, Qwen3-0.6B dropped. Narrowed to Qwen 2.5 family only.
 | CD+Q+RAG (CD+Q + RAG top-5) | **Done** | 47.75% (191/400) | −24.5 pp — disambiguation failure |
 | FT-only (LoRA, no CD/Q) | **Done** | 13.75% (55/400) | LoRA alone insufficient without CD |
 | CD+FT (CD + LoRA, misaligned) | **Done** | 69.75% (279/400) | −3 pp vs CD — format mismatch |
-| FT-aligned-ng (format-aligned, no CD) | **Done** | 13.2% (53/400) | Aligned format breaks unguided eval |
-| CD+FT-aligned (CD + format-aligned LoRA) | **Done** | **76.8% (307/400)** | **Best result — beats no-training ceiling** |
+| FT-aligned-ng (format-aligned, no CD) | **Done** | 13.25% (53/400) | Aligned format breaks unguided eval |
+| CD+FT-aligned (CD + format-aligned LoRA) | **Done** | **76.75% (307/400)** | **Best result — beats no-training ceiling** |
 
 Full ablation summary: `docs/decisions/phase1-ablation-summary.md`
 
@@ -44,7 +44,7 @@ Full ablation summary: `docs/decisions/phase1-ablation-summary.md`
 - **No-training ceiling confirmed at CD ~72.75%.** Three prompt-only techniques all regressed (PE −2.5 pp, CoT −7.25 pp, RAG −24.5 pp).
 - **Constrained decoding is the essential enabler** (+71.25 pp over raw baseline). Without it the model is non-functional.
 - **AWQ quantization is essentially free** (−0.5 pp, 63.5% less VRAM).
-- **Format-aligned LoRA breaks the ceiling**: CD+FT-aligned at **76.8%** is +4.05 pp over CD and matches/exceeds mid-tier frontier models.
+- **Format-aligned LoRA breaks the ceiling**: CD+FT-aligned at **76.75%** is +4.0 pp over CD and within 0.08 pp of Claude Opus 4.5 (76.83%).
 - **τ-bench reveals the agentic gap**: despite 72.75% single-call accuracy, multi-step pass rate is only 4.3% — the cascade architecture motivation in one number.
 - **All planned experiments are complete.** Focus now is thesis writing.
 
@@ -80,7 +80,7 @@ The 7B model already matches GPT-4.1 and Sonnet on simple_python with constraine
 
 | Criterion | Target | Current | Status |
 |-----------|--------|---------|--------|
-| BFCL simple_python AST accuracy | ≥85% | 76.8% (CD+FT-aligned) | Not met — leaderboard ceiling is ~80% (no model hits 85%) |
+| BFCL simple_python AST accuracy | ≥85% | 76.75% (CD+FT-aligned) | Not met — leaderboard ceiling is ~80% (no model hits 85%) |
 | Gap to Sonnet 4.5 on τ-bench | ≤15% | 4.3% vs unknown Sonnet τ-bench | Not evaluated for Sonnet |
 | Format validity with CD | <2% errors | ~0.3% | Met |
 | Runs on RTX 4090 | 24 GB VRAM | 5.2 GiB (AWQ) | Met — 78% headroom |
@@ -149,7 +149,7 @@ All experiments complete. Writing is now the only path to submission.
 
 | # | Title | Status |
 |---|-------|--------|
-| #22 | LoRA fine-tuning pipeline | Done — CD+FT-aligned 76.8% |
+| #22 | LoRA fine-tuning pipeline | Done — CD+FT-aligned 76.75% |
 | #23 | CoT/ReAct hybrid | Closed — ITC negative; ReAct on τ-bench deferred |
 | #24 | Full ablation matrix | Done — all 10 configs complete |
 | #26 | Results + Discussion + Conclusion | **Active — writing phase** |
