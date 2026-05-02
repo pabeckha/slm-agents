@@ -1,7 +1,7 @@
 # Thesis Status
 
-**Last updated:** 2026-04-21
-**Deadline:** 2026-07-05 (10 weeks remaining)
+**Last updated:** 2026-05-02
+**Deadline:** 2026-07-05 (9 weeks remaining)
 
 ## Research Question
 
@@ -30,29 +30,32 @@ Phi-4 Mini, Llama 3.2, Qwen3-0.6B dropped. Narrowed to Qwen 2.5 family only.
 | CD+Q (CD + AWQ INT4) | **Done** | 72.25% (289/400) | −0.5 pp vs CD; 63.5% less VRAM |
 | CD+Q+ITC (CD+Q + CoT) | **Done** | 65.5% (262/400) | −7.25 pp — strongly negative |
 | CD+Q+RAG (CD+Q + RAG top-5) | **Done** | 47.75% (191/400) | −24.5 pp — disambiguation failure |
-| CD+Q+FT (CD+Q + LoRA) | **Running** | — | Job 28248383 on gpul40s (pos. 123) |
-| FT alone (LoRA, no CD) | Not started | — | Needed for ablation |
-| CD+FT (CD + LoRA, no Q) | Not started | — | Needed for ablation |
+| FT-only (LoRA, no CD/Q) | **Done** | 13.75% (55/400) | LoRA alone insufficient without CD |
+| CD+FT (CD + LoRA, misaligned) | **Done** | 69.75% (279/400) | −3 pp vs CD — format mismatch |
+| FT-aligned-ng (format-aligned, no CD) | **Done** | 13.2% (53/400) | Aligned format breaks unguided eval |
+| CD+FT-aligned (CD + format-aligned LoRA) | **Done** | **76.8% (307/400)** | **Best result — beats no-training ceiling** |
 
-Phase 1 summary: `docs/decisions/phase1-ablation-summary.md`
+Full ablation summary: `docs/decisions/phase1-ablation-summary.md`
 
 ---
 
 ## Running-picture headline
 
-- **No-training ceiling is CD at 72.75% / CD+Q at 72.25%.** Three prompt-only techniques (PE −2.5 pp, CoT −7.25 pp, RAG −24.5 pp) all regressed. The ceiling is confirmed.
-- **Constrained decoding is the essential enabler** (+71.25 pp over raw baseline). Without it the model is non-functional for tool calling.
-- **AWQ quantization is free** (−0.5 pp, 63.5% less VRAM, fits RTX 4090 at 5.2 GiB).
-- **The 12–13 pp gap to the 85% target must come from LoRA.** Pipeline built, training job running.
+- **No-training ceiling confirmed at CD ~72.75%.** Three prompt-only techniques all regressed (PE −2.5 pp, CoT −7.25 pp, RAG −24.5 pp).
+- **Constrained decoding is the essential enabler** (+71.25 pp over raw baseline). Without it the model is non-functional.
+- **AWQ quantization is essentially free** (−0.5 pp, 63.5% less VRAM).
+- **Format-aligned LoRA breaks the ceiling**: CD+FT-aligned at **76.8%** is +4.05 pp over CD and matches/exceeds mid-tier frontier models.
+- **τ-bench reveals the agentic gap**: despite 72.75% single-call accuracy, multi-step pass rate is only 4.3% — the cascade architecture motivation in one number.
+- **All planned experiments are complete.** Focus now is thesis writing.
 
 ---
 
 ## Agentic Benchmark (τ-bench)
 
-- Harness set up: `vendor/tau-bench` cloned, job script `scripts/hpc/run_tau_bench.sh` ready
-- User simulator: `gpt-4o-mini` (OpenAI), API key in project `.secrets`
-- Smoke test (3 tasks, retail): **Job 28248389 pending on gpul40s** (pos. 124)
-- Full run: pending smoke test validation
+- **Done**: 3 full runs × 115 retail tasks, Config CD (tool-calling strategy, temperature 0.0, seed 42)
+- **Pass rate: 4.3%** (mean across 3 runs: 4/6/5 tasks passed)
+- User simulator: same local vLLM instance (Qwen 2.5 7B), not gpt-4o-mini
+- See `docs/decisions/tau-bench-retail-results.md` for failure analysis
 
 ---
 
@@ -77,10 +80,12 @@ The 7B model already matches GPT-4.1 and Sonnet on simple_python with constraine
 
 | Criterion | Target | Current | Status |
 |-----------|--------|---------|--------|
-| BFCL simple_python AST accuracy | ≥85% | 72.25% (CD+Q) | LoRA is the only remaining path |
-| Gap to Sonnet 4.5 on τ-bench | ≤15% | TBD | Smoke test running |
+| BFCL simple_python AST accuracy | ≥85% | 76.8% (CD+FT-aligned) | Not met — leaderboard ceiling is ~80% (no model hits 85%) |
+| Gap to Sonnet 4.5 on τ-bench | ≤15% | 4.3% vs unknown Sonnet τ-bench | Not evaluated for Sonnet |
 | Format validity with CD | <2% errors | ~0.3% | Met |
 | Runs on RTX 4090 | 24 GB VRAM | 5.2 GiB (AWQ) | Met — 78% headroom |
+
+Note: the 85% target was set against older BFCL v2/v3 leaderboard numbers. BFCL v4 (July 2025) tightened evaluation — the current leaderboard ceiling is ~80% (Gemini 3 Pro). The 85% target needs revision in the thesis.
 
 ---
 
@@ -88,10 +93,10 @@ The 7B model already matches GPT-4.1 and Sonnet on simple_python with constraine
 
 | Chapter | Status | Notes |
 |---------|--------|-------|
-| 1. Introduction | Draft | Needs polish after results are final |
-| 2. Background | Draft | "TALK ABOUT AGENTS" section still a stub |
-| 3. Methodology | In progress | PE, RAG, LoRA, τ-bench sections still stubs |
-| 4. Results | **Empty** | Phase 1 data ready to write now |
+| 1. Introduction | Draft | Polish after results final |
+| 2. Background | Draft | Agents with LLMs section still a stub |
+| 3. Methodology | In progress | PE, RAG, LoRA, τ-bench sections stubs |
+| 4. Results | **Empty** | All data in hand — write now |
 | 5. Discussion | **Empty** | |
 | 6. Conclusion | **Empty** | |
 | Appendix | Not started | AI tool usage disclosure (Vancouver Convention) |
@@ -100,40 +105,33 @@ Current: ~28 pages. Target: 50–60 pages.
 
 ---
 
-## Revised Timeline (2026-04-21 → 2026-07-05)
+## Timeline (2026-05-02 → 2026-07-05)
 
-### Now — Week 2 (Apr 21–27)
+All experiments complete. Writing is now the only path to submission.
 
-- [x] Phase 1 ablation complete (6 configs, all documented)
-- [x] LoRA training pipeline built and fixed
-- [x] τ-bench harness set up
-- [ ] CD+Q+FT result (Job 28248383)
-- [ ] τ-bench smoke test validation (Job 28248389)
-- [ ] Submit model-size sweep (0.5B, 1.5B, 3B) after queue clears
+### Weeks 1–2 (May 2–15) — Methodology + Results
 
-### Weeks 3–4 (Apr 28 – May 11)
+- [ ] Methodology: PE, RAG, LoRA, τ-bench sections
+- [ ] Background: Agents with LLMs stub
+- [ ] Results chapter: Phase 1 (CD, PE, Q, ITC, RAG) + Phase 2 (LoRA ablation)
+- [ ] Results chapter: τ-bench section
 
-- [ ] LoRA hyperparameter iteration if needed (2–3 runs)
-- [ ] FT alone + CD+FT ablation configs
-- [ ] τ-bench full run on retail domain
-- [ ] Start Results chapter (Phase 1 section)
-- [ ] Methodology stubs: PE, RAG, LoRA sections
+### Weeks 3–4 (May 16–29) — Discussion
 
-### Weeks 5–6 (May 12–25)
+- [ ] Discussion: cascade framing (BFCL vs τ-bench gap)
+- [ ] Discussion: cost/size tradeoffs (AWQ neutrality)
+- [ ] Discussion: limitations and scope (simple_python only, 85% target revision)
 
-- [ ] Model-size sweep results and analysis
-- [ ] BFCL multiple + parallel categories (breadth)
-- [ ] Results chapter Phase 2 section (LoRA results)
-- [ ] Discussion chapter started
+### Weeks 5–8 (Jun 1–28) — Completion + Polish
 
-### Weeks 7–12 (May 26 – Jul 5)
-
-- [ ] Discussion chapter (cascade framing, cost analysis, limitations)
-- [ ] Background chapter stub finished
 - [ ] Conclusion chapter
 - [ ] Introduction polish + abstract
+- [ ] Appendix: AI tool usage disclosure
 - [ ] Full-draft review with Nicki
-- [ ] Revisions, figures, formatting
+- [ ] Figures, formatting, revisions
+
+### Week 9 (Jun 29 – Jul 5) — Submission buffer
+
 - [ ] **2026-07-05** — submission
 
 ---
@@ -151,8 +149,8 @@ Current: ~28 pages. Target: 50–60 pages.
 
 | # | Title | Status |
 |---|-------|--------|
-| #22 | LoRA fine-tuning pipeline | In progress |
-| #23 | CoT/ReAct hybrid | Keep open for ReAct on τ-bench |
-| #24 | Full ablation matrix | 6/9 configs done |
-| #26 | Results + Discussion + Conclusion | Not started |
-| #4 | τ-bench harness | Smoke test running |
+| #22 | LoRA fine-tuning pipeline | Done — CD+FT-aligned 76.8% |
+| #23 | CoT/ReAct hybrid | Closed — ITC negative; ReAct on τ-bench deferred |
+| #24 | Full ablation matrix | Done — all 10 configs complete |
+| #26 | Results + Discussion + Conclusion | **Active — writing phase** |
+| #4 | τ-bench harness | Done — 4.3% pass rate, 3 runs |
