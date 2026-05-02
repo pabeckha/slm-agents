@@ -1,7 +1,7 @@
 ---
 title: "Master Plan: SLM Agents Thesis"
 category: "project"
-lastUpdated: "2026-04-22"
+lastUpdated: "2026-05-02"
 status: "active"
 ---
 
@@ -21,16 +21,14 @@ Single source of truth for project state.
 | Config CD+Q | + AWQ INT4 quantization | Done — 72.25% AST |
 | Config CD+Q+ITC | + Chain-of-thought | Done — 65.5% AST (negative) |
 | Config CD+Q+RAG | + RAG top-5 retrieval | Done — 47.75% AST (negative) |
-| Config CD+FT | + LoRA fine-tuning (no AWQ — LoRA trained on base model) | Done — 69.8% AST |
-| Config FT | LoRA alone, no CD or Q | Not started |
+| Config CD+FT | + LoRA fine-tuning, misaligned format | Done — 69.75% AST |
+| Config FT-only | LoRA alone, no CD or Q | Done — 13.75% AST |
+| Config FT-aligned-ng | Format-aligned LoRA, no CD | Done — 13.2% AST |
+| Config CD+FT-aligned | CD + format-aligned LoRA | Done — **76.8% AST** ← best |
 | Config CD+Q+FT | CD + AWQ quant + LoRA (requires QLoRA or post-merge AWQ) | Not started |
 | τ-bench CD (retail) | Multi-step agentic, tool-calling, 115 tasks | Done — **4.3% pass rate** |
 
-Full Phase 1 summary: `docs/decisions/phase1-ablation-summary.md`
-
-Next: run model-size sweep (0.5B, 1.5B, 3B) × CD + B configs.
-Then run BFCL multiple + parallel categories for breadth.
-τ-bench retail done: **4.3% pass rate** (5/115). See `docs/decisions/tau-bench-retail-results.md`.
+Full Phase 1 + Phase 2 summary: `docs/decisions/phase1-ablation-summary.md`
 
 ---
 
@@ -53,11 +51,13 @@ Current page count: ~28 pages. Target: 50–60 pages.
 ## Open Tasks
 
 ### Experiments
-- [ ] FT alone (no CD/Q): submit `run_bfcl_ft_no_guided.sh`
+- [x] FT alone (no CD/Q) — done, 13.75%
+- [x] FT-aligned-ng — done, 13.2%
+- [x] CD+FT-aligned — done, 76.8%
+- [x] τ-bench full run (retail domain) — done, 4.3% pass rate
 - [ ] CD+Q+FT: requires QLoRA or post-merge AWQ quantization of merged model
 - [ ] Model-size sweep: 0.5B, 1.5B, 3B × CD + B (script ready: `run_bfcl_sweep.sh`)
 - [ ] BFCL multiple + parallel categories
-- [x] τ-bench full run (retail domain) — **done, 4.3% pass rate**
 
 ### Writing (Methodology remaining)
 - [ ] Section: Prompt Engineering and Few-Shot
