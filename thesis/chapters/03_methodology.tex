@@ -207,6 +207,80 @@ a local quantization step.
 
 \section{Prompt Engineering and Few-Shot}
 
+Config~PE extends Config~CD by prepending three few-shot examples to the
+argument extraction prompt. The function selection prompt is left unchanged;
+examples are added only to the argument extraction stage, where all Config~CD
+failures occur.
+
+The three examples are constructed to target the most frequent failure
+categories observed in Config~CD. The first example demonstrates numeric
+precision: the expected value is \texttt{9.81}, not the rounded approximation
+\texttt{9.8}. The second demonstrates string format with a location qualifier:
+the expected value is \texttt{"San Francisco, CA"}, not
+\texttt{"San Francisco"}. The third demonstrates Python expression syntax: the
+expected value is \texttt{x**2}, not the mathematical notation
+\texttt{x\^{}2}. Three examples are selected as the minimum number needed to
+cover distinct failure classes; additional examples would increase context
+length without introducing new failure categories.
+
+All other settings remain unchanged from Config~CD: the full-precision
+\texttt{Qwen/Qwen2.5-7B-Instruct} model is used, guided decoding is applied
+to both pipeline stages, and temperature is set to~0. Config~PE is evaluated
+as a parallel track to Config~CD+Q rather than as an extension of it, so the
+full-precision model is retained to isolate the effect of the few-shot
+examples from any interaction with quantization.
+
 \section{Retrieval-Augmented Generation}
 
+Config~CD+Q+RAG extends Config~CD+Q by replacing the per-test-case oracle
+function provision with a retrieval step~\cite{lewis2020retrieval}. In all
+prior configurations, each test case is presented with the exact function
+definition required to answer it. In Config~CD+Q+RAG, the model receives
+instead the top-$k$ functions retrieved from an index of the full function
+catalogue.
+
+All 370 unique function signatures from the \texttt{simple\_python} category
+are embedded using \texttt{sentence-transformers/all-MiniLM-L6-v2} and indexed
+with FAISS before evaluation begins. The \texttt{all-MiniLM-L6-v2} model is
+selected because it is designed for semantic similarity of short texts, requires
+no GPU, and is approximately 80~MB, making it compatible with the vLLM server
+that holds the GPU in exclusive process mode. The embedder is run on CPU to
+avoid a device ownership conflict with vLLM.
+
+At inference time, the user query is embedded and the top-5 most similar
+functions are retrieved as candidates ($k=5$). The value $k=5$ is selected to
+achieve near-complete recall while keeping the candidate set small enough for
+the model to disambiguate: a smaller $k$ risks excluding the correct function,
+while a larger $k$ increases the number of semantically similar alternatives
+the model must distinguish. The model selects among the retrieved candidates
+using \texttt{guided\_choice} restricted to the five retrieved function names,
+then extracts arguments using \texttt{guided\_json} as in Config~CD+Q. All
+other settings are inherited from Config~CD+Q.
+
 \section{LoRA Fine-Tuning}
+
+Two fine-tuning configurations are evaluated: Config~FT-only, which applies
+the trained model without constrained decoding, and Config~CD+FT, which
+combines the trained model with the constrained decoding pipeline from
+Config~CD. The split between the two variants allows the independent
+contributions of fine-tuning and constrained decoding to be measured
+separately.
+
+The base model is \texttt{Qwen/Qwen2.5-7B-Instruct} in bfloat16. A LoRA
+adapter is trained for 2~epochs with rank~16 on the Salesforce
+\texttt{xlam-function-calling-60k} dataset~\cite{zhang2024xlam}, using
+54{,}000 training examples and 6{,}000 validation examples, with the
+HuggingFace PEFT library and TRL SFTTrainer~\cite{hu2022lora}.
+
+Rank~16 is selected as a mid-range value for instruction-following adaptation:
+it provides sufficient capacity for the model to learn format and value
+conventions from the training data without overfitting. Two epochs are selected
+because the dataset is large enough that a single pass provides substantial
+exposure to the training distribution; a third epoch produced no further
+improvement in validation loss in preliminary runs.
+
+After training, the adapter weights are merged into the base model by linear
+interpolation, producing a single merged checkpoint in bfloat16. The merged
+model is used for all evaluation runs, removing adapter inference overhead and
+ensuring that the evaluation infrastructure is identical to that used for
+Config~B and Config~CD.

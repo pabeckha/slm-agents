@@ -1,8 +1,89 @@
 \chapter{Generative AI Disclosure}
 \label{app:ai-disclosure}
 
+In accordance with DTU's guidelines on the use of generative AI tools in
+academic work, the following AI-assisted tools were used during the
+preparation of this thesis.
+
+\textbf{Claude Code (Anthropic)} was used as a coding assistant during
+the implementation of the evaluation pipeline, HPC job scripts, and data
+processing scripts. Generated code was reviewed, tested, and modified
+before use. No generated code was submitted without verification against
+expected outputs.
+
+\textbf{Claude (Anthropic, claude.ai)} was used as a writing assistant
+to produce draft text for thesis sections. All drafted text was reviewed,
+revised, and rewritten in the author's own voice before inclusion. The
+author is responsible for all factual claims, experimental results, and
+interpretations presented in this thesis.
+
+No AI tool was used to generate experimental data, benchmark results,
+or citations. All numerical results reported in this thesis were produced
+by running experiments on the DTU HPC cluster and collected by the author.
+
+AI tools are not listed as authors or co-authors of this work, in
+accordance with the Vancouver Convention as adopted by
+DTU~\cite{ICMJE2020vancouver}.
+
 \chapter{Hyperparameters and Training Details}
 \label{app:hyperparameters}
 
+Table~\ref{tab:lora-hyperparams} lists the hyperparameters used for
+LoRA fine-tuning in all training configurations.
+
+\begin{table}[h]
+\centering
+\caption{LoRA fine-tuning hyperparameters for all training configurations.}
+\label{tab:lora-hyperparams}
+\begin{tabular}{ll}
+\toprule
+Parameter & Value \\
+\midrule
+Base model & \texttt{Qwen/Qwen2.5-7B-Instruct} \\
+Dataset & \texttt{Salesforce/xlam-function-calling-60k} \\
+Training examples & 54{,}000 \\
+Validation examples & 6{,}000 \\
+LoRA rank & 16 \\
+LoRA alpha & 32 \\
+Target modules & \texttt{q\_proj, v\_proj} \\
+Dropout & 0.05 \\
+Epochs & 2 \\
+Batch size & 4 \\
+Gradient accumulation steps & 4 \\
+Learning rate & $2 \times 10^{-4}$ \\
+LR scheduler & cosine \\
+Dtype & bfloat16 \\
+Optimizer & AdamW \\
+Max sequence length & 2048 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \chapter{Full Benchmark Results}
 \label{app:benchmark-results}
+
+Table~\ref{tab:full-results} reports the complete per-configuration results
+on BFCL~v4 \texttt{simple\_python} (400 test cases).
+
+\begin{table}[h]
+\centering
+\caption{Full BFCL v4 Simple Function AST accuracy results across all
+configurations evaluated in this thesis.}
+\label{tab:full-results}
+\begin{tabular}{llrrl}
+\toprule
+Config & Description & Correct & Accuracy (↑) & Delta vs CD \\
+\midrule
+B       & No constrained decoding           & 6/400   & 1.50\%  & $-71.25$~pp \\
+PE      & CD + few-shot (3 examples)        & 281/400 & 70.25\% & $-2.50$~pp  \\
+CD      & Constrained decoding              & 291/400 & 72.75\% & baseline    \\
+CD+Q    & CD + AWQ INT4                     & 289/400 & 72.25\% & $-0.50$~pp  \\
+CD+Q+ITC & CD+Q + chain-of-thought         & 262/400 & 65.50\% & $-7.25$~pp  \\
+CD+Q+RAG & CD+Q + FAISS top-5              & 191/400 & 47.75\% & $-25.00$~pp \\
+FT-only & LoRA merged, no CD               & 55/400  & 13.75\% & $-59.00$~pp \\
+CD+FT   & CD + LoRA merged (v1)            & 279/400 & 69.75\% & $-3.00$~pp  \\
+FT-aligned-ng & Format-aligned LoRA, no CD   & 53/400  & 13.25\% & $-59.50$~pp \\
+CD+FT-aligned & CD + format-aligned LoRA     & 307/400 & 76.75\% & $+4.00$~pp  \\
+\bottomrule
+\end{tabular}
+\end{table}

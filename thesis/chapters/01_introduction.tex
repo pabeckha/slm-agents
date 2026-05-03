@@ -28,7 +28,7 @@ This thesis addresses three research questions:
 
 \noindent RQ1 establishes the baseline gap that motivates the work. RQ2 is the core empirical contribution: a cumulative ablation study that isolates the marginal impact of each technique. RQ3 addresses the practical question of whether the optimized configuration is viable for real-world deployment.
 
-To answer these questions, the thesis evaluates a cumulative pipeline of methods, ordered by implementation cost. No-training methods are evaluated first (constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}, quantization~\cite{lin2023awq}), followed by training-based methods (LoRA fine-tuning~\cite{hu2022lora}). Each method is assessed both individually and in combination, measuring its marginal contribution to tool-calling accuracy and reasoning quality.
+To answer these questions, the thesis evaluates a cumulative pipeline of methods, ordered by implementation cost. No-training methods are evaluated first (constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}, quantization~\cite{lin2024awq}), followed by training-based methods (LoRA fine-tuning~\cite{hu2022lora}). Each method is assessed both individually and in combination, measuring its marginal contribution to tool-calling accuracy and reasoning quality.
 
 \section{Contributions}
 
@@ -37,7 +37,7 @@ The main contributions of this thesis are:
 \begin{enumerate}
     \item A systematic evaluation of optimization techniques for small language models in agentic tasks, ordered from no-training to training-required methods.
     \item A cumulative ablation study that isolates the marginal contribution of each technique---constrained decoding, prompt engineering, RAG, quantization, and LoRA---to tool-calling accuracy and reasoning quality.
-    \item A comparison of optimized small language model configurations against frontier models on the Berkeley Function Calling Leaderboard (BFCL)~\cite{bfcl2024} and $\tau$-bench~\cite{yao2024taubench}.
+    \item A comparison of optimized small language model configurations against frontier models on the Berkeley Function Calling Leaderboard (BFCL)~\cite{bfcl2024} and $\tau$-bench~\cite{taubench2024}.
     \item Practical guidelines for deploying agentic systems with small models on consumer hardware.
 \end{enumerate}
 

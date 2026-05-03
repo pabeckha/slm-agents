@@ -34,6 +34,9 @@ vendor/
 dtu_cs_thesis/
 dtu-cs-thesis/
 
+# Reference theses for benchmarking (PDFs, not to be committed)
+docs/benchmarks/
+
 # Hugging Face cache
 .cache/
 
