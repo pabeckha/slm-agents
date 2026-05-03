@@ -45,6 +45,7 @@ config_to_script() {
         CDQ)    echo "${SCRIPT_DIR}/run_bfcl_quant.sh" ;;
         CDQRAG) echo "${SCRIPT_DIR}/run_bfcl_rag.sh" ;;
         CDQFT)  echo "${SCRIPT_DIR}/run_bfcl_ft.sh" ;;
+        CDQFTA) echo "${SCRIPT_DIR}/run_bfcl_cdqft_aligned.sh" ;;
         FT)     echo "${SCRIPT_DIR}/run_bfcl_ft_no_guided.sh" ;;
         PE)     echo "${SCRIPT_DIR}/run_bfcl_few_shot.sh" ;;
         *)      echo "Unknown config: $1" >&2; exit 1 ;;
@@ -67,7 +68,7 @@ for model in $MODELS; do
                 echo "DRY RUN: MODEL=$model CATEGORY=$category bsub -J $job_name < $script"
             else
                 echo "Submitting: MODEL=$model CATEGORY=$category config=$config"
-                MODEL="$model" CATEGORY="$category" bsub -J "$job_name" < "$script"
+                bsub -J "$job_name" -env "all,MODEL=$model,CATEGORY=$category" < "$script"
                 submitted=$((submitted + 1))
                 sleep 0.5  # avoid flooding LSF
             fi
