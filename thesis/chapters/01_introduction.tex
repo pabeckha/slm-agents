@@ -6,7 +6,37 @@ Large language models (LLMs) have become the dominant backbone for agentic syste
 
 Small language models (SLMs), typically ranging from 1B to 8B parameters, offer an alternative. Recent open-weight models such as Qwen 2.5~\cite{qwen2024qwen25}, Llama 3.2~\cite{llama2024llama32}, and Phi-4~\cite{abdin2024phi} can run on consumer-grade hardware, enable local deployment, and drastically reduce per-query costs. However, out of the box, SLMs struggle with the core capabilities that agentic systems demand. They frequently produce malformed structured outputs, select incorrect tools, hallucinate function arguments, and fail at multi-step reasoning. These shortcomings have led to a widespread assumption that reliable agentic behavior requires large-scale models.
 
-This thesis challenges that assumption. Rather than treating model scale as the primary driver of agent reliability, it investigates whether targeted optimization techniques can bridge the performance gap between small and large models for agentic tasks. If small models can be made reliable enough for tool calling and reasoning through methods such as constrained decoding, prompt engineering, and fine-tuning, they could enable a new class of local, cost-efficient, and privacy-preserving agentic systems.
+This thesis challenges that assumption. Rather than treating model scale
+as the primary driver of agent reliability, it investigates whether
+targeted optimization techniques can bridge the performance gap between
+small and large models for agentic tasks. If small models can be made
+reliable enough for tool calling and reasoning through methods such as
+constrained decoding, prompt engineering, and fine-tuning, they could
+enable a new class of local, cost-efficient, and privacy-preserving
+agentic systems.
+
+The practical deployment context motivating this investigation is the
+cascade architecture: a two-tier system in which a locally deployed
+small model handles the majority of incoming requests, while a frontier
+model accessed through an external API handles the remainder. This
+pattern is economically motivated. Frontier model APIs are charged per
+token; a locally deployed 7B model on a single consumer GPU incurs a
+fixed hardware cost independent of query volume. If the small model
+handles 75\% of requests correctly, 75\% of per-query API costs are
+eliminated. The central challenge is extending the fraction of requests
+that the small model can handle reliably, which is precisely what each
+optimization technique in this thesis is evaluated against.
+
+The optimization techniques are ordered by implementation cost. Methods
+that require no modification to the model weights -- constrained
+decoding, prompt engineering, retrieval-augmented generation, and
+post-training quantization -- are evaluated first, as they can be
+applied to any pre-trained checkpoint without additional compute.
+LoRA fine-tuning is evaluated last, as it requires a training run on a
+GPU cluster. This ordering reflects a practical decision ladder: a
+deployment team can adopt the no-training configurations immediately
+and defer the training investment until the marginal accuracy gain
+justifies it.
 
 \section{Problem Statement}
 
@@ -14,7 +44,33 @@ Agentic systems built on language models must perform two fundamental capabiliti
 
 When small language models are used for these tasks without any optimization, they exhibit several failure modes. They generate invalid JSON, select non-existent tools, produce arguments with incorrect types or values, and fail to follow execution plans. These failures are not merely inconvenient; they render the agent non-functional for production use.
 
-The central question is whether these failures stem from fundamental limitations in model capacity or from insufficient constraints and guidance during generation. If the latter, then a carefully chosen stack of optimization techniques should be able to make small models competitive with frontier models on agentic benchmarks.
+Two categories of failure are distinguishable. Format failures occur
+when the model produces syntactically invalid output: malformed JSON,
+unclosed brackets, incorrect field names, or free-form text where a
+structured object is required. These failures are independent of
+whether the model understood the query; they reflect an inability to
+express a correct answer in the required format. Semantic failures
+occur when the output is structurally valid but contains incorrect
+values: wrong function arguments, hallucinated parameters, or
+mismatched types. These failures reflect gaps in the model's learned
+associations between query context and argument conventions.
+
+The distinction matters because the two failure types respond to
+different interventions. Format failures can be eliminated at
+inference time by constrained decoding, which masks invalid tokens at
+each generation step without modifying the model. Semantic failures
+cannot be addressed by structural constraints; they require either
+training-based interventions that update the model's learned priors,
+or retrieval-based methods that ground generation in retrieved
+factual content. The central question is therefore not whether SLMs
+fail, but which failure type dominates and which intervention
+addresses it most effectively.
+
+The central question is whether these failures stem from fundamental
+limitations in model capacity or from insufficient constraints and
+guidance during generation. If the latter, then a carefully chosen
+stack of optimization techniques should be able to make small models
+competitive with frontier models on agentic benchmarks.
 
 \section{Research Questions}
 
