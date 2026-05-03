@@ -115,6 +115,30 @@ identify where failures occur along the prediction pipeline.
 
 \subsection{$\tau$-bench}
 
+The $\tau$-bench retail benchmark~\cite{taubench2024} evaluates
+end-to-end multi-step task completion. Each task is a simulated
+customer service interaction in which the model must reason across
+5--15 tool calls, observe intermediate results, and reach a final
+database state that matches a ground truth resolution. Config~CD is
+evaluated on the retail domain test split (115 tasks) to establish
+the agentic baseline; the remaining configurations are not evaluated
+on $\tau$-bench because the primary bottleneck identified is
+multi-turn planning rather than single-call argument accuracy.
+
+Three full evaluation runs are completed to account for variance
+introduced by the user simulator. The user simulator is Qwen~2.5
+7B-Instruct served on the same vLLM instance as the agent model,
+running at temperature~0.3 to produce naturalistic user responses.
+The agent model runs at temperature~0.0 to ensure deterministic
+tool call generation. All runs are executed on a single NVIDIA L40S
+GPU (48~GiB) on the DTU HPC cluster.
+
+Scoring is binary: a task receives reward~1.0 only if the final
+database state exactly matches the ground truth at the end of the
+interaction, and reward~0.0 otherwise. Partial task completion
+yields no reward. The pass rate is reported as the mean reward
+across all tasks and all runs.
+
 \section{Models}
 \subsection{Qwen 2.5}
 

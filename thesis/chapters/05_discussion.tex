@@ -150,22 +150,31 @@ schema rather than by a benchmarking dataset.
 
 \section{Practical Implications}
 
-Config~CD+Q addresses RQ3 directly. A 72.25\% AST accuracy is achieved on
-5.20~GiB of GPU memory with a 35~s model load time on an NVIDIA L40S. The
-same configuration fits on a consumer RTX~4090 (24~GiB) with ample remaining
-capacity for the key-value cache. At near-zero accuracy cost relative to full
-precision, Config~CD+Q is the production-viable configuration for the
-\texttt{simple\_python} use case on consumer hardware.
+Two configurations are production-viable on consumer hardware, each
+addressing a different deployment constraint. Config~CD+Q achieves
+72.25\% AST accuracy on 5.20~GiB of GPU memory with a 35~s model
+load time on an NVIDIA L40S. The same configuration fits on a
+consumer RTX~4090 (24~GiB) with ample remaining capacity for the
+key-value cache. It requires no training and is deployable
+immediately from a pre-quantized checkpoint. Config~CD+FT-aligned
+achieves 76.75\% on the same hardware footprint (AWQ INT4 weights
+plus a merged LoRA adapter), reducing the residual failure rate from
+27.75\% to 23.25\% at the cost of a fine-tuning run on aligned
+training data.
 
-For a cascade architecture where an SLM handles routine tool-calling
-requests and escalates difficult ones to a frontier model, Config~CD+Q
-defines the SLM operating point. Approximately 73\% of requests are handled
-correctly at 5.20~GiB memory; the remaining 27\% are escalated. The
-escalation boundary corresponds to the residual failure classes: wrong
-optional parameter defaults, numeric precision mismatches, and string format
-conventions. Queries involving domain-specific numeric precision or
-underspecified optional parameters are candidates for escalation; queries
-with explicit argument values and unambiguous types are not.
+In a cascade architecture where an SLM handles routine tool-calling
+requests and escalates to a frontier model when uncertain,
+Config~CD+Q defines the no-training operating point: approximately
+72\% of requests are handled correctly at 5.20~GiB memory, with the
+remaining 28\% escalated. Config~CD+FT-aligned extends this
+operating region to approximately 77\%, reducing escalation traffic
+by roughly 4 percentage points relative to Config~CD+Q. The
+escalation boundary in both cases corresponds to the same failure
+classes: wrong optional parameter defaults, numeric precision
+mismatches, and string format conventions. Queries with explicit
+argument values and unambiguous types are reliably handled at the
+SLM tier; queries involving domain-specific numeric precision or
+underspecified optional parameters remain candidates for escalation.
 
 Chain-of-thought reasoning is contraindicated at the SLM tier. Config~CD+Q+ITC
 raises the failure rate by 6.75 percentage points relative to Config~CD+Q,
