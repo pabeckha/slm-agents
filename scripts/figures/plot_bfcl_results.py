@@ -164,11 +164,11 @@ print(f"Saved {out}")
 # ---------------------------------------------------------------------------
 # 400 test cases: CoT active on CD+Q+ITC (65.5%) vs CD+Q (72.25%)
 # Net: 262 correct (ITC) vs 289 correct (CD+Q) => net -27 correct
-# Flip details: 24 gains (wrong->right), 50 losses (right->wrong)
-# Remaining: 238 stable-correct, 88 stable-wrong
+# Flip details: 24 gains (wrong->right), 51 losses (right->wrong)
+# Remaining: 238 stable-correct, 87 stable-wrong
 
-FLIP_LABELS = ["Stable\ncorrect\n(238)", "CoT gain\n(24)", "CoT loss\n(50)", "Stable\nwrong\n(88)"]
-FLIP_COUNTS = [238, 24, 50, 88]
+FLIP_LABELS = ["Stable\ncorrect\n(238)", "CoT gain\n(24)", "CoT loss\n(51)", "Stable\nwrong\n(87)"]
+FLIP_COUNTS = [238, 24, 51, 87]
 FLIP_COLS   = [C_GREEN, C_BLUE, C_RED, C_GREY]
 
 fig, ax = plt.subplots(figsize=(4.5, 3.2))
