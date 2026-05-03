@@ -18,10 +18,11 @@
 #BSUB -B
 #BSUB -N
 
-# Config CD+Q+FT-aligned: BFCL eval on the format-aligned LoRA model quantized to AWQ (with guided decoding).
+# Config CD+Q+FT: BFCL eval with guided decoding on AWQ-quantized format-aligned LoRA model.
 # Compare against:
-#   CD+Q          — data/output/bfcl_quant/
-#   CD+FT-aligned — data/output/bfcl_ft_aligned/
+#   CD+FT-aligned (76.75%) — data/output/bfcl_ft_aligned/  (FP16 merged)
+#   CD+Q          (72.25%) — data/output/bfcl_quant/        (AWQ, no LoRA)
+# Question: does quantizing the LoRA-tuned model recover/preserve the 76.75% gain?
 
 set -e
 
@@ -38,15 +39,9 @@ cd "$PROJECT_DIR"
 mkdir -p logs
 
 MODEL="${MODEL:-/work3/s242779/models/models/merged/Qwen_Qwen2.5-7B-Instruct-merged-aligned-AWQ}"
+LORA_BASE="${LORA_BASE:-Qwen/Qwen2.5-7B-Instruct}"
 CATEGORY="${CATEGORY:-simple_python}"
 VLLM_PORT=8000
-
-# Auto-detect quantization from model name (AWQ/GPTQ).
-QUANT_FLAGS=""
-case "$MODEL" in
-    *-AWQ*|*-awq*) QUANT_FLAGS="--quantization awq_marlin --enforce-eager" ;;
-    *-GPTQ*|*-gptq*) QUANT_FLAGS="--quantization gptq" ;;
-esac
 
 echo "=== Job info ==="
 echo "Job ID: $LSB_JOBID"
@@ -54,8 +49,7 @@ echo "Host: $(hostname)"
 echo "Date: $(date)"
 echo "Model: $MODEL"
 echo "Category: $CATEGORY"
-echo "Quant flags: ${QUANT_FLAGS:-none}"
-echo "Config: CD+Q+FT-aligned (guided decoding + AWQ + format-aligned LoRA)"
+echo "Config: CD+Q+FT (guided + AWQ INT4 + format-aligned LoRA)"
 echo "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader)"
 nvidia-smi
 
@@ -69,7 +63,8 @@ uv run --group hpc python -m vllm.entrypoints.openai.api_server \
     --dtype auto \
     --max-model-len 4096 \
     --gpu-memory-utilization 0.9 \
-    ${QUANT_FLAGS} \
+    --quantization awq_marlin \
+    --enforce-eager \
     &
 VLLM_PID=$!
 
@@ -94,13 +89,15 @@ fi
 echo "=== GPU memory after model load ==="
 nvidia-smi
 
-echo "=== Running BFCL evaluation (CD+Q+FT-aligned) ==="
+echo "=== Running BFCL evaluation (Config CD+Q+FT) ==="
 uv run --group hpc python -m src.bfcl_adapter \
     --backend vllm \
     --model "$MODEL" \
     --category "$CATEGORY" \
     --vllm-url "http://localhost:${VLLM_PORT}/v1" \
-    --output-dir "data/output/bfcl_cdqft_aligned"
+    --output-dir "data/output/bfcl_cdqft_aligned" \
+    --lora-base-model "$LORA_BASE"
 
 echo "=== Done ==="
-echo "CD+Q+FT-aligned results in data/output/bfcl_cdqft_aligned/"
+echo "CD+Q+FT results in data/output/bfcl_cdqft_aligned/"
+echo "Compare: CD+FT-aligned=76.75%, CD+Q=72.25%, CD=72.75%"

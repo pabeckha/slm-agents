@@ -25,7 +25,7 @@ Single source of truth for project state.
 | Config FT-only | LoRA alone, no CD or Q | Done — 13.75% AST |
 | Config FT-aligned-ng | Format-aligned LoRA, no CD | Done — 13.25% AST |
 | Config CD+FT-aligned | CD + format-aligned LoRA | Done — **76.75% AST** ← best |
-| Config CD+Q+FT | CD + AWQ quant + LoRA (requires QLoRA or post-merge AWQ) | Not started |
+| Config CD+Q+FT | CD + AWQ quant + LoRA (requires QLoRA or post-merge AWQ) | Dropped — autoawq incompatible with transformers>=4.46; not needed for thesis argument |
 | τ-bench CD (retail) | Multi-step agentic, tool-calling, 115 tasks | Done — **4.3% pass rate** |
 
 Full Phase 1 + Phase 2 summary: `docs/decisions/phase1-ablation-summary.md`
@@ -55,7 +55,7 @@ Current page count: ~28 pages. Target: 50–60 pages.
 - [x] FT-aligned-ng — done, 13.25%
 - [x] CD+FT-aligned — done, 76.75%
 - [x] τ-bench full run (retail domain) — done, 4.3% pass rate
-- [ ] CD+Q+FT: requires QLoRA or post-merge AWQ quantization of merged model
+- [x] CD+Q+FT: dropped — autoawq/transformers version conflict; story complete without it
 - [ ] Model-size sweep: 0.5B, 1.5B, 3B × CD + B (script ready: `run_bfcl_sweep.sh`)
 - [ ] BFCL multiple + parallel categories
 
@@ -96,6 +96,7 @@ Current page count: ~28 pages. Target: 50–60 pages.
 - Knowledge distillation — time constraints
 - Multiple model families (Phi-4 Mini, Llama 3.2) — narrowed to Qwen 2.5
 - CoT/ReAct on single-call BFCL — ITC was a strong negative result; ReAct reserved for τ-bench only
+- CD+Q+FT — autoawq 0.2.9 incompatible with transformers>=4.46; quantization-after-LoRA not critical given CD+FT-aligned (76.75%) and CD+Q (72.25%) tell the story
 
 ---
 
