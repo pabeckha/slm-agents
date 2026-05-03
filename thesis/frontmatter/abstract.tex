@@ -1,7 +1,38 @@
 \section*{Abstract}
 \addcontentsline{toc}{section}{Abstract}
-Large language models have become the default backbone for agentic systems, yet their computational cost and reliance on external APIs limit deployment in latency-sensitive or resource-constrained settings. This thesis investigates whether small language models (1B--8B parameters) can achieve reliable agentic behavior, specifically in reasoning and tool calling, when combined with targeted optimization techniques.
 
-% We evaluate a cumulative pipeline of methods applied to open-weight models such as Qwen 2.5 and Llama 3.2. Starting from an unconstrained baseline, we progressively apply constrained decoding, prompt engineering, inference-time compute strategies (chain-of-thought, ReAct), retrieval-augmented generation, quantization, and LoRA fine-tuning. Each method is assessed individually on the Berkeley Function Calling Leaderboard (BFCL) and a custom tool-calling benchmark, measuring tool selection accuracy, argument correctness, JSON validity, hallucination rate, and end-to-end task success.
+Frontier language models have become the default backbone for agentic systems,
+yet their inference costs and dependence on external APIs make them impractical
+for latency-sensitive or resource-constrained deployments. Small language models
+(1B--8B parameters) can run on consumer hardware, but without optimization they
+fail on the structured output and tool-calling tasks that agentic pipelines
+require. This thesis investigates which optimization techniques are sufficient
+to make a small language model reliably call tools, and at what accuracy cost
+each technique comes.
 
-% Results show that constrained decoding alone substantially improves structured output reliability, and that combining no-training techniques narrows the performance gap with frontier models on standard benchmarks. Training-based methods, particularly LoRA fine-tuning on tool-use data, further improve reasoning and tool selection. The findings suggest that the reliability gap between small and large models in agentic tasks stems more from insufficient generation constraints than from model scale, and that a carefully chosen stack of optimization techniques can make small models viable for production-grade agent deployments on consumer hardware.
+A cumulative ablation study is conducted on \texttt{Qwen/Qwen2.5-7B-Instruct}
+across five techniques, evaluated on the Berkeley Function Calling Leaderboard
+v4 \texttt{simple\_python} category (400 test cases, AST accuracy). The
+unoptimized model achieves 1.5\%, approximately 98 percentage points below
+frontier models. Constrained decoding alone raises accuracy to 72.75\%,
+matching GPT-4.1 (72.67\%) and Claude Sonnet~4.5 (72.58\%), at zero
+additional inference cost. AWQ INT4 quantization reduces model memory from
+14.25~GiB to 5.20~GiB with a loss of only 0.5 percentage points (72.25\%).
+Few-shot prompting and chain-of-thought reasoning both reduce accuracy, by
+2.5 and 6.5 percentage points respectively. Retrieval-augmented generation
+with top-5 retrieval reduces accuracy by 24 percentage points despite 97.2\%
+recall, due to function disambiguation failure. LoRA fine-tuning on a
+general-purpose function-calling dataset produces a 3 percentage point
+regression under constrained decoding, attributed to a mismatch between the
+training output format and the evaluation pipeline.
+
+The primary finding is that the unoptimized performance gap is a format
+compliance gap rather than a reasoning gap: 394 of 400 failures in the
+unoptimized configuration are malformed outputs, not wrong answers.
+Constrained decoding resolves this gap structurally, and the quantized
+configuration (72.25\%, 5.20~GiB) is production-viable on a consumer
+NVIDIA RTX~4090. Prompting interventions cannot close the residual 27\%
+failure rate because those errors are in the model's learned value
+conventions, not in output format. Fine-tuning with exact format alignment
+between training and inference remains the direct path to accuracy above
+the no-training ceiling.
