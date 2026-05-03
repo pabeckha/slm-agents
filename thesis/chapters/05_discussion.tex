@@ -58,7 +58,7 @@ Few-shot prompting (Config~PE) and chain-of-thought reasoning
 (Config~CD+Q+ITC) both produce negative outcomes~\cite{brown2020language,
 wei2022chain}. Config~PE reduces accuracy by 2.5 percentage points with a
 context overhead of approximately 300 tokens per query. Config~CD+Q+ITC
-reduces accuracy by 6.5 percentage points while approximately doubling
+reduces accuracy by 6.75 percentage points while approximately doubling
 per-case latency. Both techniques add cost and reduce accuracy. The failure
 mechanism is the same in both cases: the residual 27\% failure rate after
 constrained decoding is caused by a mismatch between the model's learned
@@ -84,12 +84,17 @@ percentage points under Config~CD+FT relative to Config~CD. The regression
 is attributed to a format mismatch between the training distribution, which
 encodes assistant turns as Python call syntax, and the evaluation pipeline,
 which expects a JSON argument object. The technique is not ruled out by this
-result: the aligned v2 ablation (Config~CD+FT-aligned) is pending. Config~FT-only
-confirms that fine-tuning does improve format compliance in the unguided
-setting ($+12.25$ percentage points over Config~B), establishing that the
-training signal is meaningful. The 56 percentage point gap between
-Config~FT-only and Config~CD+FT confirms that constrained decoding remains
-the dominant contributor even after fine-tuning.
+result. The format mismatch hypothesis is confirmed by Config~CD+FT-aligned,
+which retrains on the same xlam content reformatted to match the inference
+pipeline's JSON output convention exactly. Config~CD+FT-aligned achieves
+76.75\% (307/400), a gain of 7.00 percentage points over Config~CD+FT~v1 and
+4.00 percentage points above the Config~CD baseline, making it the best
+result in the evaluation. Config~FT-only confirms that fine-tuning does improve
+format compliance in the unguided setting ($+12.25$ percentage points over
+Config~B), establishing that the training signal is meaningful. The 63
+percentage point gap between Config~FT-aligned-ng (13.25\%) and
+Config~CD+FT-aligned confirms that constrained decoding remains the dominant
+contributor even after fine-tuning.
 
 Taken together, the results support a clear ordering by cost-benefit ratio
 for this task: constrained decoding first, quantization second, and
@@ -117,21 +122,23 @@ technique is not characterised. Whether constrained decoding closes the
 frontier gap equally at smaller scales, or whether there is a scale threshold
 below which semantic failures dominate, remains an open question.
 
-The regression in Config~CD+FT is attributed to the format mismatch between
-the xlam training distribution and the evaluation pipeline. This attribution
-is supported by failure pattern analysis and the v1 training format design,
-but has not yet been confirmed by a fully controlled experiment. The aligned
-ablation (Config~CD+FT-aligned), which holds all other variables fixed and
-changes only the training output format, will directly test this hypothesis.
-Until those results are available, the attribution remains an explanation
-rather than a confirmed finding.
+The regression in Config~CD+FT~v1 is attributed to the format mismatch between
+the xlam training distribution and the evaluation pipeline. This attribution is
+confirmed by the controlled experiment: Config~CD+FT-aligned holds all
+variables fixed and changes only the training output format, recovering to
+76.75\% and surpassing Config~CD by 4.00 percentage points. The v1 regression
+is therefore attributable to the training format, not to the xlam content or
+to a fundamental incompatibility between fine-tuning and constrained decoding.
 
-Multi-step agentic performance is not yet reported. The $\tau$-bench
-evaluation, which requires the model to reason across multiple tool calls
-with real observations, is ongoing. Simple function calling accuracy on
-BFCL does not predict multi-step performance; the 7 percentage point gap
-between Config~CD and Gemini~3 Pro on the simple category may widen
-substantially on multi-turn tasks.
+The $\tau$-bench retail evaluation reveals a sharp discontinuity between
+single-call and multi-step performance. Config~CD achieves 72.75\% on BFCL
+\texttt{simple\_python} but only 4.35\% pass rate on $\tau$-bench retail,
+which requires reasoning across 5--15 tool calls with real observations per
+task. Simple function calling accuracy does not predict multi-step agentic
+performance; the 7 percentage point frontier gap on the single-call category
+widens to roughly 95 percentage points on multi-step tasks, where the failure
+mode shifts from argument value errors to multi-turn planning and error
+recovery.
 
 The BFCL ground truth encodes specific value conventions that are often
 arbitrary from a deployment perspective. A model that produces
@@ -161,7 +168,7 @@ underspecified optional parameters are candidates for escalation; queries
 with explicit argument values and unambiguous types are not.
 
 Chain-of-thought reasoning is contraindicated at the SLM tier. Config~CD+Q+ITC
-raises the failure rate by 6.5 percentage points relative to Config~CD+Q,
+raises the failure rate by 6.75 percentage points relative to Config~CD+Q,
 increasing escalation traffic rather than reducing it~\cite{wei2022chain}.
 The mechanism is structural: the reasoning step moves the model toward
 linguistically natural value forms that differ from the conventions the

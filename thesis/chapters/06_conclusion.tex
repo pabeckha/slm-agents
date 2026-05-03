@@ -24,7 +24,7 @@ cost of $-0.5$ percentage points, within run-to-run
 variance~\cite{lin2024awq}. Both prompting interventions evaluated produced
 negative outcomes: few-shot prompting (Config~PE) reduced accuracy by
 2.5 percentage points~\cite{brown2020language}, and chain-of-thought
-reasoning (Config~CD+Q+ITC) reduced accuracy by 6.5 percentage points at
+reasoning (Config~CD+Q+ITC) reduced accuracy by 6.75 percentage points at
 approximately double the per-case latency~\cite{wei2022chain}. Retrieval-augmented
 generation (Config~CD+Q+RAG) reduced accuracy by 24 percentage points
 despite a retrieval recall@5 of 97.2\%, with the loss attributable to
@@ -33,11 +33,14 @@ quality~\cite{lewis2020retrieval}. LoRA fine-tuning on
 \texttt{xlam-function-calling-60k}~\cite{zhang2024xlam, hu2022lora}
 produced a 3 percentage point regression under Config~CD+FT relative to
 Config~CD, attributed to a format mismatch between the training distribution
-and the evaluation pipeline; the aligned v2 ablation is pending. The
-finding for RQ2 is that the residual 27\% failure rate after constrained
-decoding cannot be addressed by prompting: these errors are in the model's
-learned value priors, and only training-based interventions with aligned
-format can change them.
+and the evaluation pipeline. The format mismatch hypothesis is confirmed by
+Config~CD+FT-aligned, which reformats training outputs to match the inference
+pipeline exactly and achieves 76.75\% (307/400), a gain of 4.00 percentage
+points above Config~CD and the best result in the evaluation. The finding for
+RQ2 is that the residual 27\% failure rate after constrained decoding cannot
+be addressed by prompting: these errors are in the model's learned value
+priors, and only training-based interventions with aligned format can change
+them.
 
 \paragraph{RQ3.} Config~CD+Q achieves 72.25\% AST accuracy on 5.20~GiB of
 GPU memory. This configuration fits on a consumer NVIDIA RTX~4090 (24~GiB)
@@ -47,23 +50,14 @@ production-viable on consumer hardware.
 
 \section{Future Work}
 
-The format-aligned LoRA ablation (Config~CD+FT-aligned and
-Config~FT-aligned-ng) is the most immediate open experiment. Training
-examples have been reformatted to match the inference pipeline's prompt
-structure and output conventions exactly, and evaluation jobs are pending
-on the DTU HPC cluster. The results will confirm or refute the format
-mismatch hypothesis: if Config~CD+FT-aligned outperforms Config~CD+FT~v1,
-the v1 regression is attributable to the training format rather than to a
-fundamental incompatibility between the xlam content and BFCL argument
-conventions.
-
-The $\tau$-bench multi-step evaluation is ongoing. BFCL
-\texttt{simple\_python} results do not predict multi-step agentic
-performance; the 7 percentage point frontier gap on single function calling
-may widen substantially when the model must reason across multiple tool
-calls, observe results, and iterate. The $\tau$-bench retail domain provides
-a controlled multi-turn setting where the SLM frontier gap can be measured
-directly~\cite{taubench2024}.
+The $\tau$-bench result (4.35\% pass rate on retail) establishes that
+single-call accuracy does not predict multi-step agentic performance.
+Improving multi-step reliability is the most important open direction.
+The failure mode on $\tau$-bench is not argument formatting -- constrained
+decoding handles that -- but multi-turn planning and error recovery across
+5--15 tool calls. Techniques such as process reward models, chain-of-thought
+with tool-observation grounding, and task-specific fine-tuning on multi-turn
+trajectories are natural next steps~\cite{taubench2024}.
 
 The full configuration ladder has been evaluated in depth only on the 7B
 model. Evaluating the same configurations on Qwen~2.5 sizes 0.5B, 1.5B,
