@@ -14,7 +14,30 @@ Given an input sequence of token embeddings $X$, the self-attention mechanism co
 \end{equation}
 where $d_k$ is the dimension of the key vectors. Multi-head attention runs this operation in parallel across multiple subspaces, allowing the model to capture different types of dependencies simultaneously.
 
-For language modeling, the decoder-only variant is most common. It applies a causal attention mask so that each token can only attend to preceding tokens, enabling autoregressive generation where the model predicts one token at a time conditioned on all previous tokens.
+For language modeling, the decoder-only variant is most common. It
+applies a causal attention mask so that each token can only attend to
+preceding tokens, enabling autoregressive generation where the model
+predicts one token at a time conditioned on all previous tokens.
+
+Efficient autoregressive generation is supported by the key-value
+(KV) cache, which stores the key and value matrices computed for all
+previous tokens so that they do not need to be recomputed at each
+generation step. Without caching, generating a sequence of $T$ tokens
+requires $O(T^2)$ attention operations; with caching, each new token
+requires only $O(T)$ operations. The KV cache grows linearly with
+sequence length and the number of attention heads, and its memory
+footprint becomes a significant constraint at long context lengths
+or large batch sizes.
+
+Grouped-query attention (GQA) reduces KV cache memory by sharing a
+single set of key and value heads across multiple query heads. In
+standard multi-head attention, each of the $h$ query heads has a
+corresponding key and value head, resulting in $2h$ matrices stored
+in the KV cache per layer. With GQA, $h$ query heads are divided into
+$g$ groups, each sharing one key and one value head, reducing the
+cache to $2g$ matrices per layer where $g \ll h$. GQA is used in the
+Qwen~2.5 model family~\cite{qwen2024qwen25} and is a key reason why
+the 7B model fits within consumer GPU memory budgets during inference.
 
 \subsection{Scaling Laws}
 
@@ -122,7 +145,34 @@ Retrieval-augmented generation (RAG)~\cite{lewis2020retrieval} augments the mode
 
 This approach offers two benefits for small models. First, it reduces the prompt length by only including relevant tools, which is important given the limited context windows of smaller models. Second, it reduces hallucination by grounding the model's generation in retrieved factual content rather than relying solely on parametric knowledge.
 
-A typical RAG pipeline for tool calling involves encoding tool descriptions into a vector store, retrieving the top-k most relevant tools for a given query using semantic similarity, and injecting the retrieved schemas into the model's prompt before generation.
+A typical RAG pipeline for tool calling involves encoding tool
+descriptions into a vector store, retrieving the top-$k$ most relevant
+tools for a given query using semantic similarity, and injecting the
+retrieved schemas into the model's prompt before generation.
+
+The retrieval step depends on a dense vector index. Each tool
+description is encoded into a fixed-dimensional embedding vector by a
+sentence encoder, and all embeddings are stored in an index that
+supports approximate nearest-neighbour search. At query time, the
+user's request is encoded by the same model, and the $k$ tool
+embeddings with the highest cosine similarity to the query embedding
+are retrieved. FAISS (Facebook AI Similarity Search) is a widely used
+library for this purpose, providing efficient exact and approximate
+search over large embedding collections~\cite{lewis2020retrieval}.
+
+The primary failure mode of RAG for tool calling is candidate
+disambiguation. When multiple tools have semantically similar
+descriptions -- such as \texttt{calculate\_area},
+\texttt{calculate\_triangle\_area}, and \texttt{calc\_area\_triangle} --
+the retrieval step returns all of them as high-similarity candidates,
+and the language model must then select the correct one. This
+selection task requires understanding subtle distinctions in tool
+semantics that may not be apparent from descriptions alone. The
+quality of retrieval is measured by recall@$k$: the fraction of
+queries for which the correct tool appears among the $k$ retrieved
+candidates. High recall@$k$ is necessary but not sufficient for
+accurate tool calling; the model must still identify the correct tool
+from the retrieved set.
 
 \section{Parameter-Efficient Fine-Tuning}
 

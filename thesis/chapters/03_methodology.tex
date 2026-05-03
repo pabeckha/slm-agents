@@ -161,6 +161,27 @@ strongest open-weight models for tool use and function
 calling at this parameter scale~\cite{sharma2025slmagents}.
 All models are served under an Apache 2.0 licence.
 
+All Qwen~2.5 models share a decoder-only Transformer
+architecture with grouped-query attention (GQA), SwiGLU
+feed-forward activations, and rotary position embeddings
+(RoPE). The 7B variant uses 28 layers, a hidden dimension
+of 3584, and 28 query heads grouped into 4 key-value head
+groups. The supported context length is 128{,}000 tokens,
+though all experiments in this thesis operate well within
+this limit. GQA reduces the KV cache memory footprint
+relative to standard multi-head attention, which is one
+reason the 7B model fits comfortably on a single consumer
+GPU in bfloat16 precision.
+
+The Instruct variant is pre-trained on a multilingual
+corpus of approximately 18 trillion tokens, followed by
+supervised fine-tuning on instruction-following and
+tool-use examples, and alignment via reinforcement
+learning from human feedback. The resulting model responds
+to structured prompts and tool schemas without additional
+task-specific training, making it a practical starting
+point for the optimization ladder evaluated in this thesis.
+
 \section{Baseline Definition}
 
 Config~B is the baseline configuration: the model is prompted
