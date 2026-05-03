@@ -253,10 +253,8 @@ fig, ax = plt.subplots(figsize=(5.0, 3.4))
 
 for name, mem, acc, col, marker in MEM_POINTS:
     ax.scatter(mem, acc, color=col, marker=marker, s=80, zorder=5)
-    offset_x = 0.3 if name != "B" else 0.3
+    offset_x = 0.3
     offset_y = 1.5 if name not in ("CD", "CD+FT") else -3.5
-    if name == "CD+FT":
-        offset_x = 0.3
     ax.annotate(
         name,
         (mem, acc),
