@@ -54,6 +54,38 @@ ReAct (Reasoning and Acting)~\cite{yao2023react} is a prompting framework that i
 
 This pattern improves multi-step task completion by making the model's reasoning explicit and allowing it to adapt its plan based on intermediate results. ReAct is particularly relevant for agentic systems because it provides a structured way to combine reasoning and tool use within a single generation process.
 
+\subsection{Cascade Architectures}
+
+A cascade architecture routes inference requests across two or
+more models of increasing capability and cost. Routine requests
+are handled by a smaller, faster model deployed locally; requests
+that exceed its reliable operating range are escalated to a larger
+model, typically accessed through an external API. The routing
+decision may be based on query complexity, output confidence, or
+post-hoc structural validation of the smaller model's response.
+
+The economic motivation is that frontier model APIs are charged per
+token and introduce network round-trip latency, while a locally
+deployed small model incurs a fixed hardware cost independent of
+query volume. If the small model handles a fraction $p$ of requests
+correctly, the fraction of traffic escalated to the frontier model
+is at most $1 - p$, reducing variable inference cost in proportion.
+
+For tool-calling tasks, structural validity is a necessary but not
+sufficient condition for accepting a small model's response. A
+response that is syntactically valid JSON and names an existing
+function may still contain incorrect argument values. The residual
+semantic failure rate after structural constraints are enforced
+therefore determines the escalation boundary: queries whose failure
+mode is argument value errors cannot be filtered by structural
+checks alone.
+
+This thesis is framed around extending the small model operating
+region within a cascade. Each optimization technique is evaluated
+by how much it reduces the residual failure rate, and
+correspondingly the fraction of traffic that must be escalated to
+a frontier model.
+
 \section{Constrained Decoding}
 
 Constrained decoding modifies the generation process so that the model can only produce outputs that conform to a predefined structure. Rather than relying on the model to implicitly learn output formats, constrained decoding enforces them at inference time by masking invalid tokens at each generation step.
@@ -106,16 +138,111 @@ This reduces the number of trainable parameters by orders of magnitude while ach
 
 Beyond LoRA, several other PEFT methods exist. QLoRA~\cite{dettmers2023qlora} combines LoRA with quantization, applying low-rank adaptation on top of a 4-bit quantized base model to further reduce memory requirements. Adapter layers insert small trainable modules between frozen Transformer layers. Prefix tuning prepends trainable continuous vectors to the key and value sequences in each attention layer.
 
-This thesis primarily uses LoRA due to its simplicity, strong empirical performance, and wide support across frameworks and model architectures.
+This thesis primarily uses LoRA due to its simplicity, strong empirical
+performance, and wide support across frameworks and model architectures.
+
+\section{Model Quantization}
+
+Quantization reduces the numerical precision of model weights from
+the 16-bit or 32-bit floating-point formats used during training to
+lower-bit integer representations at inference time. A weight stored
+as a 4-bit integer requires one quarter of the memory of a 16-bit
+floating-point value, enabling models that would otherwise require
+multi-GPU setups to run on a single consumer GPU. Secondary benefits
+include faster weight loading from storage and reduced memory
+bandwidth during inference.
+
+Post-training quantization (PTQ) applies the precision reduction
+after training is complete, without additional gradient computation.
+This contrasts with quantization-aware training (QAT), which
+simulates quantization during training and achieves higher accuracy
+at the cost of retraining. PTQ is preferred for large language
+models because the cost of retraining at scale is prohibitive; the
+challenge is to maintain accuracy despite the information loss from
+reduced precision.
+
+\subsection{Activation-Aware Weight Quantization}
+
+Naive PTQ at 4-bit precision produces significant accuracy
+degradation because not all weights tolerate uniform quantization
+equally. Weights connected to channels with large activation
+magnitudes have a disproportionate effect on output quality;
+quantizing these salient weights to 4 bits introduces large
+relative errors where the model is most sensitive.
+
+Activation-aware Weight Quantization (AWQ)~\cite{lin2024awq}
+identifies salient channels by examining activation statistics on a
+small calibration dataset and applies a per-channel scaling
+transformation that reduces the effective quantization error for
+high-magnitude channels. The weights are then quantized uniformly
+to INT4 after scaling. The transformation is absorbed into the
+preceding layer weights, so inference requires no additional
+computation beyond standard INT4 matrix multiplication.
+
+For the Qwen~2.5 7B-Instruct model used in this thesis, AWQ INT4
+quantization reduces model memory from 14.25~GiB to 5.20~GiB, a
+63.5\% reduction, and reduces model loading time from 212~s to 35~s.
+The accuracy cost on BFCL~v4 \texttt{simple\_python} is
+$-0.5$~percentage points relative to the bfloat16 baseline, within
+run-to-run variance. Pre-quantized AWQ INT4 weights are published
+on the Hugging Face Hub for all Qwen~2.5 Instruct
+sizes~\cite{qwen2024qwen25}, avoiding the need for manual
+quantization.
 
 \section{Related Work}
 
-Several lines of research are directly relevant to this thesis.
+\subsection{Tool Calling and Benchmarks}
 
-In the domain of function calling and tool use, the Berkeley Function Calling Leaderboard (BFCL)~\cite{bfcl2024} provides a standardized benchmark for evaluating language models on function-calling tasks, measuring AST accuracy and execution accuracy across multiple categories. ToolLLM~\cite{qin2024toolllm} provides a large-scale benchmark with over 16,000 real-world APIs for evaluating tool-use capabilities. Gorilla~\cite{patil2023gorilla} demonstrated that fine-tuned smaller models can outperform larger models on API calling when given appropriate training data.
+The Berkeley Function Calling Leaderboard
+(BFCL)~\cite{bfcl2024} provides a standardized benchmark for
+evaluating language models on function-calling tasks across
+categories of increasing difficulty, from single-function calls to
+parallel and multi-turn interactions. AST accuracy and execution
+accuracy are the primary metrics; frontier model scores are
+published continuously as new models are released. ToolLLM~\cite{qin2024toolllm}
+extends this scope to over 16,000 real-world APIs, measuring
+tool-use across diverse domains. $\tau$-bench~\cite{taubench2024}
+evaluates end-to-end multi-step agentic task completion in
+simulated retail and airline domains, where the model must reason
+across multiple tool calls with real observations per task.
 
-For constrained decoding, Willard and Louf~\cite{willard2023efficient} formalized the use of finite-state machines for structured generation in language models. The Outlines library~\cite{outlines2024} implements this approach for JSON schema-guided generation. LMQL~\cite{beurer2024guidance} introduced a query language for constrained generation that supports complex output specifications.
+\subsection{Fine-Tuned Small Models for Tool Use}
 
-In the area of small model optimization, recent work on Phi~\cite{abdin2024phi}, Qwen~\cite{qwen2024qwen25}, and Llama~\cite{llama2024llama32} model families has demonstrated that careful data curation and training recipes can produce small models with strong general capabilities. However, systematic evaluations of these models specifically for agentic tasks remain limited.
+Gorilla~\cite{patil2023gorilla} demonstrated that a fine-tuned
+LLaMA model can outperform GPT-4 on API calling when training data
+is drawn from the target API documentation, establishing that
+training data relevance can compensate for parameter count
+disadvantage. The xLAM family~\cite{zhang2024xlam} extends this
+approach with a large-scale action model training pipeline on
+diverse function-calling datasets, producing models competitive
+with frontier systems on tool-use benchmarks. A recent survey of
+small language models for agentic systems~\cite{sharma2025slmagents}
+identifies Qwen~2.5 7B as one of the strongest open-weight models
+for tool use at this parameter scale, while noting that systematic
+evaluations of optimization technique combinations remain limited.
 
-The intersection of constrained decoding with fine-tuning for tool calling in small models is relatively unexplored. Most existing work applies these techniques in isolation or focuses on large models. This thesis contributes a systematic evaluation of their combined effect on small models for agentic tasks.
+\subsection{Constrained Generation}
+
+Willard and Louf~\cite{willard2023efficient} formalized the use of
+finite-state machines compiled from JSON schemas for structured
+generation in language models, providing the theoretical foundation
+for the constrained decoding approach used in this thesis. The
+Outlines library~\cite{outlines2024} implements this approach and
+is the generation backend used for all constrained decoding
+configurations. LMQL~\cite{beurer2024guidance} introduced a query
+language for constrained generation that supports more complex
+output specifications through a declarative programming model.
+
+\subsection{Small Model Optimization}
+
+Recent model families, including Phi-4~\cite{abdin2024phi},
+Qwen~2.5~\cite{qwen2024qwen25}, and Llama~3~\cite{llama2024llama32},
+have narrowed the capability gap with frontier models through
+improved training data curation, better tokenizers, and
+architectural refinements such as grouped-query attention. These
+improvements are achieved at model training time and are largely
+orthogonal to the inference-time and post-training optimization
+techniques evaluated in this thesis. The combination of a
+well-trained small model with constrained decoding and aligned
+fine-tuning, as explored here, has not been systematically
+evaluated in prior work.
