@@ -3,6 +3,7 @@ Generate thesis figures for BFCL v4 simple_python results.
 Outputs PDF files to thesis/pictures/figures/.
 """
 
+import json
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -283,5 +284,52 @@ out = OUT_DIR / "fig_memory_vs_accuracy.pdf"
 fig.savefig(out)
 plt.close(fig)
 print(f"Saved {out}")
+
+# ---------------------------------------------------------------------------
+# Figure 6 — LoRA training loss curves (v1 misaligned vs v2 aligned)
+# ---------------------------------------------------------------------------
+
+LORA_ROOT = Path(__file__).parent.parent.parent / "models" / "lora"
+
+_v1_path = LORA_ROOT / "Qwen_Qwen2.5-7B-Instruct" / "checkpoint-6750" / "trainer_state.json"
+_v2_path = LORA_ROOT / "Qwen_Qwen2.5-7B-Instruct-aligned" / "checkpoint-6750" / "trainer_state.json"
+
+if _v1_path.exists() and _v2_path.exists():
+    def _load_loss(path):
+        logs = json.loads(path.read_text())["log_history"]
+        entries = [l for l in logs if "loss" in l and "eval_loss" not in l]
+        return [l["step"] for l in entries], [l["loss"] for l in entries]
+
+    v1_steps, v1_loss = _load_loss(_v1_path)
+    v2_steps, v2_loss = _load_loss(_v2_path)
+
+    EPOCH_BOUNDARY = 3375  # step at end of epoch 1 (6750 total / 2 epochs)
+
+    fig, ax = plt.subplots(figsize=(5.5, 3.4))
+
+    ax.plot(v1_steps, v1_loss, color=C_BLUE,   linewidth=1.5, label="v1 — misaligned format (CD+FT: 69.75%)")
+    ax.plot(v2_steps, v2_loss, color=C_PURPLE, linewidth=1.5, label="v2 — aligned format (CD+FT-aligned: 76.75%)")
+
+    ax.axvline(EPOCH_BOUNDARY, color=C_GREY, linestyle="--", linewidth=0.9, alpha=0.7)
+    ax.text(EPOCH_BOUNDARY + 80, max(v1_loss[0], v2_loss[0]) * 0.72,
+            "epoch 2", fontsize=LABEL_FONTSIZE, color=C_GREY, va="top")
+
+    ax.set_xlabel("Training step")
+    ax.set_ylabel("Training loss")
+    ax.set_xlim(0, 6750)
+    ax.set_ylim(0, max(v1_loss[0], v2_loss[0]) * 1.05)
+    ax.yaxis.grid(True, linestyle="--", linewidth=0.5, alpha=0.7, zorder=0)
+    ax.set_axisbelow(True)
+    ax.legend(fontsize=LABEL_FONTSIZE, loc="upper right", framealpha=0.9)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    fig.tight_layout()
+    out = OUT_DIR / "fig_lora_training_loss.pdf"
+    fig.savefig(out)
+    plt.close(fig)
+    print(f"Saved {out}")
+else:
+    print("Skipping fig_lora_training_loss: trainer_state.json not found (models/ lives on HPC)")
 
 print("\nAll figures saved to", OUT_DIR)

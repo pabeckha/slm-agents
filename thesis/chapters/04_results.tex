@@ -310,6 +310,23 @@ because the training format no longer produces it, the unguided pass rate
 decreases. Format alignment improves the guided inference path at the cost
 of degrading the unguided path.
 
+Fig.~\ref{fig:lora-training-loss} shows the training loss for both adapters.
+Both runs use identical hyperparameters and converge to similar final losses
+(v1: 0.203, v2: 0.229 at step 6750), confirming that the v1 regression is
+not a training failure. The difference in BFCL accuracy (69.75\% vs.\
+76.75\%) is attributable to the training format, not to convergence quality.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.65\textwidth]{pictures/figures/fig_lora_training_loss.pdf}
+\caption{Training loss for the misaligned (v1) and format-aligned (v2) LoRA
+         adapters over 6{,}750 steps (2 epochs on 54{,}000 xlam examples).
+         Both runs converge to comparable loss values; the 7.0~pp accuracy
+         difference between Config~CD+FT and Config~CD+FT-aligned is caused
+         by the training output format, not by training quality.}
+\label{fig:lora-training-loss}
+\end{figure}
+
 Config~CD+FT-aligned achieves 76.75\% accuracy (307/400), an improvement
 of 4.0~pp over Config~CD and 7.0~pp over Config~CD+FT. This is the highest
 accuracy observed across all configurations. Format-aligned fine-tuning
