@@ -187,7 +187,7 @@ point for the optimization ladder evaluated in this thesis.
 Config~B is the baseline configuration: the model is prompted
 without constrained decoding, at full precision (bfloat16),
 with no quantization, no fine-tuning, and no few-shot
-examples. The pipeline is two-stage. In the first stage,
+examples. The pipeline is two-stage (Figure~\ref{fig:pipeline}). In the first stage,
 the available function signatures and descriptions are
 presented to the model, and the prompt ends with
 \texttt{Function name:~}; the model completes freely.
@@ -200,6 +200,52 @@ opening brace to the last closing brace. Temperature is set
 to 0 across all configurations to ensure deterministic
 outputs, removing randomness as a confound when comparing
 techniques.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=0.8cm,
+    inp/.style={rectangle, draw=gray!60, fill=gray!10, rounded corners=3pt,
+                minimum width=2.6cm, minimum height=0.72cm,
+                align=center, font=\small},
+    stg/.style={rectangle, draw, fill=blue!8, rounded corners=4pt,
+                minimum width=5.2cm, minimum height=1.05cm,
+                align=center, font=\small},
+    res/.style={rectangle, draw, fill=green!10, rounded corners=3pt,
+                minimum width=2.6cm, minimum height=0.72cm,
+                align=center, font=\small},
+    arr/.style={-{Stealth}, thick},
+]
+
+\node[stg] (s1)
+    {Stage~1: Function Selection\\[3pt]{\footnotesize\texttt{guided\_choice}}};
+
+\node[inp, above=0.8cm of s1, xshift=-1.6cm] (q1)   {User Query};
+\node[inp, above=0.8cm of s1, xshift= 1.6cm] (sigs) {All Function\\Signatures};
+
+\node[res, below=0.8cm of s1] (fn) {Function Name};
+
+\node[stg, below=0.8cm of fn] (s2)
+    {Stage~2: Argument Extraction\\[3pt]{\footnotesize\texttt{guided\_json}}};
+
+\node[inp, left=0.8cm of s2] (q2) {User Query};
+
+\node[res, below=0.8cm of s2] (js) {JSON Arguments};
+
+\draw[arr] (q1.south)   -- (s1.north);
+\draw[arr] (sigs.south) -- (s1.north);
+\draw[arr] (s1)         -- (fn);
+\draw[arr] (fn)         -- (s2);
+\draw[arr] (q2)         -- (s2);
+\draw[arr] (s2)         -- (js);
+
+\end{tikzpicture}
+\caption{Two-stage inference pipeline. Stage~1 selects a function name from
+all available candidates; Stage~2 extracts argument values for the selected
+function. In Config~CD and above, \texttt{guided\_choice} and
+\texttt{guided\_json} enforce structural validity at each stage.}
+\label{fig:pipeline}
+\end{figure}
 
 % RESULTS TODO: Report Config B AST accuracy (1.5%, 6/400),
 % dominant failure mode (format non-compliance: conversational

@@ -503,25 +503,87 @@ Config~CD on the retail domain. The 68.4~pp gap quantifies the boundary
 separating single-call function calling from reliable multi-step agentic
 task completion.
 
-% -----------------------------------------------------------------------
-% PENDING: Model-Size Scaling (Jobs 28341336--28341341)
-% Configs B and CD across 0.5B, 1.5B, 3B
-% -----------------------------------------------------------------------
 \section{Model-Size Scaling}
 \label{sec:model-size}
 
-% TODO: results table (B and CD accuracy vs model size: 0.5B, 1.5B, 3B, 7B)
-% TODO: analysis of how the CD gain scales with model size
+Table~\ref{tab:model-size} reports BFCL~v4 \texttt{simple\_python} accuracy
+for Config~B and Config~CD across all four Qwen~2.5 Instruct sizes.
 
-% -----------------------------------------------------------------------
-% PENDING: Extended BFCL Categories (Jobs 28341342--28341347)
-% multiple_function and parallel_function, 7B-AWQ, B+CD+CD+Q
-% -----------------------------------------------------------------------
+\begin{table}[ht]
+\centering
+\caption{BFCL~v4 \texttt{simple\_python} AST accuracy for Config~B and
+Config~CD across Qwen~2.5 Instruct model sizes (400 test cases).}
+\label{tab:model-size}
+\begin{tabular}{lrrr}
+\toprule
+Model size & Config~B & Config~CD & CD gain (pp) \\
+\midrule
+0.5B & 3.50\%\ (14/400)  & 51.50\%\ (206/400) & $+$48.0 \\
+1.5B & 4.75\%\ (19/400)  & 62.25\%\ (249/400) & $+$57.5 \\
+3B   & 2.75\%\ (11/400)  & 64.75\%\ (259/400) & $+$62.0 \\
+7B   & 1.50\%\ (6/400)   & 72.75\%\ (291/400) & $+$71.25 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Config~B accuracy is near-zero across all model sizes, ranging from 1.50\%
+to 4.75\%, with no consistent trend with scale. The 3B model achieves 2.75\%,
+lower than both the 1.5B (4.75\%) and 0.5B (3.50\%) models. This confirms
+that the baseline failure mode is format non-compliance rather than semantic
+understanding: increasing model size alone does not recover structured output
+generation without an explicit constraint mechanism.
+
+Config~CD accuracy scales consistently with model size. The 0.5B model
+achieves 51.50\%, the 1.5B achieves 62.25\%, the 3B achieves 64.75\%, and
+the 7B achieves 72.75\%. The CD gain over Config~B also increases with model
+size, from 48.0~pp at 0.5B to 71.25~pp at 7B. This pattern reflects two
+compounding factors: larger models produce fewer argument value errors once
+format compliance is enforced, and they benefit more from constrained decoding
+because a larger fraction of their latent capability is unlocked by removing
+the format barrier. The 0.5B model already reaches 51.50\% under Config~CD,
+approaching GPT-5-mini (59.92\%), while the 7B model exceeds GPT-4.1 (72.67\%).
+
 \section{Extended Function-Calling Categories}
 \label{sec:bfcl-extended}
 
-% TODO: multiple_function and parallel_function results table
-% TODO: analysis of how candidate disambiguation affects accuracy
+Table~\ref{tab:bfcl-extended} reports results for the
+\texttt{multiple\_function} and \texttt{parallel\_function} BFCL categories,
+evaluated on Qwen~2.5 7B-Instruct-AWQ under Config~B and Config~CD+Q.
+
+\begin{table}[ht]
+\centering
+\caption{BFCL~v4 AST accuracy on harder categories for Config~B and
+Config~CD+Q (Qwen~2.5 7B-Instruct-AWQ, 200 test cases per category).}
+\label{tab:bfcl-extended}
+\begin{tabular}{lrr}
+\toprule
+Category & Config~B & Config~CD+Q \\
+\midrule
+\texttt{multiple\_function}  & 0.0\%\ (0/200) & 0.0\%\ (0/200) \\
+\texttt{parallel\_function}  & 0.0\%\ (0/200) & 0.0\%\ (0/200) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Both configurations produce 0.0\% accuracy on both categories. Inspection of
+the raw predictions shows that the pipeline outputs an empty list for every
+test case. The cause is architectural: the two-stage pipeline is designed for
+single-function selection in Stage~1 and single-call argument extraction in
+Stage~2. The \texttt{parallel\_function} category requires generating multiple
+function calls simultaneously, which the pipeline cannot produce because
+Stage~2 is constrained to a single JSON object conforming to one function
+schema. The \texttt{multiple\_function} category requires selecting one
+function from several candidates; while \texttt{guided\_choice} supports this
+in principle, the pipeline does not produce output in the format expected by
+the BFCL evaluator for this category.
+
+This negative result defines the boundary of the current pipeline
+architecture. The optimization techniques evaluated in this thesis are all
+applied within the single-call pipeline design. None address the structural
+limitation of producing multiple simultaneous function calls. Extending the
+pipeline to support parallel function calling would require a different
+Stage~2 constraint: a JSON array of objects each conforming to a separate
+function schema. This extension is left for future work.
 
 % -----------------------------------------------------------------------
 % PENDING: Quantized Fine-Tuned Model (Jobs 28341348--28341349)

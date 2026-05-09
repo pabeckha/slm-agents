@@ -69,6 +69,21 @@ than toward them. Two independent negative results with the same directional
 outcome and a shared mechanistic explanation establish that prompting cannot
 address this failure class.
 
+This finding aligns with the scope conditions reported by Wei et
+al.~\cite{wei2022chain}: chain-of-thought prompting improves performance on
+tasks that require multi-step arithmetic decomposition or symbolic
+manipulation, but not on tasks where the bottleneck is value recall rather
+than reasoning. Argument extraction from a function schema is not a reasoning
+problem in that sense: the model either has the correct value convention for a
+given schema context in its parametric knowledge or it does not. An explicit
+reasoning step directs additional compute at the wrong subproblem. Snell et
+al.~\cite{snell2024scaling} generalise this point in the context of
+inference-time scaling: additional compute at generation time improves
+performance when directed at tasks that benefit from systematic search or
+decomposition. Single-call argument extraction with a constrained output space
+does not have that structure, which explains why chain-of-thought reasoning
+reduces rather than improves accuracy in this setting.
+
 Retrieval-augmented generation produces the largest accuracy drop: $-24$
 percentage points relative to Config~CD+Q, despite a retrieval recall@5 of
 97.2\%~\cite{lewis2020retrieval}. The bottleneck is not retrieval quality
@@ -77,6 +92,23 @@ are retrieved, the 7B model cannot reliably identify the one matching the
 user's intent. The infrastructure cost of RAG is substantial (an offline
 FAISS index and an embedder at query time), making its negative accuracy
 outcome particularly unfavorable.
+
+The disambiguation failure identified here is avoided by an alternative
+design in Gorilla~\cite{patil2023gorilla}, which incorporates retrieval at
+training time rather than inference time. By generating training examples from
+retrieved API documentation, Gorilla teaches the model to use retrieved
+content as a grounding signal without exposing it to multiple similar
+candidates at query time. This sidesteps the inference-time disambiguation
+problem entirely, at the cost of coupling the model to a fixed API catalog.
+The configuration evaluated in this thesis uses semantic similarity retrieval
+at inference time with no training signal on candidate disambiguation, which
+may explain the low selection accuracy despite high retrieval recall@5
+(97.2\%). The 66\% of RAG failures that produce answers identical to
+non-RAG predictions (from the RAG failure breakdown in
+Fig.~\ref{fig:rag-breakdown}) confirms that retrieval adds overhead without
+changing the model's output for the majority of cases. A design that combined
+inference-time retrieval with a fine-tuning signal on tool selection from
+retrieved candidates would be a natural next step.
 
 LoRA fine-tuning on the \texttt{xlam-function-calling-60k}
 dataset~\cite{zhang2024xlam, hu2022lora} produces a regression of 3
@@ -175,6 +207,33 @@ mismatches, and string format conventions. Queries with explicit
 argument values and unambiguous types are reliably handled at the
 SLM tier; queries involving domain-specific numeric precision or
 underspecified optional parameters remain candidates for escalation.
+
+The routing decision in the cascade tier determines which queries reach the
+frontier model. Structural validation -- checking that the output is valid
+JSON and names a known function -- is satisfied by every output under
+Config~CD and above, and therefore cannot serve as a routing gate after
+constrained decoding is applied. Two alternative routing signals are more
+appropriate. Query-level classification, applied before inference, estimates
+whether a query is likely to involve underspecified optional parameters or
+domain-specific numeric conventions, and routes predicted-hard queries
+directly to the frontier tier before the SLM is invoked. Confidence-based
+routing, applied after inference, uses the token-level probability of the
+generated argument values as a proxy for answer reliability, and escalates
+low-confidence outputs. Neither signal is evaluated in this thesis; both are
+viable directions for future work that the current residual failure analysis
+motivates.
+
+The economic argument for the cascade tier can be quantified directly from
+these results. If frontier model calls cost $c$ per query and the SLM tier
+cost is approximated as zero per query (amortized over hardware), a cascade
+in which the SLM correctly handles a fraction $p$ of requests saves
+$p \cdot c$ per query relative to routing everything to the frontier model.
+Config~CD+Q achieves $p \approx 0.72$, and Config~CD+FT-aligned achieves
+$p \approx 0.77$. The 4.0 percentage point gain from fine-tuning translates
+directly to a 4.0 percentage point reduction in frontier API traffic. Whether
+the fine-tuning cost is recovered depends on query volume: at high throughput,
+the API cost reduction per query accumulates rapidly; at low throughput, the
+no-training configuration is preferable.
 
 Chain-of-thought reasoning is contraindicated at the SLM tier. Config~CD+Q+ITC
 raises the failure rate by 6.75 percentage points relative to Config~CD+Q,

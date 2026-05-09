@@ -244,56 +244,218 @@ quantization.
 
 \subsection{Tool Calling and Benchmarks}
 
-The Berkeley Function Calling Leaderboard
-(BFCL)~\cite{bfcl2024} provides a standardized benchmark for
-evaluating language models on function-calling tasks across
-categories of increasing difficulty, from single-function calls to
-parallel and multi-turn interactions. AST accuracy and execution
-accuracy are the primary metrics; frontier model scores are
-published continuously as new models are released. ToolLLM~\cite{qin2024toolllm}
-extends this scope to over 16,000 real-world APIs, measuring
-tool-use across diverse domains. $\tau$-bench~\cite{taubench2024}
-evaluates end-to-end multi-step agentic task completion in
-simulated retail and airline domains, where the model must reason
-across multiple tool calls with real observations per task.
+The Berkeley Function Calling Leaderboard (BFCL)~\cite{bfcl2024}
+provides a standardized benchmark for evaluating language models on
+function-calling tasks. Four categories of increasing difficulty are
+defined. In the \texttt{simple\_python} category, a single oracle
+function definition is provided alongside the user query, and the
+model must produce the correct function call with matching arguments.
+In the \texttt{multiple\_function} category, several candidate
+function definitions are provided and the model must first identify
+the correct function before extracting arguments. The
+\texttt{parallel\_function} category requires multiple simultaneous
+function calls from a single user request. A multi-turn category
+tests stateful interactions across several dialogue turns, where
+argument values may depend on prior tool outputs. This thesis
+evaluates all configurations on the \texttt{simple\_python} category,
+which isolates argument extraction accuracy from the function
+selection problem.
+
+Two evaluation metrics are reported in BFCL. AST accuracy parses
+the model output into an abstract syntax tree and compares it
+structurally against the ground truth, checking function name,
+argument names, argument types, and argument values without executing
+the function. Execution accuracy runs the generated call and compares
+the runtime result to a ground truth output. AST accuracy is the
+primary metric used in this thesis because it is deterministic,
+reproducible, and independent of runtime environment, consistent with
+the leaderboard convention for comparing configurations
+systematically.
+
+ToolLLM~\cite{qin2024toolllm} extends function-calling evaluation to
+over 16,000 real-world APIs from the RapidAPI catalogue, covering
+domains including finance, weather, social media, and e-commerce. At
+this scale, the model must select among thousands of APIs with
+varying documentation quality and compose multi-step tool chains. The
+primary metric is execution accuracy, requiring correct runtime
+results rather than structural matching. The scope of ToolLLM
+reflects a harder generalization challenge than BFCL, as the API
+catalog far exceeds what can be memorized from pre-training data.
+
+The $\tau$-bench benchmark~\cite{taubench2024} evaluates end-to-end
+multi-step agentic task completion in simulated retail and airline
+customer service domains. Each task requires the model to reason
+across five to fifteen tool calls, observe intermediate results, and
+reach a final database state that matches a ground truth resolution.
+Task reward is binary: the final state must exactly match the ground
+truth to receive a score of 1.0, and partial completion yields no
+reward. A user simulator introduces stochastic variation across runs,
+so multiple evaluation passes are required for stable pass-rate
+estimates.
 
 \subsection{Fine-Tuned Small Models for Tool Use}
 
-Gorilla~\cite{patil2023gorilla} demonstrated that a fine-tuned
-LLaMA model can outperform GPT-4 on API calling when training data
-is drawn from the target API documentation, establishing that
-training data relevance can compensate for parameter count
-disadvantage. The xLAM family~\cite{zhang2024xlam} extends this
-approach with a large-scale action model training pipeline on
-diverse function-calling datasets, producing models competitive
-with frontier systems on tool-use benchmarks. A recent survey of
-small language models for agentic systems~\cite{sharma2025slmagents}
-identifies Qwen~2.5 7B as one of the strongest open-weight models
-for tool use at this parameter scale, while noting that systematic
-evaluations of optimization technique combinations remain limited.
+Gorilla~\cite{patil2023gorilla} demonstrated that a LLaMA model
+fine-tuned on API documentation can outperform GPT-4 on API calling
+tasks. The key finding is that training data relevance can compensate
+for parameter count disadvantage when the task requires structured
+generation against specific schemas. Gorilla uses a
+retrieval-augmented training procedure in which API documentation is
+retrieved during training, teaching the model to use retrieved
+context rather than rely on memorized API signatures.
+
+The xLAM model family~\cite{zhang2024xlam} extends the fine-tuning
+approach with a large-scale training pipeline that draws from diverse
+function-calling datasets. The \texttt{xlam-function-calling-60k}
+dataset used in this thesis for LoRA fine-tuning contains 60,000
+function-calling examples across a wide range of API types and
+domains. The diversity is intended to improve generalization beyond
+the specific schemas seen during training. Models trained on this
+dataset are competitive with frontier systems on standard tool-use
+benchmarks.
+
+The format of training outputs has a direct effect on how fine-tuning
+interacts with constrained decoding at inference time. This
+interaction is observed in the present experiments: two LoRA adapters
+trained on the same dataset with identical hyperparameters but
+different output formats converge to similar final training loss
+(0.203 and 0.229 at step 6,750 respectively) yet differ by 7.0
+percentage points in BFCL accuracy when paired with the constrained
+decoding pipeline. The accuracy difference is attributable entirely
+to whether the training output format matches the inference-time
+generation target, not to any difference in training quality. This
+result extends Gorilla's data-relevance insight from API source
+selection to output format alignment.
+
+A recent survey of small language models for agentic
+systems~\cite{sharma2025slmagents} identifies Qwen~2.5 7B as one of
+the strongest open-weight models for tool use at sub-10B parameter
+scales, attributing its performance to instruction tuning on
+function-calling examples and the scale of its pre-training corpus.
+The survey notes that most existing evaluations test individual
+optimization techniques in isolation, and that systematic
+combinations of constrained decoding, quantization, and fine-tuning
+remain underexplored. This gap directly motivates the cumulative
+evaluation design adopted in this thesis.
 
 \subsection{Constrained Generation}
 
-Willard and Louf~\cite{willard2023efficient} formalized the use of
-finite-state machines compiled from JSON schemas for structured
-generation in language models, providing the theoretical foundation
-for the constrained decoding approach used in this thesis. The
-Outlines library~\cite{outlines2024} implements this approach and
-is the generation backend used for all constrained decoding
-configurations. LMQL~\cite{beurer2024guidance} introduced a query
-language for constrained generation that supports more complex
-output specifications through a declarative programming model.
+Willard and Louf~\cite{willard2023efficient} formalized constrained
+generation using finite-state machines (FSMs) compiled from regular
+expressions and JSON schemas. At each decoding step, the current
+grammar state determines the set of valid next tokens; tokens outside
+this set receive a logit of negative infinity before sampling,
+ensuring that the generated sequence conforms to the grammar by
+construction. The key contribution is an efficient offline
+compilation algorithm that converts JSON schemas into FSMs before
+inference begins, so that the per-step cost at generation time
+consists only of a state transition lookup.
+
+The Outlines library~\cite{outlines2024} implements the FSM approach
+and serves as the constrained generation backend used in this thesis
+via vLLM~\cite{kwon2023vllm}. Two generation modes are relevant to
+the two-stage tool-calling pipeline. The \texttt{guided\_choice} mode
+restricts output to one string from a predefined list and is used in
+Stage~1 to guarantee that the predicted function name exists in the
+available schema. The \texttt{guided\_json} mode restricts output to
+a JSON object conforming to a provided schema and is used in Stage~2
+to guarantee structural validity of the argument object. Both modes
+compile their constraint to a token mask at request initialization
+time, amortizing the compilation cost across all generation steps for
+a given request.
+
+The per-step overhead of FSM-based constrained generation is low when
+schemas are compiled ahead of time. Overhead scales with schema
+complexity: schemas with deeply nested structures and many optional
+fields require larger FSM state spaces and more expensive state
+transitions. For the function schemas in BFCL \texttt{simple\_python},
+complexity is moderate and the overhead falls within practical
+inference budgets. Small models benefit disproportionately from
+constrained generation because their baseline format error rates are
+higher: without constraints, Qwen~2.5 7B produces unparseable output
+on 98.5\% of BFCL test cases, a failure rate that constrained
+decoding eliminates entirely.
+
+LMQL~\cite{beurer2024guidance} offers an alternative approach through
+a declarative query language in which output constraints are expressed
+as Python predicates evaluated during generation. The approach is
+more flexible than FSM-based methods for constraints that are
+difficult to specify as formal grammars. The per-step cost is higher,
+however, because predicates are evaluated at each generation step
+rather than looked up from a precompiled state table. This thesis
+uses FSM-based constrained decoding via vLLM because it is better
+integrated with batch inference and provides formal guarantees from a
+compiled grammar state.
+
+\subsection{Cascade Architectures}
+
+A cascade architecture routes inference requests across models of
+different capability and cost~\cite{snell2024scaling}. Routine
+requests are handled by a smaller, faster model; requests that exceed
+its reliable operating range are escalated to a larger model,
+typically accessed through an external API. Routing decisions may be
+based on output confidence, output validation, or a query complexity
+estimate computed before inference.
+
+For tool-calling tasks, structural validation is a natural routing
+gate. If the small model output fails to parse as valid JSON or names
+a function not present in the available schema, the response can be
+rejected and escalated without execution. Constrained decoding removes
+this failure mode by construction, since every output is
+structurally valid by guarantee. After constrained decoding is
+applied, the residual failure rate is attributable entirely to
+incorrect argument values, which structural checks cannot detect.
+This shifts the routing problem from format detection to semantic
+verification, a harder problem that requires either ground-truth
+access or execution feedback.
+
+The residual semantic failure rate determines the fraction of traffic
+that must be escalated to a frontier model and the associated
+variable inference cost. Config~CD achieves 72.75\% accuracy,
+implying a 27.25\% escalation rate under structural routing. Config
+CD+FT-aligned reduces this to 23.25\%, a reduction of approximately
+4.0 percentage points. The relationship between optimization
+technique selection and cascade routing cost is a practical design
+consideration that has received limited attention in prior work; this
+thesis provides direct measurements for five technique combinations.
 
 \subsection{Small Model Optimization}
 
-Recent model families, including Phi-4~\cite{abdin2024phi},
-Qwen~2.5~\cite{qwen2024qwen25}, and Llama~3~\cite{llama2024llama32},
-have narrowed the capability gap with frontier models through
-improved training data curation, better tokenizers, and
-architectural refinements such as grouped-query attention. These
-improvements are achieved at model training time and are largely
-orthogonal to the inference-time and post-training optimization
-techniques evaluated in this thesis. The combination of a
-well-trained small model with constrained decoding and aligned
-fine-tuning, as explored here, has not been systematically
-evaluated in prior work.
+Recent model families have narrowed the capability gap with frontier
+models through improvements applied at training time. Phi-4~%
+\cite{abdin2024phi} achieves competitive performance with models
+several times its size on reasoning and mathematics benchmarks,
+demonstrating that training data curation can compensate for reduced
+parameter count. Llama~3~\cite{llama2024llama32} introduces
+grouped-query attention and an expanded vocabulary to improve
+inference efficiency and multilingual coverage.
+Qwen~2.5~\cite{qwen2024qwen25} achieves strong tool-use performance
+through instruction tuning on function-calling examples and a context
+window of 128,000 tokens.
+
+Knowledge distillation~\cite{hinton2015distilling} provides a
+complementary path to capable small models. A small student model is
+trained to match the output distribution of a large teacher rather
+than ground-truth labels, transferring reasoning capabilities that
+the student would not acquire from labeled data alone. Unlike the
+post-training techniques evaluated in this thesis, distillation
+affects the model's parametric knowledge and requires access to the
+teacher model's outputs during training.
+
+Quantization reduces model memory at the cost of a small accuracy
+penalty. For the Qwen~2.5 7B model used in this thesis, AWQ INT4
+quantization~\cite{lin2024awq} reduces memory from 14.25~GiB to
+5.20~GiB and reduces accuracy by 0.5 percentage points on BFCL
+\texttt{simple\_python}, a cost within run-to-run variance. This
+result is consistent with reported accuracy retention for AWQ across
+other model families at similar parameter scales.
+
+The pre-training and instruction-tuning improvements embodied in
+Phi-4, Qwen~2.5, and Llama~3 are largely orthogonal to the
+inference-time and post-training techniques evaluated here.
+Constrained decoding, quantization, and LoRA fine-tuning can be
+applied on top of any pre-trained checkpoint. The question addressed
+in this thesis is how much additional accuracy is recovered by
+combining these techniques on top of an already well-trained small
+model, and which combinations offer the best accuracy-cost tradeoff
+for deployment in a cascade architecture.
