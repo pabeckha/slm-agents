@@ -25,12 +25,14 @@ dev = [
 ]
 hpc = [
   "vllm==0.8.5",
-  "transformers>=4.40,<5",
+  "transformers>=4.40,<4.52",
   "bfcl-eval",
   "soundfile>=0.13",
   "sentence-transformers>=2.0",
   "scikit-learn>=1.0",
   "faiss-cpu>=1.7",
+  # AWQ quantization
+  "autoawq>=0.2",
   # LoRA training
   "peft>=0.10",
   "trl>=0.8",

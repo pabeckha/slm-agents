@@ -1,6 +1,6 @@
 # Phase 1 Ablation Summary — Qwen 2.5 7B on BFCL Simple Python
 
-**Date compiled**: 2026-04-24; last updated 2026-05-02 (all jobs confirmed complete)
+**Date compiled**: 2026-04-24; last updated 2026-05-10 (CD+Q+FT-aligned job 28395175 added)
 **Benchmark**: BFCL v4 simple_python (400 test cases, AST accuracy)
 **Model family**: Qwen/Qwen2.5-7B-Instruct (FP16), Qwen/Qwen2.5-7B-Instruct-AWQ (INT4), and LoRA merged (bfloat16)
 **Infrastructure**: DTU HPC (A100 40GB, L40S 46GB)
@@ -19,6 +19,7 @@
 | CD+FT | Constrained decoding + LoRA merged (misaligned) | 7B bf16 | 69.75% | 279/400 | -3 pp |
 | FT-aligned-ng | Format-aligned LoRA, no constrained decoding | 7B bf16 | 13.25% | 53/400 | -59.5 pp |
 | **CD+FT-aligned** | **Constrained decoding + format-aligned LoRA** | **7B bf16** | **76.75%** | **307/400** | **+4.0 pp** |
+| CD+Q+FT-aligned | CD + AWQ INT4 + format-aligned LoRA | 7B INT4 merged | 74.25% | 297/400 | +1.5 pp |
 
 ## Key findings
 
@@ -67,6 +68,14 @@ The remaining 23.25% failure rate under CD+FT-aligned mirrors the CD baseline's 
 
 See `config-ft-lora-results.md` for the v1 analysis and `config-ft-lora-aligned-ablation.md` for the format-aligned ablation.
 
+## Full stack: CD+Q+FT-aligned (Phase 3)
+
+Applying AWQ INT4 quantization to the format-aligned LoRA merged model gives **74.25% (297/400)** — 2.5 pp below the unquantized CD+FT-aligned peak but 1.5 pp above the no-training CD baseline and 2.0 pp above CD+Q. The full combined stack (all four techniques) is deployment-viable at ~5.2 GiB and still outperforms the no-training ceiling.
+
+The quantization penalty on a fine-tuned model (-2.5 pp) is larger than on the base model (-0.5 pp), suggesting AWQ calibration on generic text suboptimally quantizes the fine-tuned weight deltas. The training signal survives quantization but is attenuated.
+
+See `config-cdqfta-results.md` for the full analysis.
+
 ## Result files
 
 | Config | Scores | Run manifest |
@@ -81,6 +90,7 @@ See `config-ft-lora-results.md` for the v1 analysis and `config-ft-lora-aligned-
 | CD+FT | `data/output/bfcl_ft/scores/` | `data/output/bfcl_ft/runs/` |
 | FT-aligned-ng | `data/output/bfcl_ft_aligned_no_guided/scores/` | `data/output/bfcl_ft_aligned_no_guided/runs/` |
 | CD+FT-aligned | `data/output/bfcl_ft_aligned/scores/` | `data/output/bfcl_ft_aligned/runs/` |
+| CD+Q+FT-aligned | `data/output/bfcl_cdqft_aligned/scores/` | `data/output/bfcl_cdqft_aligned/runs/` |
 
 ## Detailed per-config docs
 
@@ -92,3 +102,4 @@ See `config-ft-lora-results.md` for the v1 analysis and `config-ft-lora-aligned-
 - `config-cdqrag-results.md` — RAG recall@5, disambiguation failure analysis
 - `config-ft-lora-results.md` — LoRA fine-tuning, format mismatch analysis
 - `config-ft-lora-aligned-ablation.md` — format-aligned LoRA ablation, outcome interpretation
+- `config-cdqfta-results.md` — full stack CD+Q+FT-aligned, quantization cost on fine-tuned model
