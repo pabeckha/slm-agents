@@ -183,36 +183,41 @@ schema rather than by a benchmarking dataset.
 
 \section{Practical Implications}
 
-Two configurations are production-viable on consumer hardware, each
-addressing a different deployment constraint. CD+Q achieves
+Three configurations are production-viable on consumer hardware, each
+addressing a different deployment constraint. Config~CD+Q achieves
 72.25\% AST accuracy on 5.20~GiB of GPU memory with a 35~s model
 load time on an NVIDIA L40S. The same configuration fits on a
 consumer RTX~4090 (24~GiB) with ample remaining capacity for the
 key-value cache. It requires no training and is deployable
-immediately from a pre-quantized checkpoint. CD+FT-aligned
-achieves 76.75\% on the same hardware footprint (AWQ INT4 weights
-plus a merged LoRA adapter), reducing the residual failure rate from
-27.75\% to 23.25\% at the cost of a fine-tuning run on aligned
-training data.
+immediately from a pre-quantized checkpoint. Config~CD+Q+FT-aligned
+achieves 74.25\% on the same 5.20~GiB footprint, adding a
+format-aligned LoRA adapter merged before quantization. It offers
+fine-tuned capability at INT4 size, at the cost of a fine-tuning run
+and a 2.5~pp quantization penalty relative to the unquantized
+CD+FT-aligned. Config~CD+FT-aligned achieves 76.75\% on the same
+hardware (FP16 merged weights), delivering the highest accuracy at
+the cost of a larger memory footprint before quantization and the
+same fine-tuning run.
 
 In a cascade architecture where an SLM handles routine tool-calling
 requests and escalates to a frontier model when uncertain,
-CD+Q defines the no-training operating point: approximately
+Config~CD+Q defines the no-training operating point: approximately
 72\% of requests are handled correctly at 5.20~GiB memory, with the
-remaining 28\% escalated. CD+FT-aligned extends this
-operating region to approximately 77\%, reducing escalation traffic
-by roughly 4 percentage points relative to CD+Q. The
-escalation boundary in both cases corresponds to the same failure
-classes: wrong optional parameter defaults, numeric precision
-mismatches, and string format conventions. Queries with explicit
-argument values and unambiguous types are reliably handled at the
-SLM tier; queries involving domain-specific numeric precision or
-underspecified optional parameters remain candidates for escalation.
+remaining 28\% escalated. Config~CD+Q+FT-aligned extends this to
+approximately 74\%, and Config~CD+FT-aligned to approximately 77\%,
+each reducing escalation traffic at progressively higher deployment
+cost. The escalation boundary across all three configurations
+corresponds to the same failure classes: wrong optional parameter
+defaults, numeric precision mismatches, and string format
+conventions. Queries with explicit argument values and unambiguous
+types are reliably handled at the SLM tier; queries involving
+domain-specific numeric precision or underspecified optional
+parameters remain candidates for escalation.
 
 The routing decision in the cascade tier determines which queries reach the
 frontier model. Structural validation -- checking that the output is valid
 JSON and names a known function -- is satisfied by every output under
-CD and above, and therefore cannot serve as a routing gate after
+Config~CD and above, and therefore cannot serve as a routing gate after
 constrained decoding is applied. Two alternative routing signals are more
 appropriate. Query-level classification, applied before inference, estimates
 whether a query is likely to involve underspecified optional parameters or
@@ -229,12 +234,14 @@ these results. If frontier model calls cost $c$ per query and the SLM tier
 cost is approximated as zero per query (amortized over hardware), a cascade
 in which the SLM correctly handles a fraction $p$ of requests saves
 $p \cdot c$ per query relative to routing everything to the frontier model.
-CD+Q achieves $p \approx 0.72$, and CD+FT-aligned achieves
-$p \approx 0.77$. The 4.0 percentage point gain from fine-tuning translates
-directly to a 4.0 percentage point reduction in frontier API traffic. Whether
-the fine-tuning cost is recovered depends on query volume: at high throughput,
-the API cost reduction per query accumulates rapidly; at low throughput, the
-no-training configuration is preferable.
+Config~CD+Q achieves $p \approx 0.72$, Config~CD+Q+FT-aligned achieves
+$p \approx 0.74$, and Config~CD+FT-aligned achieves $p \approx 0.77$.
+The additional 2.0 percentage point gain from stacking quantized fine-tuning
+on top of Config~CD+Q translates directly to a 2.0 percentage point
+reduction in frontier API traffic relative to the no-training baseline.
+Whether the fine-tuning cost is recovered depends on query volume: at high
+throughput, the API cost reduction per query accumulates rapidly; at low
+throughput, the no-training configuration is preferable.
 
 Chain-of-thought reasoning is contraindicated at the SLM tier. CD+Q+ITC
 raises the failure rate by 6.75 percentage points relative to CD+Q,

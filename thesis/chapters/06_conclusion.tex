@@ -36,21 +36,30 @@ CD, attributed to a format mismatch between the training distribution
 and the evaluation pipeline. The format mismatch hypothesis is confirmed by
 CD+FT-aligned, which reformats training outputs to match the inference
 pipeline exactly and achieves 76.75\% (307/400), a gain of 4.00 percentage
-points above CD and the best result in the evaluation. The finding for
+points above CD and the best result in the evaluation.
+CD+Q+FT-aligned applies AWQ INT4 quantization to the format-aligned
+LoRA-merged model and achieves 74.25\% (297/400), a gain of 1.5 percentage
+points above CD. The quantization penalty relative to CD+FT-aligned is
+2.5 percentage points, larger than the 0.5 percentage point penalty observed
+when quantizing the base model, suggesting that AWQ interacts more
+destructively with fine-tuned weight deltas when the calibration distribution
+does not match the fine-tuning domain. The finding for
 RQ2 is that the residual 27\% failure rate after constrained decoding cannot
 be addressed by prompting: these errors are in the model's learned value
 priors, and only training-based interventions with aligned format can change
 them.
 
-\paragraph{RQ3.} Two configurations achieve production-viable accuracy on
+\paragraph{RQ3.} Three configurations achieve production-viable accuracy on
 consumer hardware. CD+Q achieves 72.25\% on 5.20~GiB of GPU memory
 with no training required, fitting on a consumer NVIDIA RTX~4090 (24~GiB)
 with substantial remaining capacity for the key-value cache.
-CD+FT-aligned achieves 76.75\% on the same hardware footprint, with
-the LoRA adapter merged into the base weights before quantization.
-For the \texttt{simple\_python} use case, a fully optimized SLM
-configuration is production-viable on consumer hardware, with training
-data alignment as the binding constraint on the achievable accuracy ceiling.
+CD+Q+FT-aligned achieves 74.25\% on the same 5.20~GiB footprint, adding
+a format-aligned LoRA adapter merged and quantized to INT4 before
+deployment. CD+FT-aligned achieves 76.75\% with the merged adapter at
+full FP16 precision. For the \texttt{simple\_python} use case, a fully
+optimized SLM configuration is production-viable on consumer hardware,
+with training data alignment as the binding constraint on the achievable
+accuracy ceiling.
 
 \section{Future Work}
 
