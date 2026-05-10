@@ -13,14 +13,17 @@ effect of each technique on tool-calling accuracy.
 
 \subsection{Cumulative Evaluation Ladder}
 
-Five configurations are evaluated, each building on the previous one, as illustrated
-in Figure~\ref{fig:eval-ladder}. Base is the baseline: the model is prompted
-without constrained decoding at full precision. In CD, constrained decoding is
-added, forcing the output to conform to a valid JSON schema. In CD+Q, AWQ INT4
-quantization is applied to reduce memory footprint while preserving accuracy as much
-as possible. In CD+Q+FT, LoRA fine-tuning is added to the quantized model.
-Two parallel configurations are also evaluated: PE uses few-shot prompting,
-and CD+Q+RAG adds retrieval-augmented generation to CD+Q.
+Seven configurations are evaluated in total, as illustrated in
+Figure~\ref{fig:eval-ladder}. Four form a main chain, each building on the
+previous one. Config~B is the baseline: the model is prompted without
+constrained decoding at full precision. In Config~CD, constrained decoding is
+added, forcing the output to conform to a valid JSON schema. In Config~CD+Q,
+AWQ INT4 quantization is applied to reduce memory footprint while preserving
+accuracy as much as possible. In Config~CD+Q+FT, LoRA fine-tuning is added to
+the quantized model. Three parallel configurations are also evaluated:
+Config~PE uses few-shot prompting, Config~CD+Q+ITC adds chain-of-thought
+inference-time compute to Config~CD+Q, and Config~CD+Q+RAG adds
+retrieval-augmented generation to Config~CD+Q.
 
 \begin{figure}[ht]
 \centering
@@ -44,19 +47,21 @@ and CD+Q+RAG adds retrieval-augmented generation to CD+Q.
 \node[main, right=1.6cm of CDQ] (CDQFT) {CD+Q+FT};
 
 \node[side, below=1.2cm of CDQ]  (CDQRAG) {CD+Q+RAG};
+\node[side, below=1.2cm of CD]   (CDQITC) {CD+Q+ITC};
 \node[para, below=1.2cm of B]    (PE)     {PE};
 
 \draw[arr] (B)   -- node[above, font=\footnotesize]{$+$CD}  (CD);
 \draw[arr] (CD)  -- node[above, font=\footnotesize]{$+$Q}   (CDQ);
 \draw[arr] (CDQ) -- node[above, font=\footnotesize]{$+$FT}  (CDQFT);
 \draw[arr] (CDQ) -- node[right, font=\footnotesize]{$+$RAG} (CDQRAG);
+\draw[arr] (CDQ) -- node[right, font=\footnotesize]{$+$ITC} (CDQITC);
 \draw[darr](B)   -- node[right, font=\footnotesize]{parallel} (PE);
 
 \end{tikzpicture}%
 }
 \caption{Incremental evaluation ladder. Each configuration in the main
 chain (top row) extends the previous one by adding a single technique.
-CD+Q+RAG and PE are evaluated as parallel tracks.}
+CD+Q+RAG, CD+Q+ITC, and PE are evaluated as parallel tracks.}
 \label{fig:eval-ladder}
 \end{figure}
 
