@@ -14,7 +14,7 @@ Given an input sequence of token embeddings $X$, the self-attention mechanism co
 \end{equation}
 where $d_k$ is the dimension of the key vectors. Multi-head attention runs this operation in parallel across multiple subspaces, allowing the model to capture different types of dependencies simultaneously.
 
-For language modeling, the decoder-only variant is most common. It
+For language modeling, the decoder-only variant is most common~\cite{brown2020language,wang2022language}. It
 applies a causal attention mask so that each token can only attend to
 preceding tokens, enabling autoregressive generation where the model
 predicts one token at a time conditioned on all previous tokens.
@@ -411,7 +411,7 @@ access or execution feedback.
 
 The residual semantic failure rate determines the fraction of traffic
 that must be escalated to a frontier model and the associated
-variable inference cost. Config~CD achieves 72.75\% accuracy,
+variable inference cost. CD achieves 72.75\% accuracy,
 implying a 27.25\% escalation rate under structural routing. Config
 CD+FT-aligned reduces this to 23.25\%, a reduction of approximately
 4.0 percentage points. The relationship between optimization

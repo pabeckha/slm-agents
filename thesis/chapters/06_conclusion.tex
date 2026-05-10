@@ -4,13 +4,13 @@
 
 \paragraph{RQ1.} The unoptimized performance gap between Qwen~2.5 7B-Instruct
 and frontier models on BFCL~v4 \texttt{simple\_python} is approximately
-98.5 percentage points: the base model (Config~B) achieves 1.5\%, while
+98.5 percentage points: the base model (Base) achieves 1.5\%, while
 frontier models range from 71.00\% (Claude Haiku~4.5) to 79.58\%
 (Gemini~3 Pro)~\cite{bfcl2024}. This gap is almost entirely a format
 compliance gap. The base model understands the queries but cannot produce
-structured output without guidance: 394 of 400 failures in Config~B are
+structured output without guidance: 394 of 400 failures in Base are
 malformed outputs rather than semantically wrong answers. Constrained
-decoding alone (Config~CD) closes the gap to approximately 7 percentage
+decoding alone (CD) closes the gap to approximately 7 percentage
 points (72.75\% vs.\ 79.58\%), matching GPT-4.1 (72.67\%) and Claude
 Sonnet~4.5 (72.58\%). The residual gap is in argument value accuracy,
 where frontier models have a moderate advantage attributable to stronger
@@ -22,31 +22,31 @@ inference cost. AWQ INT4 quantization reduces model memory by 63.5\%
 (14.25~GiB to 5.20~GiB) and startup time by 83.5\% (212~s to 35~s) at a
 cost of $-0.5$ percentage points, within run-to-run
 variance~\cite{lin2024awq}. Both prompting interventions evaluated produced
-negative outcomes: few-shot prompting (Config~PE) reduced accuracy by
+negative outcomes: few-shot prompting (PE) reduced accuracy by
 2.5 percentage points~\cite{brown2020language}, and chain-of-thought
-reasoning (Config~CD+Q+ITC) reduced accuracy by 6.75 percentage points at
+reasoning (CD+Q+ITC) reduced accuracy by 6.75 percentage points at
 approximately double the per-case latency~\cite{wei2022chain}. Retrieval-augmented
-generation (Config~CD+Q+RAG) reduced accuracy by 24 percentage points
+generation (CD+Q+RAG) reduced accuracy by 24 percentage points
 despite a retrieval recall@5 of 97.2\%, with the loss attributable to
 function disambiguation failure rather than retrieval
 quality~\cite{lewis2020retrieval}. LoRA fine-tuning on
 \texttt{xlam-function-calling-60k}~\cite{zhang2024xlam, hu2022lora}
-produced a 3 percentage point regression under Config~CD+FT relative to
-Config~CD, attributed to a format mismatch between the training distribution
+produced a 3 percentage point regression under CD+FT relative to
+CD, attributed to a format mismatch between the training distribution
 and the evaluation pipeline. The format mismatch hypothesis is confirmed by
-Config~CD+FT-aligned, which reformats training outputs to match the inference
+CD+FT-aligned, which reformats training outputs to match the inference
 pipeline exactly and achieves 76.75\% (307/400), a gain of 4.00 percentage
-points above Config~CD and the best result in the evaluation. The finding for
+points above CD and the best result in the evaluation. The finding for
 RQ2 is that the residual 27\% failure rate after constrained decoding cannot
 be addressed by prompting: these errors are in the model's learned value
 priors, and only training-based interventions with aligned format can change
 them.
 
 \paragraph{RQ3.} Two configurations achieve production-viable accuracy on
-consumer hardware. Config~CD+Q achieves 72.25\% on 5.20~GiB of GPU memory
+consumer hardware. CD+Q achieves 72.25\% on 5.20~GiB of GPU memory
 with no training required, fitting on a consumer NVIDIA RTX~4090 (24~GiB)
 with substantial remaining capacity for the key-value cache.
-Config~CD+FT-aligned achieves 76.75\% on the same hardware footprint, with
+CD+FT-aligned achieves 76.75\% on the same hardware footprint, with
 the LoRA adapter merged into the base weights before quantization.
 For the \texttt{simple\_python} use case, a fully optimized SLM
 configuration is production-viable on consumer hardware, with training
@@ -79,7 +79,7 @@ examples from the target catalog to improve sibling-function discrimination.
 
 The constrained decoding advantage is established on
 \texttt{simple\_python}, where one candidate function is provided per test
-case. Evaluating Config~CD and Config~CD+Q on the
+case. Evaluating CD and CD+Q on the
 \texttt{multiple\_function} and \texttt{parallel\_function} BFCL categories
 would test whether the advantage holds when the model must select from
 multiple candidates or produce parallel calls, conditions closer to a

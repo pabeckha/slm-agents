@@ -13,17 +13,18 @@ effect of each technique on tool-calling accuracy.
 
 \subsection{Cumulative Evaluation Ladder}
 
-Five configurations are evaluated, each building on the previous one. Config B is
-the baseline: the model is prompted without constrained decoding at full precision.
-In Config CD, constrained decoding is added, forcing the output to conform to a
-valid JSON schema. In Config CD+Q, AWQ INT4 quantization is applied to reduce memory footprint
-while preserving accuracy as much as possible. In Config CD+Q+FT, LoRA
-fine-tuning is added to the quantized model. Two parallel configurations are also
-evaluated: Config PE uses few-shot prompting, and Config CD+Q+RAG adds
-retrieval-augmented generation to Config CD+Q.
+Five configurations are evaluated, each building on the previous one, as illustrated
+in Figure~\ref{fig:eval-ladder}. Base is the baseline: the model is prompted
+without constrained decoding at full precision. In CD, constrained decoding is
+added, forcing the output to conform to a valid JSON schema. In CD+Q, AWQ INT4
+quantization is applied to reduce memory footprint while preserving accuracy as much
+as possible. In CD+Q+FT, LoRA fine-tuning is added to the quantized model.
+Two parallel configurations are also evaluated: PE uses few-shot prompting,
+and CD+Q+RAG adds retrieval-augmented generation to CD+Q.
 
 \begin{figure}[ht]
 \centering
+\resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[
     box/.style={
         rectangle, draw, rounded corners=4pt,
@@ -37,13 +38,13 @@ retrieval-augmented generation to Config CD+Q.
     darr/.style={-{Stealth}, thick, dashed, gray!70}
 ]
 
-\node[main] (B)     {Config B};
-\node[main, right=1.6cm of B]   (CD)    {Config CD};
-\node[main, right=1.6cm of CD]  (CDQ)   {Config CD+Q};
-\node[main, right=1.6cm of CDQ] (CDQFT) {Config CD+Q+FT};
+\node[main] (B)     {Base};
+\node[main, right=1.6cm of B]   (CD)    {CD};
+\node[main, right=1.6cm of CD]  (CDQ)   {CD+Q};
+\node[main, right=1.6cm of CDQ] (CDQFT) {CD+Q+FT};
 
-\node[side, below=1.2cm of CDQ]  (CDQRAG) {Config CD+Q+RAG};
-\node[para, below=1.2cm of B]    (PE)     {Config PE};
+\node[side, below=1.2cm of CDQ]  (CDQRAG) {CD+Q+RAG};
+\node[para, below=1.2cm of B]    (PE)     {PE};
 
 \draw[arr] (B)   -- node[above, font=\footnotesize]{$+$CD}  (CD);
 \draw[arr] (CD)  -- node[above, font=\footnotesize]{$+$Q}   (CDQ);
@@ -51,10 +52,11 @@ retrieval-augmented generation to Config CD+Q.
 \draw[arr] (CDQ) -- node[right, font=\footnotesize]{$+$RAG} (CDQRAG);
 \draw[darr](B)   -- node[right, font=\footnotesize]{parallel} (PE);
 
-\end{tikzpicture}
-\caption{Cumulative evaluation ladder. Each configuration in the main
+\end{tikzpicture}%
+}
+\caption{Incremental evaluation ladder. Each configuration in the main
 chain (top row) extends the previous one by adding a single technique.
-Config CD+Q+RAG and Config PE are evaluated as parallel tracks.}
+CD+Q+RAG and PE are evaluated as parallel tracks.}
 \label{fig:eval-ladder}
 \end{figure}
 
@@ -119,7 +121,7 @@ The $\tau$-bench retail benchmark~\cite{taubench2024} evaluates
 end-to-end multi-step task completion. Each task is a simulated
 customer service interaction in which the model must reason across
 5--15 tool calls, observe intermediate results, and reach a final
-database state that matches a ground truth resolution. Config~CD is
+database state that matches a ground truth resolution. CD is
 evaluated on the retail domain test split (115 tasks) to establish
 the agentic baseline; the remaining configurations are not evaluated
 on $\tau$-bench because the primary bottleneck identified is
@@ -173,18 +175,16 @@ relative to standard multi-head attention, which is one
 reason the 7B model fits comfortably on a single consumer
 GPU in bfloat16 precision.
 
-The Instruct variant is pre-trained on a multilingual
-corpus of approximately 18 trillion tokens, followed by
-supervised fine-tuning on instruction-following and
-tool-use examples, and alignment via reinforcement
-learning from human feedback. The resulting model responds
-to structured prompts and tool schemas without additional
-task-specific training, making it a practical starting
-point for the optimization ladder evaluated in this thesis.
+The Instruct variant is pre-trained on a multilingual corpus of approximately
+18 trillion tokens. Supervised fine-tuning on instruction-following and tool-use
+examples, followed by alignment via reinforcement learning from human feedback,
+produces a model that follows instructions reliably. It responds to structured
+prompts and tool schemas without additional task-specific training, serving as
+a practical starting point for the optimization ladder evaluated in this thesis.
 
 \section{Baseline Definition}
 
-Config~B is the baseline configuration: the model is prompted
+Base is the baseline configuration: the model is prompted
 without constrained decoding, at full precision (bfloat16),
 with no quantization, no fine-tuning, and no few-shot
 examples. The pipeline is two-stage (Figure~\ref{fig:pipeline}). In the first stage,
@@ -242,19 +242,19 @@ techniques.
 \end{tikzpicture}
 \caption{Two-stage inference pipeline. Stage~1 selects a function name from
 all available candidates; Stage~2 extracts argument values for the selected
-function. In Config~CD and above, \texttt{guided\_choice} and
+function. In CD and above, \texttt{guided\_choice} and
 \texttt{guided\_json} enforce structural validity at each stage.}
 \label{fig:pipeline}
 \end{figure}
 
-% RESULTS TODO: Report Config B AST accuracy (1.5%, 6/400),
+% RESULTS TODO: Report Base AST accuracy (1.5%, 6/400),
 % dominant failure mode (format non-compliance: conversational
 % wrapping, multiple JSON objects), and establish it as the
 % lower bound reference for all technique comparisons.
 
 \section{Constrained Decoding}
 
-Config~CD adds constrained decoding to Config~B; all other
+CD adds constrained decoding to Base; all other
 settings remain unchanged. Constrained decoding is
 implemented via vLLM's guided decoding
 feature~\cite{kwon2023vllm, willard2023efficient}, which
@@ -271,15 +271,15 @@ schema derived from the function definition, with parameter
 names, types, and required fields enforced, and
 \texttt{additionalProperties} set to false.
 
-% RESULTS TODO: Report Config CD AST accuracy (72.75%, 291/400,
-% +71.25 pp over Config B). Function selection 100% -- CD
+% RESULTS TODO: Report CD AST accuracy (72.75%, 291/400,
+% +71.25 pp over Base). Function selection 100% -- CD
 % eliminates all function name errors. Remaining failures are
 % semantic (wrong argument values), not format errors.
 
 \section{Quantization}
 
-Config~CD+Q adds AWQ INT4 quantization~\cite{lin2024awq}
-to Config~CD. The pre-quantized model
+CD+Q adds AWQ INT4 quantization~\cite{lin2024awq}
+to CD. The pre-quantized model
 \texttt{Qwen/Qwen2.5-7B-Instruct-AWQ} is used, loaded via
 vLLM with the \texttt{awq\_marlin} backend, which applies
 optimized Marlin kernels for efficient INT4 inference on
@@ -292,19 +292,19 @@ values. Pre-quantized variants for all Qwen~2.5 sizes are
 available on the Hugging Face Hub, avoiding the need for
 a local quantization step.
 
-% RESULTS TODO: Report Config CD+Q AST accuracy (72.0%, 288/400,
+% RESULTS TODO: Report CD+Q AST accuracy (72.0%, 288/400,
 % -0.75 pp vs CD). Memory: 14.25 GiB -> 5.20 GiB (63.5% reduction).
 % Load time: 212s -> 35s. No new failure modes introduced.
 
 \section{Prompt Engineering and Few-Shot}
 
-Config~PE extends Config~CD by prepending three few-shot examples to the
+PE extends CD by prepending three few-shot examples to the
 argument extraction prompt. The function selection prompt is left unchanged;
-examples are added only to the argument extraction stage, where all Config~CD
+examples are added only to the argument extraction stage, where all CD
 failures occur.
 
 The three examples are constructed to target the most frequent failure
-categories observed in Config~CD. The first example demonstrates numeric
+categories observed in CD. The first example demonstrates numeric
 precision: the expected value is \texttt{9.81}, not the rounded approximation
 \texttt{9.8}. The second demonstrates string format with a location qualifier:
 the expected value is \texttt{"San Francisco, CA"}, not
@@ -314,19 +314,19 @@ expected value is \texttt{x**2}, not the mathematical notation
 cover distinct failure classes; additional examples would increase context
 length without introducing new failure categories.
 
-All other settings remain unchanged from Config~CD: the full-precision
+All other settings remain unchanged from CD: the full-precision
 Qwen~2.5 7B-Instruct model is used, guided decoding is applied to
-both pipeline stages, and temperature is set to~0. Config~PE is evaluated
-as a parallel track to Config~CD+Q rather than as an extension of it, so the
+both pipeline stages, and temperature is set to~0. PE is evaluated
+as a parallel track to CD+Q rather than as an extension of it, so the
 full-precision model is retained to isolate the effect of the few-shot
 examples from any interaction with quantization.
 
 \section{Retrieval-Augmented Generation}
 
-Config~CD+Q+RAG extends Config~CD+Q by replacing the per-test-case oracle
+CD+Q+RAG extends CD+Q by replacing the per-test-case oracle
 function provision with a retrieval step~\cite{lewis2020retrieval}. In all
 prior configurations, each test case is presented with the exact function
-definition required to answer it. In Config~CD+Q+RAG, the model receives
+definition required to answer it. In CD+Q+RAG, the model receives
 instead the top-$k$ functions retrieved from an index of the full function
 catalogue.
 
@@ -345,15 +345,15 @@ the model to disambiguate: a smaller $k$ risks excluding the correct function,
 while a larger $k$ increases the number of semantically similar alternatives
 the model must distinguish. The model selects among the retrieved candidates
 using \texttt{guided\_choice} restricted to the five retrieved function names,
-then extracts arguments using \texttt{guided\_json} as in Config~CD+Q. All
-other settings are inherited from Config~CD+Q.
+then extracts arguments using \texttt{guided\_json} as in CD+Q. All
+other settings are inherited from CD+Q.
 
 \section{LoRA Fine-Tuning}
 
-Two fine-tuning configurations are evaluated: Config~FT-only, which applies
-the trained model without constrained decoding, and Config~CD+FT, which
+Two fine-tuning configurations are evaluated: FT-only, which applies
+the trained model without constrained decoding, and CD+FT, which
 combines the trained model with the constrained decoding pipeline from
-Config~CD. The split between the two variants allows the independent
+CD. The split between the two variants allows the independent
 contributions of fine-tuning and constrained decoding to be measured
 separately.
 
@@ -374,4 +374,4 @@ After training, the adapter weights are merged into the base model by linear
 interpolation, producing a single merged checkpoint in bfloat16. The merged
 model is used for all evaluation runs, removing adapter inference overhead and
 ensuring that the evaluation infrastructure is identical to that used for
-Config~B and Config~CD.
+Base and CD.

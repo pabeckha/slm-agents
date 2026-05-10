@@ -10,8 +10,8 @@ require. This thesis investigates which optimization techniques are sufficient
 to make a small language model reliably call tools, and at what accuracy cost
 each technique comes.
 
-A cumulative ablation study is conducted on \texttt{Qwen/Qwen2.5-7B-Instruct}
-across five techniques, evaluated on the Berkeley Function Calling Leaderboard
+An incremental ablation study is conducted on \texttt{Qwen/Qwen2.5-7B-Instruct}
+across six techniques, evaluated on the Berkeley Function Calling Leaderboard
 v4 \texttt{simple\_python} category (400 test cases, AST accuracy). The
 unoptimized model achieves 1.5\%, approximately 98 percentage points below
 frontier models. Constrained decoding alone raises accuracy to 72.75\%,

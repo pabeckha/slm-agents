@@ -101,9 +101,9 @@ This thesis addresses three research questions:
     \item[RQ3] \textit{Can a fully optimized small language model configuration achieve production-viable tool-calling accuracy on consumer hardware?}
 \end{description}
 
-\noindent RQ1 establishes the baseline gap that motivates the work. RQ2 is the core empirical contribution: a cumulative ablation study that isolates the marginal impact of each technique. RQ3 addresses the practical question of whether the optimized configuration is viable for real-world deployment.
+\noindent RQ1 establishes the baseline gap that motivates the work. RQ2 is the core empirical contribution: an incremental ablation study that isolates the marginal impact of each technique. RQ3 addresses the practical question of whether the optimized configuration is viable for real-world deployment.
 
-To answer these questions, the thesis evaluates a cumulative pipeline of methods, ordered by implementation cost. No-training methods are evaluated first (constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}, quantization~\cite{lin2024awq}), followed by training-based methods (LoRA fine-tuning~\cite{hu2022lora}). Each method is assessed both individually and in combination, measuring its marginal contribution to tool-calling accuracy and reasoning quality.
+To answer these questions, the thesis evaluates an incremental pipeline of methods, ordered by implementation cost. No-training methods are evaluated first (constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}, quantization~\cite{lin2024awq}), followed by training-based methods (LoRA fine-tuning~\cite{hu2022lora}). Each method is assessed both individually and in combination, measuring its marginal contribution to tool-calling accuracy and reasoning quality.
 
 \section{Contributions}
 
@@ -114,11 +114,11 @@ The main contributions of this thesis are:
     points of BFCL accuracy on Qwen~2.5 7B, lifting the unoptimized baseline
     from 1.5\% to 72.75\% by eliminating format failures entirely, without
     any modification to model weights.
-    \item A cumulative ablation study across ten configurations that isolates the
+    \item An incremental ablation study across ten configurations that isolates the
     marginal contribution of constrained decoding, prompt engineering,
     inference-time chain-of-thought, retrieval-augmented generation,
     quantization, and LoRA fine-tuning to BFCL \texttt{simple\_python}
-    accuracy. The best configuration (Config~CD+FT-aligned, 76.75\%) matches
+    accuracy. The best configuration (CD+FT-aligned, 76.75\%) matches
     Claude Opus 4.5 (76.83\%) on the same benchmark.
     \item A model-size scaling analysis showing that constrained decoding is
     effective across the full Qwen~2.5 size range (0.5B to 7B), with CD gains
