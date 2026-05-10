@@ -148,8 +148,33 @@ def build_argument_extraction_prompt(
     return "\n".join(lines)
 
 
+def build_reasoning_prompt(func: FunctionDef, query: str) -> str:
+    """Build a chain-of-thought prompt for the ITC reasoning step.
+
+    The model completes the ``Reasoning:`` block in free mode (no guided
+    decoding). The resulting text is then injected into the args extraction
+    prompt before the ``JSON: `` anchor.
+    """
+    return (
+        f"Function: {_signature(func)}\n"
+        f"Description: {func.description}\n"
+        f"User request: {query}\n"
+        "\n"
+        "Before extracting the arguments, think step by step about:\n"
+        "- Which exact values from the user's request should go into each argument?\n"
+        "- Are there any numeric precisions, units, or string formats that must be preserved exactly as stated?\n"
+        "- What are reasonable defaults for any optional arguments not mentioned?\n"
+        "\n"
+        "Reasoning:"
+    )
+
+
 def build_args_extraction_prompt(
-    func: FunctionDef, query: str, *, few_shot: bool = False,
+    func: FunctionDef,
+    query: str,
+    *,
+    few_shot: bool = False,
+    reasoning: str | None = None,
 ) -> str:
     """Build a prompt for extracting all arguments as a single JSON object.
 
@@ -160,6 +185,7 @@ def build_args_extraction_prompt(
         func: The function being called.
         query: The natural-language user request.
         few_shot: If True, prepend few-shot examples to the prompt.
+        reasoning: Optional CoT reasoning text to inject before the JSON anchor.
 
     Returns:
         A formatted prompt string ending with ``JSON: ``.
@@ -173,11 +199,16 @@ def build_args_extraction_prompt(
         parts.append(_format_few_shot_block())
         parts.append("")  # blank line separator
 
-    parts.append(
+    body = (
         f"Function: {_signature(func)}\n"
         f"Description: {func.description}\n"
         f"User request: {query}\n"
+    )
+    if reasoning:
+        body += f"Reasoning: {reasoning.strip()}\n"
+    body += (
         f"Extract the argument values as a JSON object with keys: {arg_desc}.\n"
         f"JSON: "
     )
+    parts.append(body)
     return "\n".join(parts)

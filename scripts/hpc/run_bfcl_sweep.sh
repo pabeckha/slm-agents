@@ -44,6 +44,7 @@ config_to_script() {
         CD)     echo "${SCRIPT_DIR}/run_bfcl_eval.sh" ;;
         CDQ)    echo "${SCRIPT_DIR}/run_bfcl_quant.sh" ;;
         CDQRAG) echo "${SCRIPT_DIR}/run_bfcl_rag.sh" ;;
+        CDQITC) echo "${SCRIPT_DIR}/run_bfcl_itc.sh" ;;
         CDQFT)  echo "${SCRIPT_DIR}/run_bfcl_ft.sh" ;;
         CDQFTA) echo "${SCRIPT_DIR}/run_bfcl_cdqft_aligned.sh" ;;
         FT)     echo "${SCRIPT_DIR}/run_bfcl_ft_no_guided.sh" ;;

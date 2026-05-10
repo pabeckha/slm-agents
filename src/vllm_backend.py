@@ -6,7 +6,7 @@ import json
 
 from openai import OpenAI
 
-from .prompt import build_function_selection_prompt, build_args_extraction_prompt, build_parallel_selection_prompt
+from .prompt import build_function_selection_prompt, build_args_extraction_prompt, build_parallel_selection_prompt, build_reasoning_prompt
 from .schema import FunctionCall, FunctionDef
 
 # Map our simple type names to JSON Schema types.
@@ -61,11 +61,13 @@ class VLLMBackend:
         model_name: str = "Qwen/Qwen2.5-7B-Instruct",
         guided: bool = True,
         few_shot: bool = False,
+        cot: bool = False,
     ) -> None:
         self._client = OpenAI(base_url=base_url, api_key=api_key)
         self._model = model_name
         self._guided = guided
         self._few_shot = few_shot
+        self._cot = cot
 
     def process(self, prompt: str, functions: list[FunctionDef]) -> FunctionCall:
         fn_name = self._select_function(prompt, functions)
@@ -156,12 +158,25 @@ class VLLMBackend:
                 return name
         return raw
 
+    def _reason_about_args(self, prompt: str, func: FunctionDef) -> str:
+        """Free-generation CoT step. Returns reasoning text (capped at 256 tokens)."""
+        reasoning_prompt = build_reasoning_prompt(func, prompt)
+        response = self._client.completions.create(
+            model=self._model,
+            prompt=reasoning_prompt,
+            max_tokens=256,
+            temperature=0,
+            stop=["\nJSON:", "\nFunction:"],
+        )
+        return response.choices[0].text
+
     def _extract_args(
         self, prompt: str, func: FunctionDef,
     ) -> dict:
         """Extract arguments, optionally using guided_json."""
         schema = _build_args_json_schema(func)
-        ext_prompt = build_args_extraction_prompt(func, prompt, few_shot=self._few_shot)
+        reasoning = self._reason_about_args(prompt, func) if self._cot else None
+        ext_prompt = build_args_extraction_prompt(func, prompt, few_shot=self._few_shot, reasoning=reasoning)
 
         kwargs: dict = {}
         if self._guided:

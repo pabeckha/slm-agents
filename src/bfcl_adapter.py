@@ -239,6 +239,7 @@ def write_run_manifest(
     backend: str,
     guided: bool,
     few_shot: bool = False,
+    cot: bool = False,
     rag: bool = False,
     rag_top_k: int | None = None,
     rag_recall: float | None = None,
@@ -253,6 +254,8 @@ def write_run_manifest(
     config_tag = "guided" if guided else "no_guided"
     if few_shot:
         config_tag += "_few_shot"
+    if cot:
+        config_tag += "_cot"
     if rag:
         config_tag += f"_rag_top{rag_top_k}"
     if lora_base_model:
@@ -267,6 +270,7 @@ def write_run_manifest(
         "backend": backend,
         "guided": guided,
         "few_shot": few_shot,
+        "cot": cot,
         "rag": rag,
         "parallel": parallel,
     }
@@ -318,6 +322,10 @@ def main() -> None:
         help="Add few-shot examples to argument extraction prompts (Config PE)",
     )
     parser.add_argument(
+        "--cot", action="store_true",
+        help="Enable chain-of-thought reasoning before argument extraction (Config CD+Q+ITC)",
+    )
+    parser.add_argument(
         "--limit", type=int, default=None,
         help="Only process first N test cases",
     )
@@ -338,6 +346,9 @@ def main() -> None:
         help="Original base model ID when serving a LoRA-merged checkpoint (recorded in manifest only)",
     )
     args = parser.parse_args()
+
+    if args.cot and args.few_shot:
+        parser.error("--cot and --few-shot are mutually exclusive")
 
     data_dir = Path(args.bfcl_dir)
     output_dir = Path(args.output_dir)
@@ -410,6 +421,7 @@ def main() -> None:
             model_name=args.model,
             guided=not args.no_guided,
             few_shot=args.few_shot,
+            cot=args.cot,
         )
     elif args.backend == "gpt":
         from .frontier_backend import GPTBackend
@@ -513,6 +525,7 @@ def main() -> None:
         backend=args.backend,
         guided=guided,
         few_shot=args.few_shot,
+        cot=args.cot,
         rag=args.rag,
         rag_top_k=args.rag_top_k if args.rag else None,
         rag_recall=rag_hits / len(test_data) if rag_index is not None else None,
