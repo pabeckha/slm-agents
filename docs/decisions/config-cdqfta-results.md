@@ -46,7 +46,7 @@ The 2.5 pp quantization penalty on a LoRA-merged model (vs 0.5 pp on the base mo
 Alternatives not explored:
 - Calibrate AWQ on function-calling examples rather than generic text
 - Apply GPTQ instead of AWQ (different quantization algorithm)
-- Use a lower quantization level (e.g., INT8) to reduce precision loss
+- Use a higher bit-depth (e.g., INT8) to reduce precision loss
 
 For the thesis narrative, the practical conclusion is: the full CD+Q+FT stack is deployable on consumer hardware at 74.25% — 1.5 pp above the no-training ceiling and within 2.5 pp of the unquantized peak.
 
