@@ -1,9 +1,11 @@
 # Phase 1 Ablation Summary — Qwen 2.5 7B on BFCL Simple Python
 
-**Date compiled**: 2026-04-24; last updated 2026-05-10 (CD+Q+FT-aligned job 28395175 added)
+**Date compiled**: 2026-04-24; last updated 2026-05-10 (size sweep 0.5B/1.5B/3B added)
 **Benchmark**: BFCL v4 simple_python (400 test cases, AST accuracy)
 **Model family**: Qwen/Qwen2.5-7B-Instruct (FP16), Qwen/Qwen2.5-7B-Instruct-AWQ (INT4), and LoRA merged (bfloat16)
 **Infrastructure**: DTU HPC (A100 40GB, L40S 46GB)
+
+> **Size sweep across 0.5B–7B**: see `size-sweep-results.md` for per-size accuracy on all Phase 1 configs. Key finding: CD is essential at every size; AWQ penalty decreases with size; PE helps ≤3B but hurts 7B; ITC and RAG are harmful at every size.
 
 ## Results
 
@@ -103,3 +105,4 @@ See `config-cdqfta-results.md` for the full analysis.
 - `config-ft-lora-results.md` — LoRA fine-tuning, format mismatch analysis
 - `config-ft-lora-aligned-ablation.md` — format-aligned LoRA ablation, outcome interpretation
 - `config-cdqfta-results.md` — full stack CD+Q+FT-aligned, quantization cost on fine-tuned model
+- `size-sweep-results.md` — 0.5B/1.5B/3B/7B sweep across all Phase 1 configs
