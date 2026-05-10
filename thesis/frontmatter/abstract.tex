@@ -10,8 +10,8 @@ require. This thesis investigates which optimization techniques are sufficient
 to make a small language model reliably call tools, and at what accuracy cost
 each technique comes.
 
-A cumulative ablation study is conducted on \texttt{Qwen/Qwen2.5-7B-Instruct}
-across five techniques, evaluated on the Berkeley Function Calling Leaderboard
+An incremental ablation study is conducted on \texttt{Qwen/Qwen2.5-7B-Instruct}
+across six techniques, evaluated on the Berkeley Function Calling Leaderboard
 v4 \texttt{simple\_python} category (400 test cases, AST accuracy). The
 unoptimized model achieves 1.5\%, approximately 98 percentage points below
 frontier models. Constrained decoding alone raises accuracy to 72.75\%,
@@ -33,6 +33,9 @@ Constrained decoding resolves this gap structurally, and the quantized
 configuration (72.25\%, 5.20~GiB) is production-viable on a consumer
 NVIDIA RTX~4090. Prompting interventions cannot close the residual 27\%
 failure rate because those errors are in the model's learned value
-conventions, not in output format. Fine-tuning with exact format alignment
-between training and inference remains the direct path to accuracy above
-the no-training ceiling.
+conventions, not in output format. Format-aligned LoRA fine-tuning achieves
+76.75\%, a 4.0 percentage point improvement over the no-training ceiling.
+Applying AWQ INT4 quantization to the fine-tuned model yields 74.25\% at
+the same 5.20~GiB footprint, confirming that the LoRA training signal
+survives quantization in attenuated form and that fine-tuned capability
+is achievable on consumer hardware at INT4 size.

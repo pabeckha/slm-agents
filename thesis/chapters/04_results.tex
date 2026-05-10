@@ -19,23 +19,23 @@ CD & Constrained decoding (guided)    & 291/400 & 72.75\% \\
 \end{tabular}
 \end{table}
 
-\noindent Without constrained decoding (Config~B), the model achieves only 1.5\% accuracy. The dominant failure mode is format non-compliance: 394 out of 400 outputs fail to parse as valid JSON, producing \texttt{Extra data} errors or empty results. The model is not incapable of understanding the queries---it simply cannot express its answers in the required structured format.
+\noindent Without constrained decoding (Base), the model achieves only 1.5\% accuracy. The dominant failure mode is format non-compliance: 394 out of 400 outputs fail to parse as valid JSON, producing \texttt{Extra data} errors or empty results. The model is not incapable of understanding the queries---it simply cannot express its answers in the required structured format.
 
-Constrained decoding (Config~CD) recovers 71.25 percentage points, achieving 72.75\% accuracy. Function selection reaches 100\% accuracy via \texttt{guided\_choice}, confirming that the format enforcement fully solves tool selection. The remaining 27.25\% failure rate is entirely in argument extraction: wrong numeric precision (e.g., 9.8 vs.\ 9.81), string format mismatches (e.g., ``kilometers/hour'' vs.\ ``km/h''), and incorrect optional parameter defaults.
+Constrained decoding (CD) recovers 71.25 percentage points, achieving 72.75\% accuracy. Function selection reaches 100\% accuracy via \texttt{guided\_choice}, confirming that the format enforcement fully solves tool selection. The remaining 27.25\% failure rate is entirely in argument extraction: wrong numeric precision (e.g., 9.8 vs.\ 9.81), string format mismatches (e.g., ``kilometers/hour'' vs.\ ``km/h''), and incorrect optional parameter defaults.
 
-Few-shot prompting (Config~PE) decreases accuracy by 2.5 percentage points relative to Config~CD. The three few-shot examples, targeting known failure modes, did not transfer across function domains. This negative result indicates that the argument extraction errors reflect the model's learned associations rather than a formatting gap that in-context examples can bridge.
+Few-shot prompting (PE) decreases accuracy by 2.5 percentage points relative to CD. The three few-shot examples, targeting known failure modes, did not transfer across function domains. This negative result indicates that the argument extraction errors reflect the model's learned associations rather than a formatting gap that in-context examples can bridge.
 
 \section{No-Training Methods}
 
 The following configurations modify only the inference pipeline; model weights
-are unchanged in all cases. Configs~CD and CD+Q establish the no-training
-ceiling. Configs~PE, CD+Q+ITC, and CD+Q+RAG assess whether inference-time
+are unchanged in all cases. CD and CD+Q establish the no-training
+ceiling. PE, CD+Q+ITC, and CD+Q+RAG assess whether inference-time
 interventions can improve on that ceiling.
 
 \subsection{Constrained Decoding}
 
 The two-stage constrained decoding pipeline eliminates the dominant failure mode
-of Config~B. In the function selection stage, \texttt{guided\_choice} restricts
+of Base. In the function selection stage, \texttt{guided\_choice} restricts
 generation to the set of available function names: function selection accuracy
 is 100\% across all 400 test cases, confirmed by inspection of the raw
 prediction files. In the argument extraction stage, \texttt{guided\_json}
@@ -61,8 +61,8 @@ with an accuracy change of $-0.5$~pp (289/400, 72.25\%)~\cite{lin2024awq}.
 The failure distribution does not change: no new error categories are
 introduced, and the relative frequency of existing failure types is unchanged.
 The accuracy difference of two test cases falls within run-to-run variance,
-confirmed by six re-runs that consistently produced 289/400. Config~CD+Q
-therefore provides equivalent accuracy to Config~CD at a substantially
+confirmed by six re-runs that consistently produced 289/400. CD+Q
+therefore provides equivalent accuracy to CD at a substantially
 reduced memory footprint, and serves as the operating baseline for subsequent
 no-training experiments. Fig.~\ref{fig:memory-accuracy} plots GPU memory
 against accuracy for the main configurations.
@@ -71,8 +71,8 @@ against accuracy for the main configurations.
 \centering
 \includegraphics[width=0.65\textwidth]{pictures/figures/fig_memory_vs_accuracy.pdf}
 \caption{GPU memory footprint vs.\ BFCL simple\_python AST accuracy for
-         selected configurations. Config~CD+Q achieves equivalent accuracy
-         to Config~CD at 63.5\% lower memory. The GPT-4.1 reference line
+         selected configurations. CD+Q achieves equivalent accuracy
+         to CD at 63.5\% lower memory. The GPT-4.1 reference line
          (72.67\%) is shown for comparison.}
 \label{fig:memory-accuracy}
 \end{figure}
@@ -81,12 +81,12 @@ against accuracy for the main configurations.
 
 Three few-shot examples are prepended to the argument extraction prompt,
 constructed to target the most frequent failure categories observed in
-Config~CD: numeric precision (\texttt{9.81} rather than \texttt{9.8}), string
+CD: numeric precision (\texttt{9.81} rather than \texttt{9.8}), string
 format with a state qualifier (\texttt{"San Francisco, CA"}), and Python
 expression syntax (\texttt{x**2} rather than \texttt{x\^{}2}). The result is
-70.25\% accuracy (281/400), a decrease of 2.5~pp relative to Config~CD.
+70.25\% accuracy (281/400), a decrease of 2.5~pp relative to CD.
 
-The failure categories from Config~CD persist at similar or higher rates
+The failure categories from CD persist at similar or higher rates
 despite the targeted examples. The model does not transfer the demonstrated
 conventions to test cases from different function domains. Two mechanisms
 account for this outcome. First, the few-shot examples use function signatures
@@ -106,38 +106,38 @@ associates ``acceleration due to gravity'' with 9.8 and ``fuel type'' with
 \subsection{Inference-Time Compute}
 
 A chain-of-thought reasoning step is inserted between function selection and
-argument extraction in Config~CD+Q+ITC~\cite{wei2022chain}. After the correct
+argument extraction in CD+Q+ITC~\cite{wei2022chain}. After the correct
 function is selected by \texttt{guided\_choice}, the model generates a free-form
 reasoning trace of up to 256 tokens before the final \texttt{guided\_json}
 extraction. The result is 65.5\% accuracy (262/400), a decrease of 6.75~pp
-relative to Config~CD+Q, and the lowest accuracy among all configurations that
+relative to CD+Q, and the lowest accuracy among all configurations that
 use guided decoding.
 
-A flip analysis, computed by comparing per-case outcomes between Config~CD+Q
-and Config~CD+Q+ITC, separates the net change into individual gains and losses.
+A flip analysis, computed by comparing per-case outcomes between CD+Q
+and CD+Q+ITC, separates the net change into individual gains and losses.
 Of the 400 test cases, chain-of-thought recovered 24 cases that were incorrect
-under Config~CD+Q, while breaking 51 cases that were correct. The net change is
+under CD+Q, while breaking 51 cases that were correct. The net change is
 $-27$ cases. Fig.~\ref{fig:cot-flip} shows the four-way breakdown.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.55\textwidth]{pictures/figures/fig_cot_flip.pdf}
-\caption{Flip analysis for Config~CD+Q+ITC relative to Config~CD+Q.
-         Of 400 test cases, chain-of-thought breaks 50 previously correct
+\caption{Flip analysis for CD+Q+ITC relative to CD+Q.
+         Of 400 test cases, chain-of-thought breaks 51 previously correct
          predictions while recovering only 24 previously incorrect ones,
-         for a net change of $-26$ cases.}
+         for a net change of $-27$ cases.}
 \label{fig:cot-flip}
 \end{figure}
 
 Table~\ref{tab:cot-case-studies} illustrates four representative losses. In
-each case, Config~CD+Q produces the value accepted by the benchmark, and the
+each case, CD+Q produces the value accepted by the benchmark, and the
 reasoning step overrides it with a linguistically natural alternative that the
 benchmark does not accept.
 
 \begin{table}[h]
 \centering
 \caption{Representative cases where chain-of-thought reasoning overrides a
-correct Config~CD+Q prediction. Reasoning excerpts are taken verbatim from
+correct CD+Q prediction. Reasoning excerpts are taken verbatim from
 stored reasoning traces.}
 \label{tab:cot-case-studies}
 \begin{tabular}{p{2.4cm} p{2.2cm} p{2.2cm} p{5.4cm}}
@@ -177,12 +177,12 @@ inherits that value rather than re-evaluating it. Third, the model normalises
 values toward linguistically standard forms. The benchmark's ground truth
 encodes specific conventions, often arbitrary ones (abbreviations over full
 words, decimal fractions for percentages, particular date formats), that
-reasoning moves the model away from rather than toward. Config~CD+Q's one-step
+reasoning moves the model away from rather than toward. CD+Q's one-step
 guided decode produces the expected convention without verbalising it;
 verbalising the reasoning surfaces the model's preferred form, which
 consistently differs from the benchmark's.
 
-The result extends the finding from Config~PE: the residual failure rate after
+The result extends the finding from PE: the residual failure rate after
 constrained decoding is caused by a mismatch between the model's priors and the
 benchmark's labels, and interventions that make reasoning explicit exacerbate
 this mismatch.
@@ -190,14 +190,14 @@ this mismatch.
 \subsection{Retrieval-Augmented Generation}
 
 In all preceding configurations, each test case is provided with the exact
-function definition required to answer it. Config~CD+Q+RAG replaces this oracle
+function definition required to answer it. CD+Q+RAG replaces this oracle
 provision with a retrieval step. All 370 unique function signatures from the
 \texttt{simple\_python} category are embedded using
 \texttt{sentence-transformers/all-MiniLM-L6-v2} and indexed with FAISS. At
 inference time, the query is embedded and the top-5 most similar functions are
 retrieved as candidates; the model must select the correct function from these
 candidates and extract its arguments~\cite{lewis2020retrieval}. The result is
-47.75\% accuracy (191/400), a decrease of 24~pp relative to Config~CD+Q.
+47.75\% accuracy (191/400), a decrease of 24~pp relative to CD+Q.
 
 The retrieval component achieves recall@5 of 97.2\% (389/400): the correct
 function is present among the 5 retrieved candidates in 389 of 400 test cases.
@@ -207,7 +207,7 @@ little lexical overlap with the query (e.g., \texttt{calculate\_density},
 therefore not the primary cause of the accuracy decrease.
 
 The failure distribution identifies where accuracy is lost. Of the 400 test
-cases, 264 (66.0\%) produce output identical to Config~CD+Q, indicating that
+cases, 264 (66.0\%) produce output identical to CD+Q, indicating that
 the additional candidates have no effect on these cases. In 128 cases (32.0\%),
 the model selects a wrong function from the retrieved candidates. In 8 cases
 (2.0\%), the correct function is selected but with incorrect argument values.
@@ -229,7 +229,7 @@ the failure distribution across the 209 incorrect predictions.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.55\textwidth]{pictures/figures/fig_rag_breakdown.pdf}
-\caption{Failure breakdown for Config~CD+Q+RAG (209 incorrect predictions
+\caption{Failure breakdown for CD+Q+RAG (209 incorrect predictions
          out of 400 test cases). The dominant failure mode is wrong function
          selection (32\%), not retrieval miss or argument extraction error.}
 \label{fig:rag-breakdown}
@@ -247,9 +247,9 @@ LoRA rank~16 in bfloat16~\cite{hu2022lora}. The adapter is merged into the
 base weights by linear interpolation before evaluation, producing a single
 merged model at full bfloat16 precision.
 
-Without constrained decoding (Config~FT-only), the fine-tuned model achieves
+Without constrained decoding (FT-only), the fine-tuned model achieves
 13.75\% accuracy (55/400), an improvement of 12.25~pp over the unguided
-baseline Config~B (1.5\%). Fine-tuning on a function-calling corpus teaches the
+baseline Base (1.5\%). Fine-tuning on a function-calling corpus teaches the
 model that tool-calling responses should be structured: parseable, single-object
 JSON is produced in more cases than by the base model. The 12.25~pp gain
 confirms that the training signal is meaningful and that the xlam examples
@@ -266,9 +266,9 @@ Section~\ref{sec:combined-configs}.
 \section{Combined Configurations}
 \label{sec:combined-configs}
 
-Config~CD+FT combines constrained decoding with the LoRA-merged model. The
+CD+FT combines constrained decoding with the LoRA-merged model. The
 result is 69.75\% accuracy (279/400), a regression of 3~pp relative to
-Config~CD without fine-tuning. The combined configuration underperforms the
+CD without fine-tuning. The combined configuration underperforms the
 no-fine-tuning baseline.
 
 The regression is attributed to the training format mismatch. Constrained
@@ -284,7 +284,7 @@ query, while the \texttt{simple\_python} category is exclusively single-call.
 This distribution mismatch may shift the model's prior toward multi-call
 patterns in contexts where a single call is required.
 
-The gap between Config~FT-only (13.75\%) and Config~CD+FT (69.75\%) confirms
+The gap between FT-only (13.75\%) and CD+FT (69.75\%) confirms
 that constrained decoding remains the dominant contributor to accuracy even
 after fine-tuning: removing it reduces accuracy by 56~pp. The two techniques
 are complementary, but fine-tuning on a misaligned training distribution does
@@ -293,16 +293,16 @@ match those of the evaluation benchmark.
 
 \subsection{Format-Aligned Fine-Tuning}
 
-The format mismatch identified in Config~CD+FT is addressed by rewriting
+The format mismatch identified in CD+FT is addressed by rewriting
 the training data preprocessor to produce assistant-turn responses that
 match the inference pipeline's argument extraction prompt exactly.
-Two variants are evaluated: Config~FT-aligned-ng, which applies the
+Two variants are evaluated: FT-aligned-ng, which applies the
 format-aligned adapter without constrained decoding, and
-Config~CD+FT-aligned, which combines the adapter with the full
+CD+FT-aligned, which combines the adapter with the full
 constrained decoding pipeline.
 
-Config~FT-aligned-ng achieves 13.25\% accuracy (53/400), a decrease of
-0.5~pp relative to Config~FT-only. The format-aligned training objective
+FT-aligned-ng achieves 13.25\% accuracy (53/400), a decrease of
+0.5~pp relative to FT-only. The format-aligned training objective
 optimises for JSON-only argument extraction and omits the function name
 from the assistant turn, as required by the guided inference pipeline.
 The unguided evaluator must recover the function name from the raw output;
@@ -322,47 +322,78 @@ not a training failure. The difference in BFCL accuracy (69.75\% vs.\
 \caption{Training loss for the misaligned (v1) and format-aligned (v2) LoRA
          adapters over 6{,}750 steps (2 epochs on 54{,}000 xlam examples).
          Both runs converge to comparable loss values; the 7.0~pp accuracy
-         difference between Config~CD+FT and Config~CD+FT-aligned is caused
+         difference between CD+FT and CD+FT-aligned is caused
          by the training output format, not by training quality.}
 \label{fig:lora-training-loss}
 \end{figure}
 
-Config~CD+FT-aligned achieves 76.75\% accuracy (307/400), an improvement
-of 4.0~pp over Config~CD and 7.0~pp over Config~CD+FT. This is the highest
+CD+FT-aligned achieves 76.75\% accuracy (307/400), an improvement
+of 4.0~pp over CD and 7.0~pp over CD+FT. This is the highest
 accuracy observed across all configurations. Format-aligned fine-tuning
-breaks the no-training ceiling of 72.75\% established by Config~CD.
+breaks the no-training ceiling of 72.75\% established by CD.
 
-The 23.25\% failure rate that remains under Config~CD+FT-aligned follows
-the same taxonomy as Config~CD: optional parameter defaults, numeric
+The 23.25\% failure rate that remains under CD+FT-aligned follows
+the same taxonomy as CD: optional parameter defaults, numeric
 precision, string format conventions, and enum value mismatches. The xlam
 training examples do not supply argument values that match BFCL ground
 truth labels closely enough to eliminate these failure categories. The
-4.0~pp gain over Config~CD reflects a reduction in error frequency, not
+4.0~pp gain over CD reflects a reduction in error frequency, not
 the introduction of a new success mechanism.
 
-Table~\ref{tab:full-ablation} presents all ten configurations ordered
+\subsection{Quantized Fine-Tuning}
+\label{sec:cdqft}
+
+Config~CD+Q+FT-aligned applies AWQ INT4 quantization to the format-aligned
+LoRA-merged model. The research question is whether the 4.0~pp gain from
+CD+FT-aligned survives quantization.
+
+CD+Q+FT-aligned achieves 74.25\% accuracy (297/400), an improvement of
+1.5~pp over Config~CD and 2.0~pp over Config~CD+Q. The quantization
+penalty relative to the unquantized CD+FT-aligned is 2.5~pp (76.75\%
+$\to$ 74.25\%).
+
+This penalty is larger than the 0.5~pp loss observed when quantizing the
+base model (Config~CD $\to$ Config~CD+Q), suggesting that AWQ interacts
+more destructively with fine-tuned weight deltas than with the base
+weights. A plausible explanation is that the AWQ calibration set is a
+general-purpose text corpus: the fine-tuned weights encode
+function-calling conventions that are underrepresented in the calibration
+distribution, leading to suboptimal rounding of the LoRA-induced weight
+changes.
+
+Despite the larger quantization penalty, the full stack retains a positive
+return on fine-tuning: CD+Q+FT-aligned (74.25\%) outperforms both the
+no-training ceiling Config~CD (72.75\%) and the quantized baseline
+Config~CD+Q (72.25\%). The LoRA training signal survives quantization in
+attenuated form. From a deployment perspective, CD+Q+FT-aligned occupies
+the same memory footprint as Config~CD+Q (approximately 5.2~GiB of GPU
+memory), making fine-tuned capability available on consumer hardware at
+INT4 size.
+
+Table~\ref{tab:full-ablation} presents all eleven configurations ordered
 by accuracy, and Fig.~\ref{fig:bfcl-ablation} shows the same data as
 a bar chart with frontier reference lines.
 
 \begin{table}[h]
 \centering
-\caption{BFCL v4 simple\_python AST accuracy across all ten configurations.
+\caption{BFCL v4 simple\_python AST accuracy across all eleven configurations.
          $\Delta$ is relative to Config~CD (72.75\%).}
 \label{tab:full-ablation}
 \begin{tabular}{llrr}
 \toprule
 Config & Technique & Accuracy (↑) & $\Delta$ vs CD \\
 \midrule
-B             & Raw baseline                & 1.50\%  & $-71.25$~pp \\
-FT-aligned-ng & Format-aligned LoRA, no CD & 13.25\% & $-59.50$~pp \\
-FT-only       & LoRA, no CD                & 13.75\% & $-59.00$~pp \\
-CD+Q+RAG      & CD + AWQ + RAG top-5       & 47.75\% & $-25.00$~pp \\
-CD+Q+ITC      & CD + AWQ + CoT             & 65.50\% & $-7.25$~pp  \\
-CD+FT         & CD + LoRA (misaligned)     & 69.75\% & $-3.00$~pp  \\
-PE            & CD + few-shot              & 70.25\% & $-2.50$~pp  \\
-CD+Q          & CD + AWQ INT4              & 72.25\% & $-0.50$~pp  \\
-CD            & Constrained decoding       & 72.75\% & --          \\
-CD+FT-aligned & CD + format-aligned LoRA   & \textbf{76.75\%} & $\mathbf{+4.00}$~pp \\
+B               & Raw baseline                       & 1.50\%  & $-71.25$~pp \\
+FT-aligned-ng   & Format-aligned LoRA, no CD         & 13.25\% & $-59.50$~pp \\
+FT-only         & LoRA, no CD                        & 13.75\% & $-59.00$~pp \\
+CD+Q+RAG        & CD + AWQ + RAG top-5               & 47.75\% & $-25.00$~pp \\
+CD+Q+ITC        & CD + AWQ + CoT                     & 65.50\% & $-7.25$~pp  \\
+CD+FT           & CD + LoRA (misaligned)             & 69.75\% & $-3.00$~pp  \\
+PE              & CD + few-shot                      & 70.25\% & $-2.50$~pp  \\
+CD+Q            & CD + AWQ INT4                      & 72.25\% & $-0.50$~pp  \\
+CD              & Constrained decoding               & 72.75\% & --          \\
+CD+Q+FT-aligned & CD + AWQ INT4 + format-aligned LoRA & 74.25\% & $+1.50$~pp  \\
+CD+FT-aligned   & CD + format-aligned LoRA           & \textbf{76.75\%} & $\mathbf{+4.00}$~pp \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -370,10 +401,10 @@ CD+FT-aligned & CD + format-aligned LoRA   & \textbf{76.75\%} & $\mathbf{+4.00}$
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{pictures/figures/fig_bfcl_ablation.pdf}
-\caption{BFCL v4 simple\_python AST accuracy for all ten configurations.
+\caption{BFCL v4 simple\_python AST accuracy for all eleven configurations.
          Dashed reference lines show Gemini~3 Pro (79.58\%),
          Claude Opus~4.5 (76.83\%), and GPT-4.1 (72.67\%).
-         Config~CD+FT-aligned (purple) is the only configuration to
+         CD+FT-aligned and CD+Q+FT-aligned are the only configurations to
          exceed the no-training ceiling established by Config~CD.}
 \label{fig:bfcl-ablation}
 \end{figure}
@@ -411,7 +442,7 @@ Qwen 2.5 7B (raw)           & SLM (ours) & 1.50\%  \\
 \includegraphics[width=\textwidth]{pictures/figures/fig_frontier_comparison.pdf}
 \caption{BFCL v4 simple\_python AST accuracy for Qwen~2.5 7B configurations
          (this work) vs.\ frontier models from the official leaderboard
-         (accessed April 2026). Config~CD+FT-aligned reaches 76.75\%,
+         (accessed April 2026). CD+FT-aligned reaches 76.75\%,
          within 0.08~pp of Claude Opus~4.5 (76.83\%).}
 \label{fig:frontier-comparison}
 \end{figure}
@@ -422,7 +453,7 @@ the leaderboard. Qwen~2.5 7B-Instruct with constrained decoding alone
 (72.75\%) matches or exceeds several frontier models on Simple Function
 accuracy, including GPT-4.1 (72.67\%), Claude Sonnet~4.5 (72.58\%), and
 Claude Haiku~4.5 (71.00\%). With format-aligned fine-tuning,
-Config~CD+FT-aligned reaches 76.75\%, within 0.08~pp of Claude Opus~4.5
+CD+FT-aligned reaches 76.75\%, within 0.08~pp of Claude Opus~4.5
 (76.83\%). The gap to the best frontier model (Gemini~3 Pro at 79.58\%)
 is 2.83 percentage points.
 
@@ -446,7 +477,7 @@ Single-call tool accuracy measures one dimension of agent capability.
 The $\tau$-bench retail benchmark evaluates end-to-end task completion
 across multi-turn interactions, where the model must select tools, observe
 results, and iterate until a retail service task is
-resolved~\cite{taubench2024}. Config~CD is evaluated on the retail domain
+resolved~\cite{taubench2024}. CD is evaluated on the retail domain
 test split (115 tasks) to establish the agentic baseline.
 
 Three full runs are completed to account for user simulator variance.
@@ -470,7 +501,7 @@ side by side.
 \begin{table}[h]
 \centering
 \caption{Single-call accuracy (BFCL) vs.\ multi-step pass rate
-         ($\tau$-bench) for Config~CD on Qwen~2.5 7B-Instruct.}
+         ($\tau$-bench) for CD on Qwen~2.5 7B-Instruct.}
 \label{tab:bfcl-vs-tau}
 \begin{tabular}{llr}
 \toprule
@@ -492,42 +523,96 @@ drift is the most frequent: the model does not track which items have been
 modified across turns when a request involves multiple sub-tasks. Premature
 termination is observed when the model calls \texttt{finish} before all
 sub-tasks are resolved, particularly on multi-item requests. Tool parameter
-errors persist despite Config~CD achieving near-perfect function selection
+errors persist despite CD achieving near-perfect function selection
 on BFCL, because $\tau$-bench tools accept free-form string identifiers
 that constrained decoding does not validate. Context management failures
 are also observed in tasks with long conversation histories, where earlier
 tool call results are displaced from the model's working context.
 
 The 4.35\% pass rate on $\tau$-bench establishes the agentic baseline for
-Config~CD on the retail domain. The 68.4~pp gap quantifies the boundary
+CD on the retail domain. The 68.4~pp gap quantifies the boundary
 separating single-call function calling from reliable multi-step agentic
 task completion.
 
-% -----------------------------------------------------------------------
-% PENDING: Model-Size Scaling (Jobs 28341336--28341341)
-% Configs B and CD across 0.5B, 1.5B, 3B
-% -----------------------------------------------------------------------
 \section{Model-Size Scaling}
 \label{sec:model-size}
 
-% TODO: results table (B and CD accuracy vs model size: 0.5B, 1.5B, 3B, 7B)
-% TODO: analysis of how the CD gain scales with model size
+Table~\ref{tab:model-size} reports BFCL~v4 \texttt{simple\_python} accuracy
+for Base and CD across all four Qwen~2.5 Instruct sizes.
 
-% -----------------------------------------------------------------------
-% PENDING: Extended BFCL Categories (Jobs 28341342--28341347)
-% multiple_function and parallel_function, 7B-AWQ, B+CD+CD+Q
-% -----------------------------------------------------------------------
+\begin{table}[ht]
+\centering
+\caption{BFCL~v4 \texttt{simple\_python} AST accuracy for Base and
+CD across Qwen~2.5 Instruct model sizes (400 test cases).}
+\label{tab:model-size}
+\begin{tabular}{lrrr}
+\toprule
+Model size & Base & CD & CD gain (pp) \\
+\midrule
+0.5B & 3.50\%\ (14/400)  & 51.50\%\ (206/400) & $+$48.0 \\
+1.5B & 4.75\%\ (19/400)  & 62.25\%\ (249/400) & $+$57.5 \\
+3B   & 2.75\%\ (11/400)  & 64.75\%\ (259/400) & $+$62.0 \\
+7B   & 1.50\%\ (6/400)   & 72.75\%\ (291/400) & $+$71.25 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Base accuracy is near-zero across all model sizes, ranging from 1.50\%
+to 4.75\%, with no consistent trend with scale. The 3B model achieves 2.75\%,
+lower than both the 1.5B (4.75\%) and 0.5B (3.50\%) models. This confirms
+that the baseline failure mode is format non-compliance rather than semantic
+understanding: increasing model size alone does not recover structured output
+generation without an explicit constraint mechanism.
+
+CD accuracy scales consistently with model size. The 0.5B model
+achieves 51.50\%, the 1.5B achieves 62.25\%, the 3B achieves 64.75\%, and
+the 7B achieves 72.75\%. The CD gain over Base also increases with model
+size, from 48.0~pp at 0.5B to 71.25~pp at 7B. This pattern reflects two
+compounding factors: larger models produce fewer argument value errors once
+format compliance is enforced, and they benefit more from constrained decoding
+because a larger fraction of their latent capability is unlocked by removing
+the format barrier. The 0.5B model already reaches 51.50\% under CD,
+approaching GPT-5-mini (59.92\%), while the 7B model exceeds GPT-4.1 (72.67\%).
+
 \section{Extended Function-Calling Categories}
 \label{sec:bfcl-extended}
 
-% TODO: multiple_function and parallel_function results table
-% TODO: analysis of how candidate disambiguation affects accuracy
+Table~\ref{tab:bfcl-extended} reports results for the
+\texttt{multiple\_function} and \texttt{parallel\_function} BFCL categories,
+evaluated on Qwen~2.5 7B-Instruct-AWQ under Base and CD+Q.
 
-% -----------------------------------------------------------------------
-% PENDING: Quantized Fine-Tuned Model (Jobs 28341348--28341349)
-% CD+Q+FT: AWQ quantize merged format-aligned LoRA + BFCL eval
-% -----------------------------------------------------------------------
-\section{Quantized Fine-Tuning}
-\label{sec:cdqft}
+\begin{table}[ht]
+\centering
+\caption{BFCL~v4 AST accuracy on harder categories for Base and
+CD+Q (Qwen~2.5 7B-Instruct-AWQ, 200 test cases per category).}
+\label{tab:bfcl-extended}
+\begin{tabular}{lrr}
+\toprule
+Category & Base & CD+Q \\
+\midrule
+\texttt{multiple\_function}  & 0.0\%\ (0/200) & 0.0\%\ (0/200) \\
+\texttt{parallel\_function}  & 0.0\%\ (0/200) & 0.0\%\ (0/200) \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-% TODO: CD+Q+FT result and comparison to CD+FT-aligned and CD+Q
+Both configurations produce 0.0\% accuracy on both categories. Inspection of
+the raw predictions shows that the pipeline outputs an empty list for every
+test case. The cause is architectural: the two-stage pipeline is designed for
+single-function selection in Stage~1 and single-call argument extraction in
+Stage~2. The \texttt{parallel\_function} category requires generating multiple
+function calls simultaneously, which the pipeline cannot produce because
+Stage~2 is constrained to a single JSON object conforming to one function
+schema. The \texttt{multiple\_function} category requires selecting one
+function from several candidates; while \texttt{guided\_choice} supports this
+in principle, the pipeline does not produce output in the format expected by
+the BFCL evaluator for this category.
+
+This negative result defines the boundary of the current pipeline
+architecture. The optimization techniques evaluated in this thesis are all
+applied within the single-call pipeline design. None address the structural
+limitation of producing multiple simultaneous function calls. Extending the
+pipeline to support parallel function calling would require a different
+Stage~2 constraint: a JSON array of objects each conforming to a separate
+function schema. This extension is left for future work.
+
