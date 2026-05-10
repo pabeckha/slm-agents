@@ -1,7 +1,7 @@
 ---
 title: "Master Plan: SLM Agents Thesis"
 category: "project"
-lastUpdated: "2026-05-02"
+lastUpdated: "2026-05-10"
 status: "active"
 ---
 
@@ -25,10 +25,11 @@ Single source of truth for project state.
 | Config FT-only | LoRA alone, no CD or Q | Done — 13.75% AST |
 | Config FT-aligned-ng | Format-aligned LoRA, no CD | Done — 13.25% AST |
 | Config CD+FT-aligned | CD + format-aligned LoRA | Done — **76.75% AST** ← best |
-| Config CD+Q+FT | CD + AWQ quant + LoRA (requires QLoRA or post-merge AWQ) | Dropped — autoawq incompatible with transformers>=4.46; not needed for thesis argument |
-| τ-bench CD (retail) | Multi-step agentic, tool-calling, 115 tasks | Done — **4.3% pass rate** |
+| Config CD+Q+FT-aligned | CD + AWQ INT4 + format-aligned LoRA (post-merge AWQ, job 28395175) | Done — **74.25% AST** |
+| τ-bench CD (retail) | Multi-step agentic, tool-calling, 115 tasks | Done — **4.35% pass rate** |
+| Model-size sweep | CD+Q, PE, CD+Q+ITC, CD+Q+RAG, CD+FT-aligned × 0.5B/1.5B/3B | **Submitted — pending HPC** (issues #48–#52) |
 
-Full Phase 1 + Phase 2 summary: `docs/decisions/phase1-ablation-summary.md`
+Full result analyses: `docs/decisions/`
 
 ---
 
@@ -36,41 +37,36 @@ Full Phase 1 + Phase 2 summary: `docs/decisions/phase1-ablation-summary.md`
 
 | Chapter | Status |
 |---------|--------|
-| 1. Introduction | Draft |
-| 2. Background | Draft — "TALK ABOUT AGENTS" section still a stub |
-| 3. Methodology | In progress — PE, RAG, LoRA, τ-bench sections still stubs |
-| 4. Results | **Empty** — Phase 1 data ready to write now |
-| 5. Discussion | Empty |
-| 6. Conclusion | Empty |
+| 1. Introduction | Draft — needs sharpening with final numbers (#55) |
+| 2. Background | Draft |
+| 3. Methodology | Complete — 7 configs in eval ladder, all sections written |
+| 4. Results | Complete — all 11 configs written; model-size section pending scale-study results |
+| 5. Discussion | Draft — related work connections to deepen (#40) |
+| 6. Conclusion | Draft |
 | Appendix | Not started — AI tool usage disclosure (Vancouver Convention) |
 
-Current page count: ~28 pages. Target: 50–60 pages.
+Current page count: ~50 pages. Target: 60–100 pages.
 
 ---
 
 ## Open Tasks
 
 ### Experiments
-- [x] FT alone (no CD/Q) — done, 13.75%
-- [x] FT-aligned-ng — done, 13.25%
-- [x] CD+FT-aligned — done, 76.75%
-- [x] τ-bench full run (retail domain) — done, 4.3% pass rate
-- [x] CD+Q+FT: dropped — autoawq/transformers version conflict; story complete without it
-- [ ] Model-size sweep: 0.5B, 1.5B, 3B × CD + B (script ready: `run_bfcl_sweep.sh`)
-- [ ] BFCL multiple + parallel categories
+- [ ] Model-size sweep: 0.5B, 1.5B, 3B × 5 configs — submitted, awaiting results (issues #48–#52)
+- [ ] BFCL multiple + parallel categories (issue #36 — real-world evaluation)
 
-### Writing (Methodology remaining)
-- [ ] Section: Prompt Engineering and Few-Shot
-- [ ] Section: Retrieval-Augmented Generation
-- [ ] Section: LoRA Fine-Tuning
-- [ ] Section: τ-bench (data in hand — write now)
-- [ ] Section: Background — Agents with LLMs stub
-
-### Writing (Pending experiments)
-- [ ] Chapter 4: Results
-- [ ] Chapter 5: Discussion
-- [ ] Chapter 6: Conclusion
+### Writing (unblocked now)
+- [ ] #40 — Deepen discussion chapter with related work connections
+- [ ] #55 — Sharpen introduction with final results preview
+- [ ] #57 — Update master-plan (this task)
 - [ ] Appendix: AI tool usage disclosure (Vancouver Convention)
+
+### Writing (blocked on scale-study results)
+- [ ] Results section: Model-Size Scaling — fill in once #48–#52 complete
+- [ ] Discussion: scaling analysis implications
+
+### Polish (pre-submission)
+- [ ] #56 — Full read-through: figures, cross-references, bibliography, config label consistency
 
 ---
 
@@ -87,6 +83,7 @@ Current page count: ~28 pages. Target: 50–60 pages.
 | τ-bench user simulator | gpt-4o-mini (OpenAI) | Sufficient for user simulation, much cheaper than gpt-4o |
 | Frontier baseline source | BFCL leaderboard (published scores) | Canonical, avoids API cost |
 | Primary GPU queue | gpul40s (L40S 46GB) | Less congested than gpua100 |
+| CD+Q+FT approach | Post-merge AWQ (autoawq + compatible transformers pin) | QLoRA ruled out; post-merge quantization viable with dependency fix |
 
 ---
 
@@ -96,13 +93,11 @@ Current page count: ~28 pages. Target: 50–60 pages.
 - Knowledge distillation — time constraints
 - Multiple model families (Phi-4 Mini, Llama 3.2) — narrowed to Qwen 2.5
 - CoT/ReAct on single-call BFCL — ITC was a strong negative result; ReAct reserved for τ-bench only
-- CD+Q+FT — autoawq 0.2.9 incompatible with transformers>=4.46; quantization-after-LoRA not critical given CD+FT-aligned (76.75%) and CD+Q (72.25%) tell the story
 
 ---
 
 ## Related Documents
 
-- `status.md` — current state, timeline, success criteria
 - `docs/planning/experiment-spec.md` — benchmark and pipeline details
 - `docs/decisions/` — per-config result analyses
 - `docs/decisions/phase1-ablation-summary.md` — Phase 1 consolidated results
