@@ -15,19 +15,18 @@ DRY_RUN=0
 
 SCRIPT="$(cd "$(dirname "$0")" && pwd)/train_lora_aligned.sh"
 
-declare -A WALL_TIMES=(
-    ["Qwen/Qwen2.5-0.5B-Instruct"]="02:00"
-    ["Qwen/Qwen2.5-1.5B-Instruct"]="03:00"
-    ["Qwen/Qwen2.5-3B-Instruct"]="05:00"
-)
-
 submitted=()
 
-for MODEL in "Qwen/Qwen2.5-0.5B-Instruct" "Qwen/Qwen2.5-1.5B-Instruct" "Qwen/Qwen2.5-3B-Instruct"; do
-    SIZE=$(echo "$MODEL" | grep -oP '\d+\.\d+B')
+for ENTRY in \
+    "Qwen/Qwen2.5-0.5B-Instruct:02:00" \
+    "Qwen/Qwen2.5-1.5B-Instruct:03:00" \
+    "Qwen/Qwen2.5-3B-Instruct:05:00"
+do
+    MODEL="${ENTRY%%:*}"
+    WALL="${ENTRY#*:}"
+    SIZE=$(echo "$MODEL" | grep -oP '[0-9]+\.[0-9]+B')
     SAFE=$(echo "$MODEL" | tr '/' '_')
     ADAPTER_DIR="models/lora/${SAFE}-aligned"
-    WALL="${WALL_TIMES[$MODEL]}"
 
     if [[ $DRY_RUN -eq 1 ]]; then
         echo "DRY RUN: MODEL=$MODEL ADAPTER_DIR=$ADAPTER_DIR  (wall: $WALL)"
