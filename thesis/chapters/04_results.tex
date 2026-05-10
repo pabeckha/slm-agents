@@ -340,29 +340,60 @@ truth labels closely enough to eliminate these failure categories. The
 4.0~pp gain over CD reflects a reduction in error frequency, not
 the introduction of a new success mechanism.
 
-Table~\ref{tab:full-ablation} presents all ten configurations ordered
+\subsection{Quantized Fine-Tuning}
+\label{sec:cdqft}
+
+Config~CD+Q+FT-aligned applies AWQ INT4 quantization to the format-aligned
+LoRA-merged model. The research question is whether the 4.0~pp gain from
+CD+FT-aligned survives quantization.
+
+CD+Q+FT-aligned achieves 74.25\% accuracy (297/400), an improvement of
+1.5~pp over Config~CD and 2.0~pp over Config~CD+Q. The quantization
+penalty relative to the unquantized CD+FT-aligned is 2.5~pp (76.75\%
+$\to$ 74.25\%).
+
+This penalty is larger than the 0.5~pp loss observed when quantizing the
+base model (Config~CD $\to$ Config~CD+Q), suggesting that AWQ interacts
+more destructively with fine-tuned weight deltas than with the base
+weights. A plausible explanation is that the AWQ calibration set is a
+general-purpose text corpus: the fine-tuned weights encode
+function-calling conventions that are underrepresented in the calibration
+distribution, leading to suboptimal rounding of the LoRA-induced weight
+changes.
+
+Despite the larger quantization penalty, the full stack retains a positive
+return on fine-tuning: CD+Q+FT-aligned (74.25\%) outperforms both the
+no-training ceiling Config~CD (72.75\%) and the quantized baseline
+Config~CD+Q (72.25\%). The LoRA training signal survives quantization in
+attenuated form. From a deployment perspective, CD+Q+FT-aligned occupies
+the same memory footprint as Config~CD+Q (approximately 5.2~GiB of GPU
+memory), making fine-tuned capability available on consumer hardware at
+INT4 size.
+
+Table~\ref{tab:full-ablation} presents all eleven configurations ordered
 by accuracy, and Fig.~\ref{fig:bfcl-ablation} shows the same data as
 a bar chart with frontier reference lines.
 
 \begin{table}[h]
 \centering
-\caption{BFCL v4 simple\_python AST accuracy across all ten configurations.
-         $\Delta$ is relative to CD (72.75\%).}
+\caption{BFCL v4 simple\_python AST accuracy across all eleven configurations.
+         $\Delta$ is relative to Config~CD (72.75\%).}
 \label{tab:full-ablation}
 \begin{tabular}{llrr}
 \toprule
 Config & Technique & Accuracy (↑) & $\Delta$ vs CD \\
 \midrule
-B             & Raw baseline                & 1.50\%  & $-71.25$~pp \\
-FT-aligned-ng & Format-aligned LoRA, no CD & 13.25\% & $-59.50$~pp \\
-FT-only       & LoRA, no CD                & 13.75\% & $-59.00$~pp \\
-CD+Q+RAG      & CD + AWQ + RAG top-5       & 47.75\% & $-25.00$~pp \\
-CD+Q+ITC      & CD + AWQ + CoT             & 65.50\% & $-7.25$~pp  \\
-CD+FT         & CD + LoRA (misaligned)     & 69.75\% & $-3.00$~pp  \\
-PE            & CD + few-shot              & 70.25\% & $-2.50$~pp  \\
-CD+Q          & CD + AWQ INT4              & 72.25\% & $-0.50$~pp  \\
-CD            & Constrained decoding       & 72.75\% & --          \\
-CD+FT-aligned & CD + format-aligned LoRA   & \textbf{76.75\%} & $\mathbf{+4.00}$~pp \\
+B               & Raw baseline                       & 1.50\%  & $-71.25$~pp \\
+FT-aligned-ng   & Format-aligned LoRA, no CD         & 13.25\% & $-59.50$~pp \\
+FT-only         & LoRA, no CD                        & 13.75\% & $-59.00$~pp \\
+CD+Q+RAG        & CD + AWQ + RAG top-5               & 47.75\% & $-25.00$~pp \\
+CD+Q+ITC        & CD + AWQ + CoT                     & 65.50\% & $-7.25$~pp  \\
+CD+FT           & CD + LoRA (misaligned)             & 69.75\% & $-3.00$~pp  \\
+PE              & CD + few-shot                      & 70.25\% & $-2.50$~pp  \\
+CD+Q            & CD + AWQ INT4                      & 72.25\% & $-0.50$~pp  \\
+CD              & Constrained decoding               & 72.75\% & --          \\
+CD+Q+FT-aligned & CD + AWQ INT4 + format-aligned LoRA & 74.25\% & $+1.50$~pp  \\
+CD+FT-aligned   & CD + format-aligned LoRA           & \textbf{76.75\%} & $\mathbf{+4.00}$~pp \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -370,11 +401,11 @@ CD+FT-aligned & CD + format-aligned LoRA   & \textbf{76.75\%} & $\mathbf{+4.00}$
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{pictures/figures/fig_bfcl_ablation.pdf}
-\caption{BFCL v4 simple\_python AST accuracy for all ten configurations.
+\caption{BFCL v4 simple\_python AST accuracy for all eleven configurations.
          Dashed reference lines show Gemini~3 Pro (79.58\%),
          Claude Opus~4.5 (76.83\%), and GPT-4.1 (72.67\%).
-         CD+FT-aligned (purple) is the only configuration to
-         exceed the no-training ceiling established by CD.}
+         CD+FT-aligned and CD+Q+FT-aligned are the only configurations to
+         exceed the no-training ceiling established by Config~CD.}
 \label{fig:bfcl-ablation}
 \end{figure}
 
@@ -585,4 +616,3 @@ pipeline to support parallel function calling would require a different
 Stage~2 constraint: a JSON array of objects each conforming to a separate
 function schema. This extension is left for future work.
 
-% PENDING: CD+Q+FT results (HPC jobs 28341348--28341349) -- section to be added once results are in.
