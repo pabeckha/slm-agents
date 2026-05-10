@@ -25,7 +25,8 @@ const target = path.join(
   __dirname, '..', 'node_modules', '@unocss', 'vite', 'dist', 'index.mjs'
 );
 
-let code = fs.readFileSync(target, 'utf8');
+const original = fs.readFileSync(target, 'utf8');
+let code = original;
 
 // Patch 1: remove sendUpdate from invalidate timer
 code = code.replace(
@@ -38,6 +39,11 @@ code = code.replace(
   /if \(lastServedHash\.get\(layer\) !== preHash\) sendUpdate\(entries\);/,
   '// sendUpdate removed to prevent HMR loop'
 );
+
+if (code === original) {
+  console.error('Patch failed: no regex matched. @unocss/vite may have changed its internals.');
+  process.exit(1);
+}
 
 fs.writeFileSync(target, code, 'utf8');
 console.log('Patched @unocss/vite HMR loop');
