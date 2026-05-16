@@ -20,7 +20,7 @@ submitted=0
 for MODEL in "Qwen/Qwen2.5-0.5B-Instruct" "Qwen/Qwen2.5-1.5B-Instruct" "Qwen/Qwen2.5-3B-Instruct"; do
     SAFE=$(echo "$MODEL" | tr '/' '_')
     MERGED="${PROJECT_DIR}/models/merged/${SAFE}-merged-aligned"
-    SIZE=$(echo "$MODEL" | grep -oP '\d+\.\d+B')
+    SIZE=$(echo "$MODEL" | grep -oP '\d+(\.\d+)?B')
 
     if [[ ! -d "$MERGED" ]]; then
         echo "WARNING: merged model not found at $MERGED — skipping $MODEL"
