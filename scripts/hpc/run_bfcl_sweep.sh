@@ -40,12 +40,15 @@ done
 # ── Config → script mapping ───────────────────────────────────────────────
 config_to_script() {
     case "$1" in
-        B)      echo "${SCRIPT_DIR}/run_bfcl_no_guided.sh" ;;
-        CD)     echo "${SCRIPT_DIR}/run_bfcl_eval.sh" ;;
-        CDQ)    echo "${SCRIPT_DIR}/run_bfcl_quant.sh" ;;
-        CDQRAG) echo "${SCRIPT_DIR}/run_bfcl_rag.sh" ;;
-        CDQITC) echo "${SCRIPT_DIR}/run_bfcl_itc.sh" ;;
-        CDQFT)  echo "${SCRIPT_DIR}/run_bfcl_ft.sh" ;;
+        B)         echo "${SCRIPT_DIR}/run_bfcl_no_guided.sh" ;;
+        CD)        echo "${SCRIPT_DIR}/run_bfcl_eval.sh" ;;
+        CDQ)       echo "${SCRIPT_DIR}/run_bfcl_quant.sh" ;;
+        CDQRAG)    echo "${SCRIPT_DIR}/run_bfcl_rag.sh" ;;
+        CDQITC)    echo "${SCRIPT_DIR}/run_bfcl_itc.sh" ;;
+        CDQFT)     echo "${SCRIPT_DIR}/run_bfcl_ft.sh" ;;
+        PE_NOCD)   echo "${SCRIPT_DIR}/run_bfcl_few_shot_no_guided.sh" ;;
+        COT_NOCD)  echo "${SCRIPT_DIR}/run_bfcl_cot_no_guided.sh" ;;
+        RAG_NOCD)  echo "${SCRIPT_DIR}/run_bfcl_rag_no_guided.sh" ;;
         CDQFTA) echo "${SCRIPT_DIR}/run_bfcl_cdqft_aligned.sh" ;;
         FT)     echo "${SCRIPT_DIR}/run_bfcl_ft_no_guided.sh" ;;
         PE)     echo "${SCRIPT_DIR}/run_bfcl_few_shot.sh" ;;
