@@ -38,6 +38,55 @@ category. Scale is not the bottleneck for format compliance. The residual
 gap is a semantic problem, attributable to the model's learned associations
 between function schema contexts and specific value forms.
 
+\subsection{Effect of Model Scale on CD Performance}
+
+The format compliance failure that accounts for 98.5\% of Base errors
+is not resolved by scale.
+Without constrained decoding, accuracy across the 0.5B, 1.5B, 3B,
+and 7B Qwen~2.5 models ranges from 2.8\% to 4.8\%, despite a
+14-fold difference in parameter count.
+The six correct outputs in 7B Base and the fourteen correct outputs
+in 0.5B Base are produced by chance; the underlying failure mode,
+malformed or conversational output rather than a single valid JSON
+object, is present at every scale.
+
+With constrained decoding applied, the accuracy curve follows a
+consistent scaling relationship~\cite{kaplan2020scaling}: 51.5\%
+at 0.5B, 62.3\% at 1.5B, 64.8\% at 3B, and 72.75\% at 7B.
+The steepest gain occurs between 0.5B and 1.5B (+10.8~pp); the
+1.5B-to-3B step is flatter (+2.5~pp); the 3B-to-7B step recovers
+to +8.0~pp.
+Constrained decoding shifts the entire curve upward without altering
+its shape, consistent with the view that format compliance and
+semantic accuracy are separable and that the scaling relationship
+governs the latter.
+
+The AWQ quantization penalty is inversely related to model size.
+The accuracy loss relative to the FP16 baseline is 3.7~pp at 0.5B,
+1.8~pp at 1.5B, 0.3~pp at 3B, and 0.5~pp at 7B.
+At 3B and above, the INT4 approximation falls within run-to-run
+variance.
+At 0.5B, the 3.7~pp loss reflects the reduced parameter redundancy
+available to absorb quantization error, consistent with the
+sensitivity of AWQ calibration on small weight
+matrices~\cite{lin2024awq}.
+Quantization is therefore safe for deployment above 1.5B and
+introduces a meaningful but bounded cost at 0.5B.
+
+Few-shot prompting (Config~PE) reverses direction at 7B.
+At 0.5B, 1.5B, and 3B, the three in-context examples improve
+accuracy by 2.0 to 2.5~pp over the CD baseline, suggesting the
+examples compensate for weaker internal argument-value
+representations at smaller scales.
+At 7B, the same examples reduce accuracy by 2.5~pp.
+The approximately 300 additional context tokens introduced by the
+examples appear to compete with the test case for attention at 7B,
+an effect consistent with the prompt-length sensitivity reported
+for large-scale in-context learners~\cite{brown2020language}.
+The practical implication is that the best no-training configuration
+is size-dependent: Config~CD alone at 7B, and Config~PE at
+sizes up to 3B.
+
 \section{Cost-Benefit Analysis of Each Method}
 
 Constrained decoding yields the highest return of any technique evaluated.
@@ -147,13 +196,18 @@ realistic conditions. Generalisation to harder BFCL categories (multiple
 function candidates, parallel function calls, multi-turn interactions) is
 not established and may not hold.
 
-Base and CD are evaluated across the full Qwen~2.5 size range
-(0.5B, 1.5B, 3B, 7B), but the remaining configurations are evaluated only
-on the 7B model. The interaction between model scale and each optimization
-technique beyond constrained decoding is therefore not characterised.
-Whether quantization, prompting interventions, RAG, or fine-tuning exhibit
-the same directional effects at 0.5B and 1.5B as at 7B remains an open
-question.
+The size sweep extends coverage to CD+Q, PE, CD+Q+ITC, and CD+Q+RAG
+across 0.5B, 1.5B, 3B, and 7B, confirming that the directional findings
+from Phase~1 generalise across the evaluated size range.
+CD+Q is safe above 1.5B (loss within noise) and introduces a 3.7~pp
+penalty at 0.5B.
+PE helps at 0.5B--3B and reverses at 7B.
+CD+Q+ITC is harmful at every size by a consistent margin of 5.7--6.75~pp.
+CD+Q+RAG is harmful at every size, with no improvement in disambiguation
+accuracy at larger scales.
+The interaction between model scale and LoRA fine-tuning is not yet
+characterised; the CD+FT-aligned size sweep (0.5B, 1.5B, 3B) is pending
+and will establish whether fine-tuning narrows the size gap.
 
 The regression in CD+FT v1 is attributed to the format mismatch between
 the xlam training distribution and the evaluation pipeline. This attribution is
