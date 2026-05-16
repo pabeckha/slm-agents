@@ -1,7 +1,7 @@
 ---
 title: "Master Plan: SLM Agents Thesis"
 category: "project"
-lastUpdated: "2026-05-10"
+lastUpdated: "2026-05-16"
 status: "active"
 ---
 
@@ -28,6 +28,7 @@ Single source of truth for project state.
 | Config CD+Q+FT-aligned | CD + AWQ INT4 + format-aligned LoRA (post-merge AWQ, job 28395175) | Done — **74.25% AST** |
 | τ-bench CD (retail) | Multi-step agentic, tool-calling, 115 tasks | Done — **4.35% pass rate** |
 | Model-size sweep | CD+Q, PE, CD+Q+ITC, CD+Q+RAG, CD+FT-aligned × 0.5B/1.5B/3B | **Submitted — pending HPC** (issues #48–#52) |
+| Technique isolation ablation | few-shot / CoT / RAG each run without CD, to isolate CD's contribution | **Submitted — pending HPC** (issue #64, sub-tasks #60–#62) |
 
 Full result analyses: `docs/decisions/`
 
@@ -53,6 +54,8 @@ Current page count: ~50 pages. Target: 60–100 pages.
 
 ### Experiments
 - [ ] Model-size sweep: 0.5B, 1.5B, 3B × 5 configs — submitted, awaiting results (issues #48–#52)
+- [ ] Technique isolation ablation: few-shot / CoT / RAG without CD — submitted, awaiting results (issue #64, sub-tasks #60–#62)
+- [ ] CD+FT-aligned size sweep: merge jobs running, eval to follow (issue #52)
 - [ ] BFCL multiple + parallel categories (issue #36 — real-world evaluation)
 
 ### Writing (unblocked now)
