@@ -25,14 +25,23 @@ is not that the model lacks the knowledge to answer; it is that the
 model cannot reliably express that knowledge in the structured format
 that agentic systems require.
 
-This thesis challenges that assumption. Rather than treating model scale
-as the primary driver of agent reliability, it investigates whether
-targeted optimization techniques can bridge the performance gap between
-small and large models for agentic tasks. If small models can be made
-reliable enough for tool calling and reasoning through methods such as
-constrained decoding, prompt engineering, and fine-tuning, they could
-enable a new class of local, cost-efficient, and privacy-preserving
-agentic systems.
+This thesis investigates that assumption directly.
+The results show that constrained decoding alone eliminates the
+format compliance failure entirely, collapsing the 98.5~pp gap
+between the unoptimized 7B model and frontier performance to
+7~pp on BFCL~v4 \texttt{simple\_python}, without modifying
+model weights.
+Format-aligned LoRA fine-tuning reduces the gap further to
+2.8~pp, reaching 76.75\% and placing the 7B model within
+0.08~pp of Claude Opus~4.5 (76.83\%) on the same benchmark,
+on a single consumer GPU.
+The failures that persist across all configurations are
+semantic rather than structural: wrong optional parameter
+defaults, numeric precision mismatches, and string format
+conventions that the model's learned priors do not match.
+That distinction, between failures that constraints can fix and
+failures that only training can address, organises the entire
+evaluation.
 
 The practical deployment context motivating this investigation is the
 cascade architecture: a two-tier system in which a locally deployed
