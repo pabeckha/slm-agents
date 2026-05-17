@@ -29,6 +29,9 @@ Single source of truth for project state.
 | τ-bench CD (retail) | Multi-step agentic, tool-calling, 115 tasks | Done — **4.35% pass rate** |
 | Model-size sweep | CD+Q, PE, CD+Q+ITC, CD+Q+RAG, CD+FT-aligned × 0.5B/1.5B/3B | Done — see `size-sweep-results.md`, `config-ft-aligned-size-sweep.md` |
 | Technique isolation ablation | few-shot / CoT / RAG each run without CD, to isolate CD's contribution | Done — see `config-technique-isolation-ablation.md` |
+| BFCL multiple + parallel size sweep | CD + CD+FT-aligned × 0.5B/1.5B/3B on multiple + parallel categories | **Pending** — scripts ready (`run_bfcl_multicat_size_sweep.sh`) |
+| τ-bench size sweep | CD config × 0.5B/1.5B/3B retail domain | **Pending** — scripts ready (`run_tau_bench_size_sweep.sh`) |
+| τ-bench CD+FT-aligned size sweep | CD+FT-aligned merged models × all 4 sizes retail domain | **Pending** — scripts ready (`run_tau_bench_ft_aligned_size_sweep.sh`) |
 
 Full result analyses: `docs/decisions/`
 
@@ -56,7 +59,9 @@ Current page count: ~50 pages. Target: 60–100 pages.
 - [x] Model-size sweep: 0.5B, 1.5B, 3B × 5 configs (issues #48–#52)
 - [x] Technique isolation ablation: few-shot / CoT / RAG without CD (issue #64, sub-tasks #60–#62)
 - [x] CD+FT-aligned size sweep: 0.5B 59.2%, 1.5B 66.0%, 3B 66.8% (issue #52)
-- [ ] BFCL multiple + parallel categories (issue #36 — real-world evaluation)
+- [ ] BFCL multiple + parallel size sweep — `bash scripts/hpc/run_bfcl_multicat_size_sweep.sh`
+- [ ] τ-bench size sweep (0.5B/1.5B/3B) — `bash scripts/hpc/run_tau_bench_size_sweep.sh`
+- [ ] τ-bench CD+FT-aligned size sweep — `bash scripts/hpc/run_tau_bench_ft_aligned_size_sweep.sh`
 
 ### Writing (unblocked now)
 - [ ] #40 — Deepen discussion chapter with related work connections
