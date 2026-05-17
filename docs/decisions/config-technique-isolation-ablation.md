@@ -42,7 +42,7 @@
 
 ## Interpretation for thesis (RQ1)
 
-This ablation cleanly quantifies CD's marginal contribution in isolation. The 71.25 pp gap documented in Config B (1.5% → 72.75%) is confirmed as an almost pure format compliance gap. The only exception is CoT: even without CD it reaches 26.2%, suggesting CoT provides about 25 pp of "implicit" format benefit. Adding CD on top of CoT recovers 39.3 pp more, putting CD+Q+CoT at 65.5%. The total 7B-CoT-with-CD benefit (65.5% vs 1.5% baseline) is 64 pp, compared to 71.25 pp for CD alone — meaning CoT actually costs ~7 pp of CD's effectiveness while providing 25 pp in the unguided setting.
+This ablation cleanly quantifies CD's marginal contribution in isolation. The 71.25 pp gap documented in Config B (1.5% → 72.75%) is confirmed as an almost pure format compliance gap. The notable exceptions are CoT (26.2%, +24.7 pp over B) and FT-aligned-ng (13.25%, +11.75 pp over B), both of which provide implicit format benefit without CD — CoT through step-by-step self-scaffolding, FT-aligned-ng through training. Adding CD on top of CoT recovers 39.3 pp more, putting CD+Q+CoT at 65.5%. The total 7B-CoT-with-CD benefit (65.5% vs 1.5% baseline) is 64 pp, compared to 71.25 pp for CD alone — meaning CoT actually costs ~7 pp of CD's effectiveness while providing 25 pp in the unguided setting.
 
 ## Result files
 
