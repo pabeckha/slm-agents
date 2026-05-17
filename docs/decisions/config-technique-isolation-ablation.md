@@ -28,7 +28,7 @@
 
 ## Key findings
 
-1. **CD is the dominant contributor in every config.** Without CD, no technique reaches double digits except CoT (26.2%). The format compliance problem swamps everything else.
+1. **CD is the dominant contributor in every config.** Without CD, only CoT (26.2%) and FT-aligned-ng (13.25%) reach double digits; all other prompt techniques stay at ≤4.5%. The format compliance problem swamps everything else.
 
 2. **CoT without CD reaches 26.2% — highest of any unguided technique.** CoT's chain-of-thought reasoning incidentally helps the model produce structured output. Step-by-step thinking before the output acts as self-scaffolding that produces more consistently formatted JSON. This is the only unguided technique with more than marginal improvement over B.
 
