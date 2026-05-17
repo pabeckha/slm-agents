@@ -1,7 +1,7 @@
 # CD+FT-aligned Size Sweep — 0.5B / 1.5B / 3B
 
 **Date**: 2026-05-17
-**Jobs**: merge_lora_aligned_28439604–06 (May 16); bfcl_ft_aligned_28439693–96 (May 17)
+**Jobs**: merge_lora_aligned_28439604–06 (May 16); bfcl_ft_aligned_28439693, 28439694, 28439696 (May 17)
 **Benchmark**: BFCL v4 simple_python (400 test cases, AST accuracy)
 **Models**: Qwen/Qwen2.5-{0.5B,1.5B,3B}-Instruct LoRA-merged (format-aligned FT, bfloat16); 7B from 2026-04-28
 **Infrastructure**: DTU HPC (L40S / A100)
