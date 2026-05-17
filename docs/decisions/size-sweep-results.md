@@ -18,6 +18,7 @@
 | PE (few-shot + CD, FP16) | 53.5% | 64.8% | 67.0% | 70.25% |
 | CD+Q+ITC (CoT + guided + AWQ) | 42.0% | 54.8% | 58.0% | 65.5% |
 | CD+Q+RAG (top-5 + guided + AWQ) | 26.0% | 34.8% | 48.2% | 47.75% |
+| CD+FT-aligned (guided, bf16 merged) | 59.2% | 66.0% | 66.8% | 76.75% |
 
 7B values taken from established phase 1 runs (phase1-ablation-summary.md); earlier draft had transcription errors.
 Multiple and parallel categories were only run for 7B (both 0% across all configs — not size-dependent).
@@ -95,9 +96,16 @@ The best strategy per size (without fine-tuning) is **CD alone** at 7B, and **PE
 
 A cascade using 3B as the small tier and 7B as the large tier would see the 3B SLM handle 64.5–67% of cases (with CD or PE+CD) and escalate the rest. The 3B–7B gap is ~8 pp.
 
-### LoRA size sweep
+### CD+FT-aligned delta vs CD by size
 
-The same 0.5B/1.5B/3B models should be run through CD+FT-aligned to establish whether LoRA training can close or narrow the size gap. If 3B+FT-aligned approaches 7B+FT-aligned (76.75%), the cascade can run at 3B with minimal quality loss.
+| Size | CD | CD+FT-aligned | FT delta |
+|------|----|---------------|----------|
+| 0.5B | 51.5% | 59.2% | +7.7 pp |
+| 1.5B | 62.3% | 66.0% | +3.7 pp |
+| 3B | 64.8% | 66.8% | +2.0 pp |
+| 7B | 72.75% | 76.75% | +4.0 pp |
+
+FT-aligned helps at every size. The benefit is largest at 0.5B (+7.7 pp), drops at 1.5B and 3B, then recovers at 7B (+4.0 pp). Fine-tuning does not close the 3B→7B gap — the gap under CD+FT-aligned (10 pp) is wider than under plain CD (7.95 pp). See `config-ft-aligned-size-sweep.md` for full analysis.
 
 ## Result files
 

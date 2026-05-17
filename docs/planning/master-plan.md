@@ -27,8 +27,8 @@ Single source of truth for project state.
 | Config CD+FT-aligned | CD + format-aligned LoRA | Done — **76.75% AST** ← best |
 | Config CD+Q+FT-aligned | CD + AWQ INT4 + format-aligned LoRA (post-merge AWQ, job 28395175) | Done — **74.25% AST** |
 | τ-bench CD (retail) | Multi-step agentic, tool-calling, 115 tasks | Done — **4.35% pass rate** |
-| Model-size sweep | CD+Q, PE, CD+Q+ITC, CD+Q+RAG, CD+FT-aligned × 0.5B/1.5B/3B | **Submitted — pending HPC** (issues #48–#52) |
-| Technique isolation ablation | few-shot / CoT / RAG each run without CD, to isolate CD's contribution | **Submitted — pending HPC** (issue #64, sub-tasks #60–#62) |
+| Model-size sweep | CD+Q, PE, CD+Q+ITC, CD+Q+RAG, CD+FT-aligned × 0.5B/1.5B/3B | Done — see `size-sweep-results.md`, `config-ft-aligned-size-sweep.md` |
+| Technique isolation ablation | few-shot / CoT / RAG each run without CD, to isolate CD's contribution | Done — see `config-technique-isolation-ablation.md` |
 
 Full result analyses: `docs/decisions/`
 
@@ -53,9 +53,9 @@ Current page count: ~50 pages. Target: 60–100 pages.
 ## Open Tasks
 
 ### Experiments
-- [ ] Model-size sweep: 0.5B, 1.5B, 3B × 5 configs — submitted, awaiting results (issues #48–#52)
-- [ ] Technique isolation ablation: few-shot / CoT / RAG without CD — submitted, awaiting results (issue #64, sub-tasks #60–#62)
-- [ ] CD+FT-aligned size sweep: merge jobs running, eval to follow (issue #52)
+- [x] Model-size sweep: 0.5B, 1.5B, 3B × 5 configs (issues #48–#52)
+- [x] Technique isolation ablation: few-shot / CoT / RAG without CD (issue #64, sub-tasks #60–#62)
+- [x] CD+FT-aligned size sweep: 0.5B 59.2%, 1.5B 66.0%, 3B 66.8% (issue #52)
 - [ ] BFCL multiple + parallel categories (issue #36 — real-world evaluation)
 
 ### Writing (unblocked now)
@@ -64,8 +64,8 @@ Current page count: ~50 pages. Target: 60–100 pages.
 - [ ] #57 — Update master-plan (this task)
 - [ ] Appendix: AI tool usage disclosure (Vancouver Convention)
 
-### Writing (blocked on scale-study results)
-- [ ] Results section: Model-Size Scaling — fill in once #48–#52 complete
+### Writing (unblocked — scale-study results in)
+- [ ] Results section: Model-Size Scaling — fill in with size-sweep-results.md and config-ft-aligned-size-sweep.md
 - [ ] Discussion: scaling analysis implications
 
 ### Polish (pre-submission)
