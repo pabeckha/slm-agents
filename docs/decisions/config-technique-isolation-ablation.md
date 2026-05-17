@@ -30,7 +30,7 @@
 
 1. **CD is the dominant contributor in every config.** Without CD, only CoT (26.2%) and FT-aligned-ng (13.25%) reach double digits; all other prompt techniques stay at ≤4.5%. The format compliance problem swamps everything else.
 
-2. **CoT without CD reaches 26.2% — highest of any unguided technique.** CoT's chain-of-thought reasoning incidentally helps the model produce structured output. Step-by-step thinking before the output acts as self-scaffolding that produces more consistently formatted JSON. This is the only unguided technique with more than marginal improvement over B.
+2. **CoT without CD reaches 26.2% — highest of any unguided technique.** CoT's chain-of-thought reasoning incidentally helps the model produce structured output. Step-by-step thinking before the output acts as self-scaffolding that produces more consistently formatted JSON. Among the prompt-level techniques isolated here (PE, CoT, RAG), CoT is the only one with more than marginal improvement over B; FT-aligned-ng (+11.75 pp) also clears this bar but via training, not prompting.
 
 3. **CoT's relationship with CD reverses.** Under CD, CoT hurts (-7.25 pp vs CD+Q baseline). Without CD, CoT is the best prompt technique (+24.7 pp over B). The mechanism: CD already guarantees format, so CoT's format benefit is redundant and its reasoning introduces value-level errors. Without CD, CoT's format benefit is the primary signal and it matters.
 
