@@ -57,5 +57,5 @@ The 10 pp quality gap between tiers (66.8% vs 76.75%) means escalated calls stil
 | 28439694 | 1.5B merged-aligned | `data/output/bfcl_ft_aligned/_zhome_.../Qwen2.5-1.5B-Instruct-merged-aligned/` |
 | 28439696 | 3B merged-aligned | `data/output/bfcl_ft_aligned/_zhome_.../Qwen2.5-3B-Instruct-merged-aligned/` |
 
-Scores: `data/output/bfcl_ft_aligned/scores/simple_python_scores.json` (overwritten by last run, 3B; per-model results in individual run dirs)
+Scores: `data/output/bfcl_ft_aligned/<model>/scores/simple_python_scores.json` (one file per model)
 Merged models: `models/merged/Qwen_Qwen2.5-{0.5B,1.5B,3B}-Instruct-merged-aligned`

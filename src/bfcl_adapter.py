@@ -506,14 +506,20 @@ def main() -> None:
             for f in scores["failures"][:5]:
                 print(f"  {f.get('id', '?')}: {f.get('error', ['?'])}")
 
-        # Write scores
-        scores_path = output_dir / "scores" / f"{args.category}_scores.json"
+        # Write scores — per-model path (preserved across multi-model sweeps)
+        safe_model_name = args.model.replace("/", "_")
+        scores_path = output_dir / safe_model_name / "scores" / f"{args.category}_scores.json"
         scores_path.parent.mkdir(parents=True, exist_ok=True)
+        serializable = {k: v for k, v in scores.items() if k != "failures"}
+        serializable["failure_count"] = len(scores["failures"])
         with open(scores_path, "w") as fh:
-            serializable = {k: v for k, v in scores.items() if k != "failures"}
-            serializable["failure_count"] = len(scores["failures"])
             json.dump(serializable, fh, indent=2)
         print(f"Scores written to {scores_path}")
+        # Also write a shared summary (overwritten each run — use per-model path for authoritative scores)
+        shared_scores_path = output_dir / "scores" / f"{args.category}_scores.json"
+        shared_scores_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(shared_scores_path, "w") as fh:
+            json.dump(serializable, fh, indent=2)
     except ImportError as exc:
         print(f"Could not import ast_checker ({exc}), skipping inline evaluation.")
         print(f"Run manually: bfcl evaluate --model {args.model} --test-category {args.category} --partial-eval")
