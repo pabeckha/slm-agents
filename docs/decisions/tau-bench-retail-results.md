@@ -78,7 +78,7 @@ This result is a central thesis finding. The cascade architecture motivation is 
 
 ### Key findings
 
-1. **τ-bench scores are uniformly low across all sizes.** 1.7–4.4% for baselines regardless of model scale. The 0.5B→7B range spans only 2.6 pp. Scale does not solve the multi-step agentic problem.
+1. **τ-bench scores are uniformly low across all sizes.** 1.7–4.4% for baselines regardless of model scale. The spread across all sizes is only 2.6 pp. Scale does not solve the multi-step agentic problem.
 
 2. **CD+FT-aligned does not improve τ-bench.** Despite +2–8 pp BFCL gains from FT-aligned, τ-bench pass rates are essentially flat. The format-alignment training helps single-call accuracy but does not transfer to multi-turn task completion.
 
