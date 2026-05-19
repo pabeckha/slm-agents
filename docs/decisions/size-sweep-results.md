@@ -126,7 +126,7 @@ FT-aligned helps at every size. The benefit is largest at 0.5B (+7.7 pp), drops 
 
 1. **Parallel is uniformly 0% across all sizes.** CD+FT-aligned models cannot execute parallel tool calls (two simultaneous function calls in one output). This matches the 7B CD baseline (also 0%). Parallel call format requires generating two complete JSON objects in a single response — a skill that format-aligned fine-tuning does not teach and constrained decoding does not scaffold.
 
-2. **Multiple is 55–61% at all sizes — remarkably flat.** Unlike simple_python where scores scale from 59% to 67% across 0.5B→3B, the multiple category shows almost no size dependence under CD+FT-aligned. The 0.5B gets within 5.5 pp of the 3B. This suggests the main barrier for multi-function single-call accuracy is format knowledge (taught by FT), not reasoning capacity (which scales with size).
+2. **Multiple is 55–61% at all sizes — remarkably flat.** Unlike simple_python where scores scale from 59% to 67% across 0.5B→3B, the multiple category shows almost no size dependence under CD+FT-aligned. The 0.5B gets within 5.0 pp of the 3B. This suggests the main barrier for multi-function single-call accuracy is format knowledge (taught by FT), not reasoning capacity (which scales with size).
 
 3. **Multiple category is substantially easier than parallel, even for small models.** "Multiple" asks the model to pick one of several candidate functions; "parallel" asks it to output two calls simultaneously. The 0 pp / 55+ pp gap confirms the distinction is about output format complexity, not function selection difficulty.
 
