@@ -62,6 +62,34 @@ This result is a central thesis finding. The cascade architecture motivation is 
 
 τ-bench retail at 4.3% is the **agentic baseline** for Config CD. Subsequent configs (CD+Q, CD+FT) should ideally be evaluated on τ-bench as well to show whether BFCL gains transfer. Given HPC cost, prioritize at least one comparison point (e.g., CD+Q on τ-bench).
 
+## Size sweep — baselines and FT-aligned (2026-05-19)
+
+**Jobs**: 28461727–28461730 (baselines); 28443556, 28443558, 28443559 (FT-aligned)
+**All runs**: tool-calling strategy, retail domain, 115 tasks, single run per condition
+
+### Pass rates across sizes and configs
+
+| Size | Baseline (CD) | CD+FT-aligned |
+|------|--------------|---------------|
+| 0.5B | 3.48% (4/115) | 0.00% (0/115) |
+| 1.5B | 1.74% (2/115) | 3.48% (4/115) |
+| 3B   | 4.35% (5/115) | 4.35% (5/115) |
+| 7B   | 4.35% mean (3 runs) | 3.48% (4/115) |
+
+### Key findings
+
+1. **τ-bench scores are uniformly low across all sizes.** 1.7–4.4% for baselines regardless of model scale. The 0.5B→7B range spans only 2.6 pp. Scale does not solve the multi-step agentic problem.
+
+2. **CD+FT-aligned does not improve τ-bench.** Despite +2–8 pp BFCL gains from FT-aligned, τ-bench pass rates are essentially flat. The format-alignment training helps single-call accuracy but does not transfer to multi-turn task completion.
+
+3. **0.5B-merged-aligned collapses to 0%.** The format-aligned fine-tuning at 0.5B destroys what little agentic capability the baseline had. At this scale the model has too few parameters to absorb the training signal without overfitting on call format at the expense of task reasoning.
+
+4. **Single run per condition; noise is high.** At n=115 binary tasks, one task = 0.87 pp. The differences between 3.48% and 4.35% are within noise (±1.9 pp SE). These numbers establish a floor, not a ranking.
+
+### Interpretation
+
+The BFCL → τ-bench transfer gap persists across all model sizes. A 7B model that calls tools correctly 72–76% of the time on BFCL still solves only 4.4% of multi-step retail tasks. A 0.5B model gets 59% on BFCL simple_python (with FT-aligned) but 0% on τ-bench. The optimization techniques studied in this thesis move the BFCL needle but leave the agentic performance floor essentially unchanged. This is the thesis's core finding on the cascade motivation: the gap is not closed by any single-model technique.
+
 ## Infrastructure notes
 
 - vLLM `--tool-call-parser qwen2.5` was removed in recent vLLM versions; replaced with `hermes`
