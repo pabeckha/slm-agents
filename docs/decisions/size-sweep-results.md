@@ -109,7 +109,7 @@ FT-aligned helps at every size. The benefit is largest at 0.5B (+7.7 pp), drops 
 
 ## BFCL multiple and parallel — CD+FT-aligned size sweep (2026-05-17/19)
 
-**Jobs**: 28443541, 28443543, 28443547, 28443549, 28443551 (0.5B/1.5B); 28461731 (3B multiple re-run after crash fix); 7B pending (jobs 28468135, 28468136)
+**Jobs**: 28443541, 28443543, 28443547, 28443549, 28443551 (0.5B/1.5B); 28461731 (3B multiple re-run after crash fix); 28468135/28468136 (7B)
 **Benchmark**: BFCL v4 multiple (200 cases) and parallel (200 cases)
 **Models**: CD+FT-aligned merged models (same as simple_python sweep above)
 
@@ -120,13 +120,13 @@ FT-aligned helps at every size. The benefit is largest at 0.5B (+7.7 pp), drops 
 | 0.5B | 55.5% (111/200) | 0.0% (0/200) |
 | 1.5B | 61.0% (122/200) | 0.0% (0/200) |
 | 3B   | 60.5% (121/200) | 0.0% (0/200) |
-| 7B   | pending | pending |
+| 7B   | **70.5% (141/200)** | **0.0% (0/200)** |
 
 ### Key findings
 
-1. **Parallel is uniformly 0% across all sizes.** CD+FT-aligned models cannot execute parallel tool calls (two simultaneous function calls in one output). This matches the 7B CD baseline (also 0%). Parallel call format requires generating two complete JSON objects in a single response — a skill that format-aligned fine-tuning does not teach and constrained decoding does not scaffold.
+1. **Parallel is uniformly 0% across all sizes.** CD+FT-aligned models cannot execute parallel tool calls (two simultaneous function calls in one output). All 200 failures are "Wrong number of functions" — the model emits a single call instead of two. This holds from 0.5B to 7B. Format-aligned fine-tuning and constrained decoding together are insufficient to teach the parallel call format.
 
-2. **Multiple is 55–61% at all sizes — remarkably flat.** Unlike simple_python where scores scale from 59% to 67% across 0.5B→3B, the multiple category shows almost no size dependence under CD+FT-aligned. The 0.5B gets within 5.0 pp of the 3B. This suggests the main barrier for multi-function single-call accuracy is format knowledge (taught by FT), not reasoning capacity (which scales with size).
+2. **Multiple scales with size under CD+FT-aligned.** 55.5% → 61.0% → 60.5% → 70.5% across 0.5B→7B. The 7B gains +10 pp over the 3B, a much steeper jump than in simple_python (+10 pp vs +10 pp — same absolute gap, but the multiple task is harder). The 0.5B–3B range is flat (within 5.5 pp); the 3B→7B step is the meaningful one.
 
 3. **Multiple category is substantially easier than parallel, even for small models.** "Multiple" asks the model to pick one of several candidate functions; "parallel" asks it to output two calls simultaneously. The 0 pp / 55+ pp gap confirms the distinction is about output format complexity, not function selection difficulty.
 

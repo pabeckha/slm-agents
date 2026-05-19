@@ -30,7 +30,7 @@ Single source of truth for project state.
 | Model-size sweep | CD+Q, PE, CD+Q+ITC, CD+Q+RAG, CD+FT-aligned × 0.5B/1.5B/3B | Done — see `size-sweep-results.md`, `config-ft-aligned-size-sweep.md` |
 | Technique isolation ablation | few-shot / CoT / RAG each run without CD, to isolate CD's contribution | Done — see `config-technique-isolation-ablation.md` |
 | BFCL multiple + parallel size sweep | CD + CD+FT-aligned × 0.5B/1.5B/3B on multiple + parallel categories | Done — CD: 42/53.5/62%; FT-aligned multiple: 55.5/61/60.5%; parallel: 0% all sizes |
-| BFCL multiple + parallel — 7B FT-aligned | CD+FT-aligned 7B on multiple + parallel | multiple Done — **70.5%**; parallel running (job 28468136) |
+| BFCL multiple + parallel — 7B FT-aligned | CD+FT-aligned 7B on multiple + parallel | Done — multiple **70.5%**, parallel **0.0%** (jobs 28468135/28468136) |
 | BFCL parallel_multiple — 7B | CD + CD+FT-aligned 7B on parallel_multiple category | **Pending** — jobs 28468267 / 28468268 submitted |
 | τ-bench size sweep | CD config × 0.5B/1.5B/3B retail domain | Done — 0.5B: 3.48%, 1.5B: 1.74%, 3B: 4.35% (jobs 28461727–29) |
 | τ-bench CD+FT-aligned size sweep | CD+FT-aligned merged models × all 4 sizes retail domain | Done — 0.5B: 0%, 1.5B: 3.48%, 3B: 4.35%, 7B: 3.48%; see `tau-bench-retail-results.md` |
@@ -65,7 +65,7 @@ Current page count: ~50 pages. Target: 60–100 pages.
 - [x] BFCL multiple — 7B FT-aligned: 70.5% (job 28468135)
 - [x] τ-bench size sweep (0.5B/1.5B/3B) — done; see `tau-bench-retail-results.md`
 - [x] τ-bench CD+FT-aligned size sweep (all 4 sizes) — done; see `tau-bench-retail-results.md`
-- [ ] BFCL parallel — 7B FT-aligned (job 28468136, running)
+- [x] BFCL parallel — 7B FT-aligned: 0.0% (job 28468136)
 - [ ] BFCL parallel_multiple — 7B CD + FT-aligned (jobs 28468267/28468268, pending)
 
 ### Writing (unblocked now)
