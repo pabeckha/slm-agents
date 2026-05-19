@@ -85,20 +85,4 @@ uv run --group hpc python -m src.bfcl_adapter \
     --category "$CATEGORY" \
     --vllm-url "http://localhost:${VLLM_PORT}/v1"
 
-# ── Run BFCL official evaluator as fallback ──────────────────────────
-echo "=== Running BFCL official evaluator ==="
-BFCL_DIR="vendor/gorilla/berkeley-function-call-leaderboard"
-RESULT_DIR="data/output/bfcl"
-
-# Copy results to where bfcl evaluate expects them
-mkdir -p "${BFCL_DIR}/result/$(echo $MODEL | tr '/' '_')/non_live"
-cp "${RESULT_DIR}/$(echo $MODEL | tr '/' '_')/non_live/BFCL_v4_${CATEGORY}_result.json" \
-   "${BFCL_DIR}/result/$(echo $MODEL | tr '/' '_')/non_live/" 2>/dev/null || true
-
-uv run --group hpc bfcl evaluate \
-    --model "$MODEL" \
-    --test-category "$CATEGORY" \
-    --result-dir "${BFCL_DIR}/result" \
-    --partial-eval 2>&1 || echo "BFCL evaluate failed (non-critical)"
-
 echo "=== Done ==="
