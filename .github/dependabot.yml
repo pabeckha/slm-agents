@@ -9,3 +9,7 @@ updates:
       - dependency-name: bfcl-eval
       - dependency-name: tau-bench
       - dependency-name: llm-sdk
+  - package-ecosystem: uv
+    directory: /llm_sdk
+    schedule:
+      interval: weekly
