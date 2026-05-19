@@ -1,7 +1,7 @@
 ---
 title: "Master Plan: SLM Agents Thesis"
 category: "project"
-lastUpdated: "2026-05-16"
+lastUpdated: "2026-05-19"
 status: "active"
 ---
 
@@ -29,9 +29,11 @@ Single source of truth for project state.
 | τ-bench CD (retail) | Multi-step agentic, tool-calling, 115 tasks | Done — **4.35% pass rate** |
 | Model-size sweep | CD+Q, PE, CD+Q+ITC, CD+Q+RAG, CD+FT-aligned × 0.5B/1.5B/3B | Done — see `size-sweep-results.md`, `config-ft-aligned-size-sweep.md` |
 | Technique isolation ablation | few-shot / CoT / RAG each run without CD, to isolate CD's contribution | Done — see `config-technique-isolation-ablation.md` |
-| BFCL multiple + parallel size sweep | CD + CD+FT-aligned × 0.5B/1.5B/3B on multiple + parallel categories | **Pending** — scripts ready (`run_bfcl_multicat_size_sweep.sh`) |
-| τ-bench size sweep | CD config × 0.5B/1.5B/3B retail domain | **Pending** — scripts ready (`run_tau_bench_size_sweep.sh`) |
-| τ-bench CD+FT-aligned size sweep | CD+FT-aligned merged models × all 4 sizes retail domain | **Pending** — scripts ready (`run_tau_bench_ft_aligned_size_sweep.sh`) |
+| BFCL multiple + parallel size sweep | CD + CD+FT-aligned × 0.5B/1.5B/3B on multiple + parallel categories | Done — CD: 42/53.5/62%; FT-aligned multiple: 55.5/61/60.5%; parallel: 0% all sizes |
+| BFCL multiple + parallel — 7B FT-aligned | CD+FT-aligned 7B on multiple + parallel | multiple Done — **70.5%**; parallel running (job 28468136) |
+| BFCL parallel_multiple — 7B | CD + CD+FT-aligned 7B on parallel_multiple category | **Pending** — jobs 28468267 / 28468268 submitted |
+| τ-bench size sweep | CD config × 0.5B/1.5B/3B retail domain | Done — 0.5B: 3.48%, 1.5B: 1.74%, 3B: 4.35% (jobs 28461727–29) |
+| τ-bench CD+FT-aligned size sweep | CD+FT-aligned merged models × all 4 sizes retail domain | Done — 0.5B: 0%, 1.5B: 3.48%, 3B: 4.35%, 7B: 3.48%; see `tau-bench-retail-results.md` |
 
 Full result analyses: `docs/decisions/`
 
@@ -59,9 +61,12 @@ Current page count: ~50 pages. Target: 60–100 pages.
 - [x] Model-size sweep: 0.5B, 1.5B, 3B × 5 configs (issues #48–#52)
 - [x] Technique isolation ablation: few-shot / CoT / RAG without CD (issue #64, sub-tasks #60–#62)
 - [x] CD+FT-aligned size sweep: 0.5B 59.2%, 1.5B 66.0%, 3B 66.8% (issue #52)
-- [ ] BFCL multiple + parallel size sweep — `bash scripts/hpc/run_bfcl_multicat_size_sweep.sh`
-- [ ] τ-bench size sweep (0.5B/1.5B/3B) — `bash scripts/hpc/run_tau_bench_size_sweep.sh`
-- [ ] τ-bench CD+FT-aligned size sweep — `bash scripts/hpc/run_tau_bench_ft_aligned_size_sweep.sh`
+- [x] BFCL multiple + parallel size sweep (0.5B/1.5B/3B) — done; see `size-sweep-results.md`
+- [x] BFCL multiple — 7B FT-aligned: 70.5% (job 28468135)
+- [x] τ-bench size sweep (0.5B/1.5B/3B) — done; see `tau-bench-retail-results.md`
+- [x] τ-bench CD+FT-aligned size sweep (all 4 sizes) — done; see `tau-bench-retail-results.md`
+- [ ] BFCL parallel — 7B FT-aligned (job 28468136, running)
+- [ ] BFCL parallel_multiple — 7B CD + FT-aligned (jobs 28468267/28468268, pending)
 
 ### Writing (unblocked now)
 - [ ] #40 — Deepen discussion chapter with related work connections
@@ -70,7 +75,8 @@ Current page count: ~50 pages. Target: 60–100 pages.
 - [ ] Appendix: AI tool usage disclosure (Vancouver Convention)
 
 ### Writing (unblocked — scale-study results in)
-- [ ] Results section: Model-Size Scaling — fill in with size-sweep-results.md and config-ft-aligned-size-sweep.md
+- [ ] Results section: multi-category BFCL (multiple/parallel/parallel_multiple) — fill in when parallel + parallel_multiple jobs complete
+- [ ] Results section: τ-bench size sweep — fill in from `tau-bench-retail-results.md`
 - [ ] Discussion: scaling analysis implications
 
 ### Polish (pre-submission)
@@ -88,7 +94,7 @@ Current page count: ~50 pages. Target: 60–100 pages.
 | LoRA dataset | Local xlam-format JSONL (54k train / 6k val) | Prepared from Salesforce/xlam-function-calling-60k |
 | Primary benchmark | BFCL v4 (simple_python + multiple + parallel) | Standard, reproducible, leaderboard for comparison |
 | Agentic benchmark | τ-bench (original repo) | Multi-step agent loop, retail + airline domains |
-| τ-bench user simulator | gpt-4o-mini (OpenAI) | Sufficient for user simulation, much cheaper than gpt-4o |
+| τ-bench user simulator | Same local vLLM instance as agent model | Avoids OpenAI cost; each size-sweep run uses the same model for both agent and user simulator |
 | Frontier baseline source | BFCL leaderboard (published scores) | Canonical, avoids API cost |
 | Primary GPU queue | gpul40s (L40S 46GB) | Less congested than gpua100 |
 | CD+Q+FT approach | Post-merge AWQ (autoawq + compatible transformers pin) | QLoRA ruled out; post-merge quantization viable with dependency fix |
