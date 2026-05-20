@@ -1,7 +1,7 @@
 ---
 title: "Master Plan: SLM Agents Thesis"
 category: "project"
-lastUpdated: "2026-05-19"
+lastUpdated: "2026-05-20"
 status: "active"
 ---
 
@@ -31,7 +31,7 @@ Single source of truth for project state.
 | Technique isolation ablation | few-shot / CoT / RAG each run without CD, to isolate CD's contribution | Done — see `config-technique-isolation-ablation.md` |
 | BFCL multiple + parallel size sweep | CD + CD+FT-aligned × 0.5B/1.5B/3B on multiple + parallel categories | Done — CD: 42/53.5/62%; FT-aligned multiple: 55.5/61/60.5%; parallel: 0% all sizes |
 | BFCL multiple + parallel — 7B FT-aligned | CD+FT-aligned 7B on multiple + parallel | Done — multiple **70.5%**, parallel **0.0%** (jobs 28468135/28468136) |
-| BFCL parallel_multiple — 7B | CD + CD+FT-aligned 7B on parallel_multiple category | **Pending** — jobs 28468267 / 28468268 submitted |
+| BFCL parallel_multiple — 7B | CD + CD+FT-aligned 7B on parallel_multiple category | Done — CD: **38.5%**, FT-aligned: **30.5%** (jobs 28468267/28468268) |
 | τ-bench size sweep | CD config × 0.5B/1.5B/3B retail domain | Done — 0.5B: 3.48%, 1.5B: 1.74%, 3B: 4.35% (jobs 28461727–29) |
 | τ-bench CD+FT-aligned size sweep | CD+FT-aligned merged models × all 4 sizes retail domain | Done — 0.5B: 0%, 1.5B: 3.48%, 3B: 4.35%, 7B: 3.48%; see `tau-bench-retail-results.md` |
 
@@ -66,7 +66,7 @@ Current page count: ~50 pages. Target: 60–100 pages.
 - [x] τ-bench size sweep (0.5B/1.5B/3B) — done; see `tau-bench-retail-results.md`
 - [x] τ-bench CD+FT-aligned size sweep (all 4 sizes) — done; see `tau-bench-retail-results.md`
 - [x] BFCL parallel — 7B FT-aligned: 0.0% (job 28468136)
-- [ ] BFCL parallel_multiple — 7B CD + FT-aligned (jobs 28468267/28468268, pending)
+- [x] BFCL parallel_multiple — 7B: CD 38.5%, FT-aligned 30.5% (jobs 28468267/28468268)
 
 ### Writing (unblocked now)
 - [ ] #40 — Deepen discussion chapter with related work connections
@@ -74,8 +74,8 @@ Current page count: ~50 pages. Target: 60–100 pages.
 - [ ] #57 — Update master-plan (this task)
 - [ ] Appendix: AI tool usage disclosure (Vancouver Convention)
 
-### Writing (unblocked — scale-study results in)
-- [ ] Results section: multi-category BFCL (multiple/parallel/parallel_multiple) — fill in when parallel + parallel_multiple jobs complete
+### Writing (unblocked — all scale-study results in)
+- [ ] Results section: multi-category BFCL (multiple/parallel/parallel_multiple) — all results in; ready to write
 - [ ] Results section: τ-bench size sweep — fill in from `tau-bench-retail-results.md`
 - [ ] Discussion: scaling analysis implications
 
