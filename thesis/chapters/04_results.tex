@@ -577,42 +577,97 @@ approaching GPT-5-mini (59.92\%), while the 7B model exceeds GPT-4.1 (72.67\%).
 \section{Extended Function-Calling Categories}
 \label{sec:bfcl-extended}
 
-Table~\ref{tab:bfcl-extended} reports results for the
-\texttt{multiple\_function} and \texttt{parallel\_function} BFCL categories,
-evaluated on Qwen~2.5 7B-Instruct-AWQ under Base and CD+Q.
+This section reports results for the three harder BFCL~v4 categories:
+\texttt{multiple}, \texttt{parallel}, and \texttt{parallel\_multiple}.
+Each category isolates a different aspect of tool-calling complexity beyond
+single-function, single-call generation.
+
+\subsection{Multiple-Function Selection}
+
+The \texttt{multiple} category presents several candidate functions and
+requires selecting one and generating a single call. Table~\ref{tab:bfcl-multiple}
+shows accuracy for CD and CD+FT-aligned across model sizes.
 
 \begin{table}[ht]
 \centering
-\caption{BFCL~v4 AST accuracy on harder categories for Base and
-CD+Q (Qwen~2.5 7B-Instruct-AWQ, 200 test cases per category).}
-\label{tab:bfcl-extended}
+\caption{BFCL~v4 AST accuracy on the \texttt{multiple} category (200 test
+cases). CD results at 0.5B--3B; CD+FT-aligned at all four sizes.}
+\label{tab:bfcl-multiple}
 \begin{tabular}{lrr}
 \toprule
-Category & Base & CD+Q \\
+Size & CD & CD+FT-aligned \\
 \midrule
-\texttt{multiple\_function}  & 0.0\%\ (0/200) & 0.0\%\ (0/200) \\
-\texttt{parallel\_function}  & 0.0\%\ (0/200) & 0.0\%\ (0/200) \\
+0.5B & 42.0\%\ (84/200)  & 55.5\%\ (111/200) \\
+1.5B & 53.5\%\ (107/200) & 61.0\%\ (122/200) \\
+3B   & 62.0\%\ (124/200) & 60.5\%\ (121/200) \\
+7B   & ---               & 70.5\%\ (141/200) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Both configurations produce 0.0\% accuracy on both categories. Inspection of
-the raw predictions shows that the pipeline outputs an empty list for every
-test case. The cause is architectural: the two-stage pipeline is designed for
-single-function selection in Stage~1 and single-call argument extraction in
-Stage~2. The \texttt{parallel\_function} category requires generating multiple
-function calls simultaneously, which the pipeline cannot produce because
-Stage~2 is constrained to a single JSON object conforming to one function
-schema. The \texttt{multiple\_function} category requires selecting one
-function from several candidates; while \texttt{guided\_choice} supports this
-in principle, the pipeline does not produce output in the format expected by
-the BFCL evaluator for this category.
+CD alone scales from 42.0\% at 0.5B to 62.0\% at 3B. CD+FT-aligned improves
+over CD by 13.5~pp at 0.5B and 7.5~pp at 1.5B, but the gap closes to within
+noise at 3B (60.5\% vs.\ 62.0\%). At 7B, CD+FT-aligned reaches 70.5\%.
+The pattern mirrors the simple\_python sweep: fine-tuning helps most at
+smaller sizes where the model has limited capacity to infer the required
+format from the prompt alone.
 
-This negative result defines the boundary of the current pipeline
-architecture. The optimization techniques evaluated in this thesis are all
-applied within the single-call pipeline design. None address the structural
-limitation of producing multiple simultaneous function calls. Extending the
-pipeline to support parallel function calling would require a different
-Stage~2 constraint: a JSON array of objects each conforming to a separate
-function schema. This extension is left for future work.
+\subsection{Parallel Function Calling}
+
+The \texttt{parallel} category requires generating two simultaneous calls
+to the same function. Under both CD and CD+FT-aligned, accuracy is 0.0\%
+at every model size from 0.5B to 7B. Inspection of the raw outputs shows
+the model consistently produces one call rather than two; the failure is in
+call count, not argument content. Scale and fine-tuning do not change this:
+the parallel format remains out of reach across all configurations tested.
+
+\subsection{Parallel Multi-Function Calling}
+
+The \texttt{parallel\_multiple} category combines both challenges: multiple
+simultaneous calls drawn from different candidate functions. This was
+evaluated at 7B only. Table~\ref{tab:bfcl-parallel-multiple} reports the results.
+
+\begin{table}[ht]
+\centering
+\caption{BFCL~v4 AST accuracy on the \texttt{parallel\_multiple} category
+(200 test cases, Qwen~2.5 7B-Instruct).}
+\label{tab:bfcl-parallel-multiple}
+\begin{tabular}{lrr}
+\toprule
+Config & Correct & Accuracy \\
+\midrule
+CD            & 77/200 & 38.5\% \\
+CD+FT-aligned & 61/200 & 30.5\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Both configurations produce multi-call responses at the same rate: the
+distribution over number of calls per response (1--4) is nearly identical
+between the two. Output structure is not the bottleneck. The 8~pp gap comes
+from semantic errors in the CD+FT-aligned outputs: argument values copied
+from the first call to the second, notation normalised to match the training
+corpus (e.g.\ \texttt{x**2} substituted for \texttt{x\^{}2}), and the
+occasional dropped call in three-call responses. These are biases from the
+xlam training distribution that reduce argument fidelity on tasks requiring
+several simultaneous calls. This is the only category where CD+FT-aligned
+underperforms plain CD.
+
+The \texttt{parallel\_multiple} score (38.5\%) is higher than
+\texttt{parallel} (0.0\%) despite being nominally harder. The reason is
+contextual: prompts that reference distinct tools provide enough signal for
+the model to produce distinct calls. In the \texttt{parallel} category,
+same-function prompts offer no such contrast, and the model collapses to a
+single call.
+
+\subsection{Capability Decomposition}
+
+The three categories define a ladder for the techniques evaluated in this
+thesis. Function selection under CD+FT-aligned is largely solved at 7B
+(70.5\% on \texttt{multiple}). Parallel calling of the same function is not
+achieved at any size. The combined task (\texttt{parallel\_multiple}) lands
+between: the structure is reachable at 7B, but fine-tuning's format biases
+lower argument accuracy relative to plain CD. Extending parallel support
+reliably would require training data that specifically targets simultaneous
+multi-call generation, not format alignment alone.
 
