@@ -136,6 +136,61 @@ FT-aligned helps at every size. The benefit is largest at 0.5B (+7.7 pp), drops 
 
 The flat multiple accuracy across sizes (55–61%) combined with universally 0% parallel shows that FT-aligned training solves one sub-problem (function selection from a candidate set) but not another (structured multi-output generation). This is a clean capability decomposition and a useful negative result: scale and fine-tuning together are still insufficient for parallel tool calling.
 
+## BFCL parallel_multiple — 7B CD and CD+FT-aligned (2026-05-19)
+
+**Jobs**: 28468267 (CD), 28468268 (CD+FT-aligned)
+**Benchmark**: BFCL v4 parallel_multiple (200 cases, AST accuracy)
+**Models**: Qwen/Qwen2.5-7B-Instruct (CD) and -merged-aligned (CD+FT-aligned); 7B only
+**Infrastructure**: DTU HPC (L40S), vLLM backend, parallel grammar enabled
+
+### Results
+
+| Config | Correct | Total | Accuracy |
+|--------|---------|-------|----------|
+| CD | 77 | 200 | **38.5%** |
+| CD+FT-aligned | 61 | 200 | **30.5%** |
+
+### Call-count distributions
+
+Both models output the multi-call format at the same rate — structural format is not the failure mode:
+
+| Calls in output | CD | CD+FT-aligned |
+|----------------|-----|---------------|
+| 1 | 1 | 1 |
+| 2 | 109 | 110 |
+| 3 | 71 | 72 |
+| 4 | 19 | 17 |
+
+### Failure analysis
+
+The 115/200 cases where outputs differ reveal that FT-aligned's lower score comes from semantic errors, not format failure:
+
+1. **Argument copying.** FT-aligned copies argument values from the first call to the second (e.g., `lcm(num1=96, num2=128)` when the correct answer is `lcm(num1=15, num2=25)`). The model applies the grounding of the first function to subsequent calls in the same response.
+
+2. **Format normalization from xlam training.** FT-aligned substitutes Python-convention notation (`x**2`) for caret notation (`x^2`), and ISO date strings (`'2023-06-30'`) for natural-language dates (`'June 30th 2023'`) — biases introduced by the xlam training corpus that are wrong under BFCL's AST-equality check.
+
+3. **Dropped calls in 3-call responses.** In cases requiring 3 simultaneous calls, FT-aligned occasionally produces only 2, dropping one call.
+
+CD does not exhibit these patterns to the same degree because it has not been exposed to xlam's normalizing style.
+
+### Key findings
+
+1. **FT-aligned hurts on parallel_multiple (−8 pp).** This is the only BFCL category where CD+FT-aligned underperforms plain CD. The cause is semantic degradation — format-alignment training introduces biases (argument copying, notation normalization) that reduce accuracy on combined function-selection + multi-call tasks.
+
+2. **parallel_multiple (38.5%) substantially outperforms parallel (0%).** This is counterintuitive: parallel_multiple is nominally harder (multi-function selection *and* multi-call output). The explanation is that multi-function context naturally scaffolds multi-call generation — the prompts reference distinct tools, so the model produces distinct calls. In the parallel category, single-function prompts offer no such context, and the model collapses to a single call.
+
+3. **7B only.** parallel_multiple was run at 7B only. Given that parallel is universally 0% across all sizes and multiple scales weakly below 7B, parallel_multiple below 7B is expected to score near 0% and was not run.
+
+### Implication for thesis
+
+The parallel_multiple result completes the BFCL capability decomposition. Together with parallel (0%) and multiple (70.5% at 7B), it shows three distinct capability tiers:
+
+- **Multiple** (function selection, single output): scales well with size; FT-aligned consistently helps
+- **parallel_multiple** (function selection + multi-output): structurally achievable at 7B under both configs; FT-aligned marginally hurts
+- **Parallel** (multi-output, single function): uniformly 0% at all sizes under both configs
+
+The parallel_multiple finding also shows a limit of format-alignment fine-tuning: training on a normalizing corpus can introduce systematic biases that hurt on tasks requiring precise argument fidelity across multiple simultaneous calls.
+
 ## Result files
 
 | Config | Result dir | Runs dir |
