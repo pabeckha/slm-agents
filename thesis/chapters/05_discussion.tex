@@ -212,7 +212,7 @@ Fine-tuning provides a consistent gain over the CD baseline at every size:
 The benefit is largest at 0.5B, suggesting that format-aligned fine-tuning
 compensates in part for weaker argument-value representations at smaller
 scales. On $\tau$-bench, fine-tuning does not improve agentic pass rates
-at any size: CD+FT-aligned achieves 0.0\%, 3.48\%, 4.35\%, and 3.48\%
+at any size: CD+FT-aligned achieves 0.00\%, 3.48\%, 4.35\%, and 3.48\%
 at 0.5B, 1.5B, 3B, and 7B respectively, closely tracking the CD-only
 results. The fine-tuning benefit is specific to single-call argument
 extraction and does not transfer to multi-step reasoning.
@@ -357,9 +357,9 @@ training data relevance can compensate for parameter count
 disadvantage~\cite{patil2023gorilla}. The key mechanism is alignment between
 the model's training context and its inference context. This thesis extends
 that insight from API source selection to output format alignment. Two LoRA
-adapters trained on the same xLAM dataset with identical hyperparameters
+adapters trained on the same xLAM dataset~\cite{zhang2024xlam} with identical hyperparameters
 differ by 7.0~pp on BFCL solely because their training output formats
-conflict or match the inference pipeline's JSON target~\cite{zhang2024xlam}.
+conflict or match the inference pipeline's JSON target.
 The format alignment effect is of comparable magnitude to the improvements
 Gorilla reports from retrieval-augmented training, suggesting that output
 format compatibility is as important a dimension of training data design as
@@ -378,7 +378,7 @@ Lewis et al.\ showed that retrieval-augmented generation improves performance
 on knowledge-intensive tasks by supplying relevant context at inference
 time~\cite{lewis2020retrieval}. The RAG evaluation here reveals a limitation
 of this mechanism for tool selection: retrieval recall@5 of 97.2\% produces a
-$-24$~pp accuracy drop rather than an accuracy gain, because the bottleneck
+$-25.00$~pp accuracy drop rather than an accuracy gain, because the bottleneck
 shifts from retrieval quality to candidate disambiguation. Retrieved candidates
 are semantically similar by construction, and the model must distinguish
 between them on fine-grained semantic grounds that single-call training does
