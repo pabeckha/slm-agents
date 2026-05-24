@@ -534,25 +534,75 @@ CD on the retail domain. The 68.4~pp gap quantifies the boundary
 separating single-call function calling from reliable multi-step agentic
 task completion.
 
-\section{Model-Size Scaling}
-\label{sec:model-size}
+\subsection{Size Sweep}
+\label{sec:tau-bench-size}
 
-Table~\ref{tab:model-size} reports BFCL~v4 \texttt{simple\_python} accuracy
-for Base and CD across all four Qwen~2.5 Instruct sizes.
+Table~\ref{tab:tau-bench-size} reports $\tau$-bench retail pass rates for CD
+and CD+FT-aligned across all four Qwen~2.5 model sizes.
 
 \begin{table}[ht]
 \centering
-\caption{BFCL~v4 \texttt{simple\_python} AST accuracy for Base and
-CD across Qwen~2.5 Instruct model sizes (400 test cases).}
-\label{tab:model-size}
-\begin{tabular}{lrrr}
+\caption{$\tau$-bench retail domain pass rate across Qwen~2.5 model sizes
+(115 tasks per condition; 7B CD is the mean of three independent runs,
+all other conditions are single runs).}
+\label{tab:tau-bench-size}
+\begin{tabular}{lrr}
 \toprule
-Model size & Base & CD & CD gain (pp) \\
+Size & CD & CD+FT-aligned \\
 \midrule
-0.5B & 3.50\%\ (14/400)  & 51.50\%\ (206/400) & $+$48.0 \\
-1.5B & 4.75\%\ (19/400)  & 62.25\%\ (249/400) & $+$57.5 \\
-3B   & 2.75\%\ (11/400)  & 64.75\%\ (259/400) & $+$62.0 \\
-7B   & 1.50\%\ (6/400)   & 72.75\%\ (291/400) & $+$71.25 \\
+0.5B & 3.48\%\ (4/115)        & 0.00\%\ (0/115) \\
+1.5B & 1.74\%\ (2/115)        & 3.48\%\ (4/115) \\
+3B   & 4.35\%\ (5/115)        & 4.35\%\ (5/115) \\
+7B   & 4.35\%\ (mean, 3~runs) & 3.48\%\ (4/115) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Pass rates are uniformly low across all model sizes, ranging from 1.74\% to
+4.35\% under CD and from 0.00\% to 4.35\% under CD+FT-aligned. The total
+spread across all tested conditions is 4.35~pp. The 7B model achieves a
+similar pass rate to the 3B model under both configurations; no improvement with
+scale is observed. This contrasts with the BFCL simple\_python sweep, where
+CD accuracy increases by 21.25~pp from 0.5B to 7B. Scale improves single-call
+argument extraction but does not improve multi-turn task completion.
+
+CD+FT-aligned does not improve $\tau$-bench pass rates relative to CD despite
+producing BFCL gains at every model size (Section~\ref{sec:model-size}). At
+0.5B, CD+FT-aligned collapses to 0.00\%, a decrease of 3.48~pp relative to
+the CD baseline at the same size. At 1.5B and 3B the pass rates are equal
+within noise; at 7B the mean of 4.35\% for CD lies within the single-run
+standard error of the 3.48\% CD+FT-aligned result. Format-aligned fine-tuning,
+which increases BFCL simple\_python accuracy by up to 7.75~pp, does not
+transfer to multi-turn task completion.
+
+All conditions except 7B~CD are single runs. At $n=115$ binary tasks, one task
+corresponds to 0.87~pp and the standard error is approximately 1.9~pp.
+Differences of one or two tasks between conditions are within noise. These
+results establish a performance floor across the model sizes and configurations
+studied; they do not support a ranking between individual conditions.
+
+\section{Model-Size Scaling}
+\label{sec:model-size}
+
+Table~\ref{tab:size-sweep-full} reports BFCL~v4 \texttt{simple\_python}
+accuracy for all seven configurations across all four Qwen~2.5 Instruct sizes.
+
+\begin{table}[ht]
+\centering
+\caption{BFCL~v4 \texttt{simple\_python} AST accuracy across all configurations
+and Qwen~2.5 model sizes (400 test cases each).}
+\label{tab:size-sweep-full}
+\begin{tabular}{lrrrr}
+\toprule
+Config        & 0.5B    & 1.5B    & 3B      & 7B      \\
+\midrule
+B             & 3.50\%  & 4.75\%  & 2.75\%  & 1.50\%  \\
+CD            & 51.50\% & 62.25\% & 64.75\% & 72.75\% \\
+CD+Q          & 47.75\% & 60.50\% & 64.50\% & 72.25\% \\
+PE            & 53.50\% & 64.75\% & 67.00\% & 70.25\% \\
+CD+Q+ITC      & 42.00\% & 54.75\% & 58.00\% & 65.50\% \\
+CD+Q+RAG      & 26.00\% & 34.75\% & 48.25\% & 47.75\% \\
+CD+FT-aligned & 59.25\% & 66.00\% & 66.75\% & 76.75\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -564,15 +614,57 @@ that the baseline failure mode is format non-compliance rather than semantic
 understanding: increasing model size alone does not recover structured output
 generation without an explicit constraint mechanism.
 
-CD accuracy scales consistently with model size. The 0.5B model
-achieves 51.50\%, the 1.5B achieves 62.25\%, the 3B achieves 64.75\%, and
-the 7B achieves 72.75\%. The CD gain over Base also increases with model
-size, from 48.0~pp at 0.5B to 71.25~pp at 7B. This pattern reflects two
-compounding factors: larger models produce fewer argument value errors once
-format compliance is enforced, and they benefit more from constrained decoding
-because a larger fraction of their latent capability is unlocked by removing
-the format barrier. The 0.5B model already reaches 51.50\% under CD,
-approaching GPT-5-mini (59.92\%), while the 7B model exceeds GPT-4.1 (72.67\%).
+CD accuracy scales consistently with model size. The 0.5B model achieves
+51.50\%, the 1.5B achieves 62.25\%, the 3B achieves 64.75\%, and the 7B
+achieves 72.75\%. The CD gain over Base also increases with model size, from
+48.0~pp at 0.5B to 71.25~pp at 7B. Larger models produce fewer argument value
+errors once format compliance is enforced, and a larger fraction of their
+latent capability is unlocked by the constraint mechanism. The 0.5B model
+already reaches 51.50\% under CD, approaching GPT-5-mini (59.92\%), while
+the 7B model exceeds GPT-4.1 (72.67\%).
+
+AWQ INT4 quantization applied to CD produces a size-dependent accuracy cost.
+At 0.5B the penalty is 3.75~pp (51.50\% $\to$ 47.75\%); at 1.5B it falls to
+1.75~pp; at 3B and 7B it is 0.25~pp and 0.50~pp respectively, within
+run-to-run variance. Quantization cost is negligible above 1.5B, confirming
+that INT4 quantization is a safe operating point at 3B and 7B. At 0.5B the
+penalty is meaningful but remains acceptable relative to the 4$\times$ memory
+reduction.
+
+Few-shot prompting (PE) produces a size-dependent effect that reverses at 7B.
+At 0.5B, 1.5B, and 3B, PE improves accuracy over CD by 2.00, 2.50, and
+2.25~pp respectively. At 7B, PE decreases accuracy by 2.50~pp (70.25\%
+vs.\ 72.75\%). At smaller model sizes the prepended examples appear to act as
+format anchors, providing a marginal improvement. At 7B, the additional context
+length reduces accuracy on borderline cases. PE is not a reliable technique
+across model sizes: the direction of effect depends on scale.
+
+Chain-of-thought reasoning (CD+Q+ITC) reduces accuracy at every model size.
+The decrease relative to CD+Q is 5.75~pp at 0.5B, 5.75~pp at 1.5B, 6.50~pp
+at 3B, and 6.75~pp at 7B. The penalty is approximately constant across the
+full size range. Chain-of-thought is not a capability that smaller models lack
+and larger models can exploit: the mechanism that causes the accuracy reduction
+operates regardless of model scale.
+
+Retrieval-augmented generation (CD+Q+RAG) reduces accuracy at every model
+size. The decreases relative to CD+Q are 21.75~pp at 0.5B, 25.75~pp at 1.5B,
+16.25~pp at 3B, and 24.50~pp at 7B. The pattern is non-monotonic: the 3B
+model loses less than the 1.5B and 7B models. As retrieval recall@5 is 97.2\%,
+retrieval quality is not the limiting factor. The dominant failure mode is
+candidate disambiguation, as established in
+Section~\ref{sec:combined-configs}. Disambiguation accuracy does not improve
+with model size; the 7B model is no more reliable than the 1.5B model at
+distinguishing semantically similar candidate functions.
+
+CD+FT-aligned exceeds CD at all four model sizes. The fine-tuning benefit is
+non-monotonic: largest at 0.5B ($+$7.75~pp), decreasing at 1.5B ($+$3.75~pp)
+and 3B ($+$2.00~pp), then recovering at 7B ($+$4.00~pp). The 0.5B model
+benefits most, consistent with a format-learning effect that is more impactful
+when the base capability is lower. The 3B model is near a local ceiling where
+the xlam training examples add marginal semantic value beyond what CD alone
+provides. The 7B model has sufficient capacity to extract a stronger training
+signal. Fine-tuning does not reduce the model-size gap: the 3B--7B gap under
+CD+FT-aligned is 10.00~pp, slightly wider than the 8.00~pp gap under CD alone.
 
 \section{Extended Function-Calling Categories}
 \label{sec:bfcl-extended}
