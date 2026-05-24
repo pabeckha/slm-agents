@@ -205,9 +205,17 @@ PE helps at 0.5B--3B and reverses at 7B.
 CD+Q+ITC is harmful at every size by a consistent margin of 5.7--6.75~pp.
 CD+Q+RAG is harmful at every size, with no improvement in disambiguation
 accuracy at larger scales.
-The interaction between model scale and LoRA fine-tuning is not yet
-characterised; the CD+FT-aligned size sweep (0.5B, 1.5B, 3B) is pending
-and will establish whether fine-tuning narrows the size gap.
+The CD+FT-aligned size sweep characterises the interaction between model
+scale and LoRA fine-tuning across 0.5B, 1.5B, 3B, and 7B.
+Fine-tuning provides a consistent gain over the CD baseline at every size:
+7.7~pp at 0.5B, 3.7~pp at 1.5B, 2.0~pp at 3B, and 4.0~pp at 7B.
+The benefit is largest at 0.5B, suggesting that format-aligned fine-tuning
+compensates in part for weaker argument-value representations at smaller
+scales. On $\tau$-bench, fine-tuning does not improve agentic pass rates
+at any size: CD+FT-aligned achieves 0.0\%, 3.48\%, 4.35\%, and 3.48\%
+at 0.5B, 1.5B, 3B, and 7B respectively, closely tracking the CD-only
+results. The fine-tuning benefit is specific to single-call argument
+extraction and does not transfer to multi-step reasoning.
 
 The regression in CD+FT v1 is attributed to the format mismatch between
 the xlam training distribution and the evaluation pipeline. This attribution is
@@ -320,3 +328,80 @@ actively degrades performance under constrained decoding. A production
 fine-tuning pipeline would require training examples generated from the
 target deployment's own tool schemas and argument conventions, not from a
 general-purpose corpus.
+
+\section{Relation to Prior Work}
+
+The results reported in this thesis intersect four bodies of prior work:
+constrained generation, training-based tool adaptation, retrieval-augmented
+generation for tool selection, and multi-step agentic evaluation.
+
+\paragraph{Constrained generation.}
+Willard and Louf formalised constrained generation using finite-state
+machines compiled from JSON schemas, establishing that format compliance can
+be guaranteed at each decoding step with low per-step
+overhead~\cite{willard2023efficient}. The 71.25~pp gain from Base to CD
+confirms this guarantee in practice: every failure involving malformed or
+conversational output in the Base configuration is eliminated, and the
+residual 27.25\% failure rate is attributable entirely to argument value
+errors. This validates the scope claim in Willard and Louf: constrained
+decoding solves the format compliance problem completely but cannot address
+semantic accuracy. The magnitude of the gain is unusually large here because
+the unguided failure rate of a 7B model on structured generation is
+correspondingly high; models that produce valid JSON more reliably without
+guidance would show a smaller benefit from constrained decoding.
+
+\paragraph{Training-based tool adaptation.}
+Gorilla demonstrated that fine-tuning a LLaMA model on retrieved API
+documentation can outperform GPT-4 on API-calling tasks, establishing that
+training data relevance can compensate for parameter count
+disadvantage~\cite{patil2023gorilla}. The key mechanism is alignment between
+the model's training context and its inference context. This thesis extends
+that insight from API source selection to output format alignment. Two LoRA
+adapters trained on the same xLAM dataset with identical hyperparameters
+differ by 7.0~pp on BFCL solely because their training output formats
+conflict or match the inference pipeline's JSON target~\cite{zhang2024xlam}.
+The format alignment effect is of comparable magnitude to the improvements
+Gorilla reports from retrieval-augmented training, suggesting that output
+format compatibility is as important a dimension of training data design as
+content relevance.
+
+A broader survey of small language models for agentic systems identifies
+Qwen~2.5 as one of the strongest sub-10B models for tool use and notes that
+systematic combinations of constrained decoding, quantization, and fine-tuning
+remain underexplored~\cite{sharma2025slmagents}. The cumulative evaluation
+design adopted in this thesis directly addresses that gap, providing
+comparative measurements across five technique combinations applied to a
+single model family over four model sizes.
+
+\paragraph{Retrieval-augmented generation for tool selection.}
+Lewis et al.\ showed that retrieval-augmented generation improves performance
+on knowledge-intensive tasks by supplying relevant context at inference
+time~\cite{lewis2020retrieval}. The RAG evaluation here reveals a limitation
+of this mechanism for tool selection: retrieval recall@5 of 97.2\% produces a
+$-24$~pp accuracy drop rather than an accuracy gain, because the bottleneck
+shifts from retrieval quality to candidate disambiguation. Retrieved candidates
+are semantically similar by construction, and the model must distinguish
+between them on fine-grained semantic grounds that single-call training does
+not develop. This failure mode is consistent with ToolLLM's observation that
+model performance degrades as the number of candidate APIs
+grows~\cite{qin2024toolllm}. Gorilla's training-time retrieval approach avoids
+the problem by teaching the model to handle similar candidates during training;
+inference-time retrieval without a corresponding disambiguation signal does not
+produce the same effect.
+
+\paragraph{Multi-step agentic evaluation.}
+The 68.4~pp gap between BFCL single-call accuracy (72.75\%) and $\tau$-bench
+pass rate (4.35\%) reveals a discontinuity between structured output generation
+and multi-step reasoning. The ReAct framework and related agentic approaches
+report a similar pattern: models that produce correct individual tool calls
+frequently fail to maintain coherent task state across multi-turn
+interactions~\cite{yao2023react}. The $\tau$-bench size sweep confirms that
+this gap is not closed within the 0.5B--7B range: pass rates span 1.74\% to
+4.35\% across all sizes and both configurations tested, with no consistent
+scale dependence. The failure mode in the agentic setting is not format
+compliance, which constrained decoding ensures, but multi-turn planning:
+tracking which database fields have been retrieved, interpreting tool return
+values, and selecting the correct next action across five to fifteen steps.
+These capabilities scale with model size more slowly than single-call argument
+extraction~\cite{kaplan2020scaling} and are not addressed by any of the
+post-training or inference-time techniques evaluated in this thesis.
