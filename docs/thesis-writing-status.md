@@ -51,7 +51,7 @@ No pending HPC jobs.
 
 ## What Was Completed Since Last Status (2026-04-26 → 2026-05-25)
 
-- Figures: bar chart (all 11 configs), frontier comparison, CoT flip, RAG breakdown, LoRA training loss — all added
+- Figures: bar chart (all 11 configs), frontier comparison, CoT flip, RAG breakdown, LoRA training loss, memory vs. accuracy scatter — all added
 - CD+Q+FT-aligned section (was stubbed, now written with 74.25% result)
 - τ-bench size sweep section (Ch.4.6.1)
 - Multi-category BFCL section (Ch.4.8: multiple/parallel/parallel_multiple)
