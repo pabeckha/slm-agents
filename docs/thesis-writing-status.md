@@ -1,78 +1,61 @@
 # Thesis Writing Status
 
-**Date**: 2026-04-26
-**Current page count**: 36 pages
+**Date**: 2026-05-25
+**Current page count**: 56 pages
 **Target**: 60--100 pages (DTU MSc standard)
 
 ## Chapter Status
 
-| Chapter | Status | Notes |
-|---------|--------|-------|
-| Abstract | Written | Needs update when aligned FT + tau-bench results in |
-| Ch.1 Introduction | Written | Thin (~2 pp), see gaps below |
-| Ch.2 Background | Written | Thin (~4 pp related work), see gaps below |
-| Ch.3 Methodology | Complete | All sections written |
-| Ch.4 Results | Mostly complete | Aligned FT rows pending HPC jobs 28270250/28270251 |
-| Ch.5 Discussion | Complete | Could go deeper on related work connections |
-| Ch.6 Conclusion | Complete | |
-| App. A AI Disclosure | Written | |
-| App. B Hyperparameters | Written | |
-| App. C Full Results | Written | Add aligned FT rows when available |
+| Chapter | Lines | Status |
+|---------|-------|--------|
+| Abstract | — | Written — up to date with all results |
+| Ch.1 Introduction | 160 | Complete — motivation, motivating example, final numbers, cascade framing, RQs, contributions |
+| Ch.2 Background | 461 | Complete — constrained decoding, quantization, LoRA, RAG, BFCL, τ-bench |
+| Ch.3 Methodology | 382 | Complete — all 7 rungs of evaluation ladder, pipeline description |
+| Ch.4 Results | 765 | Complete — all 11 configs, size sweep, τ-bench, multi-category BFCL (multiple/parallel/parallel_multiple), frontier comparison, capability decomposition |
+| Ch.5 Discussion | 407 | Complete — scaling analysis, cost-benefit, limitations, practical implications, Relation to Prior Work |
+| Ch.6 Conclusion | 188 | Complete — RQ answers, deployment guidelines, future work |
+| App. A AI Disclosure | — | Written (Vancouver Convention, DTU guidelines) |
+| App. B Hyperparameters | — | Written |
+| App. C Full Results | — | Written |
 
-## Gaps by Priority
+## All Experiments Complete
 
-### Priority 1 — Figures (no figures exist yet, biggest single gap)
+| Config | Result |
+|--------|--------|
+| B (baseline) | 1.5% AST |
+| CD | 72.75% AST |
+| PE | 70.25% AST |
+| CD+Q | 72.25% AST |
+| CD+Q+ITC | 65.5% AST |
+| CD+Q+RAG | 47.75% AST |
+| CD+FT | 69.75% AST |
+| FT-only | 13.75% AST |
+| FT-aligned-ng | 13.25% AST |
+| CD+FT-aligned | **76.75% AST** ← best |
+| CD+Q+FT-aligned | 74.25% AST |
+| τ-bench CD (retail, 7B) | 4.35% pass rate |
+| Model-size sweep | Done — see `size-sweep-results.md` |
+| τ-bench size sweep | Done — see `tau-bench-retail-results.md` |
+| BFCL multiple/parallel/parallel_multiple | Done — CD 38.5% on parallel_multiple; FT-aligned 70.5% on multiple, 0% on parallel |
 
-Every result comparison is currently prose + table only. Adding figures would
-add 8--15 pages and make the thesis significantly clearer.
+No pending HPC jobs.
 
-Figures to create:
-- [ ] Bar chart: all 8 configs on BFCL simple_python (accuracy)
-- [ ] Frontier comparison bar chart (SLM configs vs GPT-4.1, Claude, Gemini)
-- [ ] CoT flip analysis: 24 gains vs 50 losses (stacked bar or sankey)
-- [ ] RAG failure breakdown: 66% identical / 32% wrong function / 2% wrong params
-- [ ] LoRA training loss curve (train + val loss vs epoch)
-- [ ] Memory vs accuracy scatter (B, CD, CD+Q, FT configs)
-- [ ] Evaluation pipeline diagram (two-stage: selection → extraction)
+## Remaining Work
 
-### Priority 2 — Background / Related Work expansion
+### Open (pre-submission polish)
+- [ ] **#56** — Full read-through: figures, cross-references, bibliography, config label consistency
 
-Currently ~4 pages total. Target: 15--25 pages.
+### Out of scope / dropped
+- #36 — Real-world MCP evaluation: not done, out of scope for this submission
 
-Topics to expand:
-- [ ] Function calling benchmarks in depth (BFCL categories, tau-bench design)
-- [ ] SLM survey: what Qwen 2.5, Phi-4, Llama 3.2 achieve on tool use
-- [ ] Constrained decoding literature beyond Willard & Louf (Outlines, LMQL, vLLM)
-- [ ] Prior LoRA fine-tuning for tool use (ToolLLM, Gorilla, xLAM paper)
-- [ ] Cascade / mixture-of-experts LLM routing prior work
+## What Was Completed Since Last Status (2026-04-26 → 2026-05-25)
 
-### Priority 3 — Pending experimental results
-
-- [ ] Aligned FT ablation results (HPC jobs 28270250, 28270251 -- PEND as of 2026-04-26)
-  - Add CD+FT-aligned and FT-aligned-ng rows to Ch.4 Combined Configurations
-  - Add one paragraph to Ch.5 Discussion
-  - Update abstract and conclusion when final numbers are in
-- [ ] tau-bench retail results -- ongoing
-  - New section in Ch.4 Results
-  - New subsection in Ch.5 Discussion
-- [ ] BFCL harder categories (multiple_function, parallel_function) -- not yet run
-- [ ] Real-world MCP evaluation: GitHub 21-tool catalog, real execution (Issue #36)
-
-### Priority 4 — Introduction expansion
-
-Currently ~2 pages. Could expand:
-- [ ] Concrete motivating example: show an actual SLM failure on a tool-calling query
-- [ ] Clearer framing of the cascade architecture hypothesis
-- [ ] More specific contributions (tie each to a result number)
-
-### Priority 5 — Discussion depth
-
-- [ ] Connect CoT finding to Wei et al. 2022 and Snell et al. 2024
-- [ ] Connect RAG disambiguation finding to prior SLM tool-selection work
-- [ ] Deeper cascade architecture section: routing heuristics, cost model
-
-## Citation Fixes Applied
-
-- `lin2023awq` → `lin2024awq` (fixed in Introduction)
-- `yao2024taubench` → `taubench2024` (fixed in Introduction)
-- `zhang2024xlam` added to bibliography (xLAM paper, arXiv 2409.03215)
+- Figures: bar chart (all 11 configs), frontier comparison, CoT flip, RAG breakdown, LoRA training loss, memory vs. accuracy scatter — all added
+- CD+Q+FT-aligned section (was stubbed, now written with 74.25% result)
+- τ-bench size sweep section (Ch.4.6.1)
+- Multi-category BFCL section (Ch.4.8: multiple/parallel/parallel_multiple)
+- Discussion Ch.5: Relation to Prior Work section added
+- Introduction: sharpened with final numbers in first section
+- Conclusion: expanded Future Work with concrete directions and 4-rung decision ladder
+- Page count grew from 36 → 56 pages (+20 pp)

@@ -1,7 +1,7 @@
 ---
 title: "Master Plan: SLM Agents Thesis"
 category: "project"
-lastUpdated: "2026-05-20"
+lastUpdated: "2026-05-25"
 status: "active"
 ---
 
@@ -43,15 +43,15 @@ Full result analyses: `docs/decisions/`
 
 | Chapter | Status |
 |---------|--------|
-| 1. Introduction | Draft — needs sharpening with final numbers (#55) |
-| 2. Background | Draft |
+| 1. Introduction | Complete — motivation, motivating example, final numbers, cascade framing, RQs, contributions |
+| 2. Background | Complete |
 | 3. Methodology | Complete — 7 configs in eval ladder, all sections written |
-| 4. Results | Complete — all 11 configs written; model-size section pending scale-study results |
-| 5. Discussion | Draft — related work connections to deepen (#40) |
-| 6. Conclusion | Draft |
-| Appendix | Not started — AI tool usage disclosure (Vancouver Convention) |
+| 4. Results | Complete — all 11 configs, size sweep, τ-bench, multi-category BFCL, frontier comparison, capability decomposition |
+| 5. Discussion | Complete — scaling analysis, cost-benefit, limitations, practical implications, Relation to Prior Work |
+| 6. Conclusion | Complete — RQ answers, deployment guidelines, expanded Future Work |
+| Appendix | Complete — AI tool usage disclosure, hyperparameters, full results table |
 
-Current page count: ~50 pages. Target: 60–100 pages.
+Current page count: 56 pages. Target: 60–100 pages.
 
 ---
 
@@ -68,16 +68,14 @@ Current page count: ~50 pages. Target: 60–100 pages.
 - [x] BFCL parallel — 7B FT-aligned: 0.0% (job 28468136)
 - [x] BFCL parallel_multiple — 7B: CD 38.5%, FT-aligned 30.5% (jobs 28468267/28468268)
 
-### Writing (unblocked now)
-- [ ] #40 — Deepen discussion chapter with related work connections
-- [ ] #55 — Sharpen introduction with final results preview
-- [ ] #57 — Update master-plan (this task)
-- [ ] Appendix: AI tool usage disclosure (Vancouver Convention)
-
-### Writing (unblocked — all scale-study results in)
-- [ ] Results section: multi-category BFCL (multiple/parallel/parallel_multiple) — all results in; ready to write
-- [ ] Results section: τ-bench size sweep — fill in from `tau-bench-retail-results.md`
-- [ ] Discussion: scaling analysis implications
+### Writing (done)
+- [x] #40 — Deepen discussion chapter with related work connections (Ch.5 "Relation to Prior Work" added)
+- [x] #55 — Sharpen introduction with final results preview (final numbers in Ch.1 Motivation)
+- [x] #57 — Update master-plan (2026-05-25)
+- [x] Appendix: AI tool usage disclosure (Vancouver Convention) — App. A written
+- [x] Results section: multi-category BFCL (multiple/parallel/parallel_multiple) — Ch.4.8 written
+- [x] Results section: τ-bench size sweep — Ch.4.6.1 written
+- [x] Discussion: scaling analysis implications — Ch.5.1 written
 
 ### Polish (pre-submission)
 - [ ] #56 — Full read-through: figures, cross-references, bibliography, config label consistency
