@@ -161,16 +161,17 @@ would be a direct intervention at the point of failure.
 
 The constrained decoding advantage is established on
 \texttt{simple\_python}, where one candidate function is provided per test
-case. Evaluating CD and CD+Q on the
-\texttt{multiple\_function} and \texttt{parallel\_function} BFCL categories
-would test whether the advantage holds when the model must select from
-multiple candidates or produce parallel calls, conditions closer to a
-production tool catalog.
-The two-stage single-call architecture evaluated here achieves 0\%
-accuracy on both categories by design; extending the architecture to
-support multi-candidate selection and parallel call emission is a
-prerequisite before the optimization techniques investigated here can be
-applied to those settings.
+case. Section~\ref{sec:bfcl-extended} reports results for the
+\texttt{multiple} and \texttt{parallel} BFCL categories:
+Config~CD+FT-aligned reaches 70.5\% on \texttt{multiple} at 7B,
+confirming that the single-call architecture handles multi-candidate
+selection.
+The \texttt{parallel} category, which requires two simultaneous calls to
+the same function, yields 0.0\% across all configurations and sizes; the
+failure is in call count, not argument content.
+Extending the architecture to support parallel call emission is the
+prerequisite for applying the optimization techniques investigated here
+to the \texttt{parallel} and \texttt{parallel\_multiple} categories.
 
 Training data alignment is the binding constraint on LoRA fine-tuning for
 this task. Generating training examples from the target deployment's own
