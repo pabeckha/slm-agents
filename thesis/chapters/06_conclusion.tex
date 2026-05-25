@@ -141,11 +141,11 @@ and 3B would characterise the interaction between model scale and each
 optimization technique, and identify whether there is a minimum scale
 threshold below which constrained decoding no longer closes the frontier
 gap.
-The size-sweep results reported in Section~\ref{sec:model-size} cover only
-the CD configuration; extending this analysis to CD+Q and CD+FT-aligned
-would reveal whether quantization and fine-tuning interact with model scale
-in the same way as constrained decoding, or whether smaller models require
-different calibration and training strategies.
+The size-sweep results reported in Section~\ref{sec:model-size} cover the
+majority of configurations across all four Qwen~2.5 sizes; extending this
+analysis to Config~CD+Q+FT-aligned would reveal whether quantization applied
+to a fine-tuned model incurs a larger accuracy penalty at smaller scales, or
+whether the 2.5~pp penalty observed at 7B is consistent across the size range.
 
 RAG-based tool selection requires a stronger disambiguation signal than
 top-5 retrieval provides for a 7B model. Three concrete directions are:
