@@ -31,10 +31,16 @@ format compliance failure entirely, collapsing the 98.5~pp gap
 between the unoptimized 7B model and frontier performance to
 7~pp on BFCL~v4 \texttt{simple\_python}, without modifying
 model weights.
-Format-aligned LoRA fine-tuning reduces the gap further to
-2.8~pp, reaching 76.75\% and placing the 7B model within
-0.08~pp of Claude Opus~4.5 (76.83\%) on the same benchmark,
-on a single consumer GPU.
+The constrained-decoding configuration (Config~CD) achieves 72.75\%.
+AWQ INT4 quantization applied to this configuration (Config~CD+Q)
+reduces model memory by 63.5\%, from 14.25~GiB to 5.20~GiB, at
+a cost of 0.5~pp of accuracy (72.25\%), within run-to-run variance.
+Format-aligned LoRA fine-tuning on the full-precision model
+(Config~CD+FT-aligned) raises accuracy to 76.75\%, placing the 7B
+model within 0.08~pp of Claude Opus~4.5 (76.83\%) on the same
+benchmark on a single consumer GPU.
+The quantized fine-tuned variant (Config~CD+Q+FT-aligned) achieves
+74.25\% on the same 5.20~GiB memory footprint.
 The failures that persist across all configurations are
 semantic rather than structural: wrong optional parameter
 defaults, numeric precision mismatches, and string format

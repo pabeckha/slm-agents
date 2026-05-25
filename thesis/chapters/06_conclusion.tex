@@ -61,7 +61,63 @@ optimized SLM configuration is production-viable on consumer hardware,
 with training data alignment as the binding constraint on the achievable
 accuracy ceiling.
 
-\section{Future Work}
+\section{Practical Deployment Guidelines}
+
+The results across ten configurations suggest a concrete decision
+procedure for teams deploying SLMs in tool-calling production systems.
+The procedure is ordered by implementation cost and is designed to allow
+an early exit at each step when the achieved accuracy meets the
+deployment requirement.
+
+\textbf{Step~1: Apply constrained decoding first.}
+Constrained decoding requires no modification to model weights and no
+training data. On BFCL~v4 \texttt{simple\_python} it raises accuracy
+from 1.5\% to 72.75\% for the 7B model by eliminating format failures
+entirely. For tasks in which format compliance is the dominant failure
+mode this single step may be sufficient for production deployment,
+particularly when the target use case involves a fixed, well-documented
+tool schema.
+
+\textbf{Step~2: Quantize for memory efficiency.}
+AWQ INT4 quantization reduces the 7B model memory from 14.25~GiB to
+5.20~GiB and startup time from 212~s to 35~s, at a cost of 0.5~pp of
+accuracy (Config~CD+Q: 72.25\%). This cost is within run-to-run
+variance, and the quantized configuration is recommended whenever
+hardware capacity or cold-start latency are deployment constraints.
+The 5.20~GiB footprint fits on a single consumer NVIDIA RTX~4090
+with substantial remaining capacity for the key-value cache.
+
+\textbf{Step~3: Evaluate prompting interventions cautiously.}
+Both few-shot prompting and chain-of-thought reasoning produced accuracy
+regressions in this evaluation: $-2.5$~pp for few-shot (Config~PE) and
+$-6.75$~pp for chain-of-thought (Config~CD+Q+ITC) at approximately
+double the per-case latency. Prompting interventions are not recommended
+when constrained decoding is already active, because the residual
+failures are semantic rather than format-related and are not addressed
+by additional structure in the prompt.
+
+\textbf{Step~4: Invest in format-aligned fine-tuning for the accuracy
+ceiling.}
+Format-aligned LoRA fine-tuning is the only configuration that improves
+on constrained decoding alone. Config~CD+FT-aligned achieves 76.75\%,
+matching Claude Opus~4.5 (76.83\%) on the same benchmark. The binding
+constraint is training data alignment: the training distribution must
+match the inference pipeline's output format exactly. Applying the
+merged adapter to the quantized model (Config~CD+Q+FT-aligned) yields
+74.25\% on the same 5.20~GiB footprint, with a 2.5~pp quantization
+penalty relative to the full-precision adapter.
+
+\textbf{Deployment boundary.}
+These guidelines apply to single-call, single-function scenarios
+analogous to BFCL~v4 \texttt{simple\_python}. The $\tau$-bench result
+(4.35\% pass rate on the retail domain) demonstrates that single-call
+accuracy does not predict multi-turn agentic performance, and no
+configuration in this evaluation transfers its single-call gains to
+multi-step tasks. Applications requiring reliable multi-turn tool
+execution should treat the results here as an entry point and apply the
+complementary techniques described in Section~\ref{sec:future-work}.
+
+\section{Future Work} \label{sec:future-work}
 
 The $\tau$-bench result (4.35\% pass rate on retail) establishes that
 single-call accuracy does not predict multi-step agentic performance.
@@ -71,6 +127,13 @@ decoding handles that -- but multi-turn planning and error recovery across
 5--15 tool calls. Techniques such as process reward models, chain-of-thought
 with tool-observation grounding, and task-specific fine-tuning on multi-turn
 trajectories are natural next steps~\cite{taubench2024}.
+A controlled ablation isolating the contribution of each technique to
+$\tau$-bench pass rate would determine which combination most effectively
+closes the gap between the 4.35\% result observed here and the pass rates
+reported for frontier models on the same benchmark.
+The $\tau$-bench airline domain offers a second evaluation environment that
+would indicate whether the retail result generalises across task structures
+and tool catalog sizes.
 
 The full configuration ladder has been evaluated in depth only on the 7B
 model. Evaluating the same configurations on Qwen~2.5 sizes 0.5B, 1.5B,
@@ -78,6 +141,11 @@ and 3B would characterise the interaction between model scale and each
 optimization technique, and identify whether there is a minimum scale
 threshold below which constrained decoding no longer closes the frontier
 gap.
+The size-sweep results reported in Section~\ref{sec:model-size} cover only
+the CD configuration; extending this analysis to CD+Q and CD+FT-aligned
+would reveal whether quantization and fine-tuning interact with model scale
+in the same way as constrained decoding, or whether smaller models require
+different calibration and training strategies.
 
 RAG-based tool selection requires a stronger disambiguation signal than
 top-5 retrieval provides for a 7B model. Three concrete directions are:
@@ -85,6 +153,11 @@ reducing $k$ to 1 or 2 to narrow the candidate set at the cost of recall;
 adding a re-ranking step between retrieval and selection to order candidates
 by query-specific relevance; and fine-tuning the model on tool-selection
 examples from the target catalog to improve sibling-function discrimination.
+The 97.2\% recall@5 observed in Config~CD+Q+RAG confirms that the retrieval
+component itself is not the bottleneck; the disambiguation failure occurs
+in the generation step, where the model must select among retrieved
+candidates. A re-ranking model trained on function-call preference data
+would be a direct intervention at the point of failure.
 
 The constrained decoding advantage is established on
 \texttt{simple\_python}, where one candidate function is provided per test
@@ -93,6 +166,11 @@ case. Evaluating CD and CD+Q on the
 would test whether the advantage holds when the model must select from
 multiple candidates or produce parallel calls, conditions closer to a
 production tool catalog.
+The two-stage single-call architecture evaluated here achieves 0\%
+accuracy on both categories by design; extending the architecture to
+support multi-candidate selection and parallel call emission is a
+prerequisite before the optimization techniques investigated here can be
+applied to those settings.
 
 Training data alignment is the binding constraint on LoRA fine-tuning for
 this task. Generating training examples from the target deployment's own
@@ -102,3 +180,8 @@ provide a direct learning signal for the value conventions that the
 no-training configurations fail on. Such data could be generated
 synthetically from the BFCL training split or from API documentation of
 the production tool catalog.
+A systematic study varying the source of training data -- from fully
+synthetic, to domain-matched, to human-curated examples -- would
+quantify how much of the 23.25~pp residual gap after CD+FT-aligned can
+be closed by data quality improvements alone, without further changes to
+the model architecture or the optimization pipeline.
