@@ -2,40 +2,38 @@
 \addcontentsline{toc}{section}{Abstract}
 
 Frontier language models have become the default backbone for agentic systems,
-yet their inference costs and dependence on external APIs make them impractical
-for latency-sensitive or resource-constrained deployments. Small language models
-(1B--8B parameters) can run on consumer hardware, but without optimization they
+yet their dependence on external APIs rules them out for offline,
+privacy-sensitive, or high-volume cost-constrained deployments. Small language models
+(1B--8B parameters) can run on consumer hardware, but without optimization, they
 fail on the structured output and tool-calling tasks that agentic pipelines
 require. This thesis investigates which optimization techniques are sufficient
 to make a small language model reliably call tools, and at what accuracy cost
 each technique comes.
 
-An incremental ablation study is conducted on \texttt{Qwen/Qwen2.5-7B-Instruct}
-across six techniques, evaluated on the Berkeley Function Calling Leaderboard
-v4 \texttt{simple\_python} category (400 test cases, AST accuracy). The
-unoptimized model achieves 1.5\%, approximately 98 percentage points below
-frontier models. Constrained decoding alone raises accuracy to 72.75\%,
-matching GPT-4.1 (72.67\%) and Claude Sonnet~4.5 (72.58\%), at zero
-additional inference cost. AWQ INT4 quantization reduces model memory from
-14.25~GiB to 5.20~GiB with a loss of only 0.5 percentage points (72.25\%).
-Few-shot prompting and chain-of-thought reasoning both reduce accuracy, by
-2.5 and 6.5 percentage points respectively. Retrieval-augmented generation
-with top-5 retrieval reduces accuracy by 24 percentage points despite 97.2\%
-recall, due to function disambiguation failure. LoRA fine-tuning on a
-general-purpose function-calling dataset produces a 3 percentage point
-regression under constrained decoding, attributed to a mismatch between the
-training output format and the evaluation pipeline.
+An incremental ablation study is conducted on the Qwen~2.5 model family
+(0.5B--7B), with \texttt{Qwen2.5-7B-Instruct} as the primary configuration,
+evaluated on four BFCL v4 categories (\texttt{simple\_python},
+\texttt{multiple}, \texttt{parallel}, \texttt{parallel\_multiple}) and
+$\tau$-bench retail. The unoptimized baseline scores 1.5\%, approximately 98
+percentage points below frontier models. With constrained decoding alone,
+72.75\% is reached at no additional inference cost, matching GPT-4.1 (72.67\%)
+and Claude Sonnet~4.5 (72.58\%); AWQ INT4 quantization retains 72.25\% while
+reducing memory from 14.25~GiB to 5.20~GiB. Few-shot prompting,
+chain-of-thought reasoning, and retrieval-augmented generation each reduce
+accuracy relative to constrained decoding, by 2.5, 7.25, and 24 percentage
+points respectively.
+Format-aligned LoRA fine-tuning reaches 76.75\%, and 74.25\% after subsequent
+quantization at the same memory footprint. On $\tau$-bench retail (115 tasks)
+and \texttt{parallel} calls, accuracy falls to 4.3\% and 0\% respectively,
+showing that single-call gains do not transfer to multi-turn or multi-call
+settings.
 
-The primary finding is that the unoptimized performance gap is a format
-compliance gap rather than a reasoning gap: 394 of 400 failures in the
-unoptimized configuration are malformed outputs, not wrong answers.
-Constrained decoding resolves this gap structurally, and the quantized
-configuration (72.25\%, 5.20~GiB) is production-viable on a consumer
-NVIDIA RTX~4090. Prompting interventions cannot close the residual 27\%
-failure rate because those errors are in the model's learned value
-conventions, not in output format. Format-aligned LoRA fine-tuning achieves
-76.75\%, a 4.0 percentage point improvement over the no-training ceiling.
-Applying AWQ INT4 quantization to the fine-tuned model yields 74.25\% at
-the same 5.20~GiB footprint, confirming that the LoRA training signal
-survives quantization in attenuated form and that fine-tuned capability
-is achievable on consumer hardware at INT4 size.
+The unoptimized performance gap is a format compliance gap, not a reasoning
+gap: 394 of 400 failures in the unoptimized configuration are malformed outputs,
+not wrong answers. This gap is resolved structurally by constrained decoding,
+and the quantized configuration (72.25\%, 5.20~GiB) is production-viable on a
+consumer NVIDIA RTX~4090. Prompting interventions cannot close the residual 27\%
+failure rate because those errors are in the model's learned value conventions,
+not in output format. The LoRA training signal is retained in attenuated form after AWQ INT4
+quantization; fine-tuned capability is thus confirmed to be obtainable on
+consumer hardware at INT4 precision.

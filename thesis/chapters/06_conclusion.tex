@@ -2,7 +2,10 @@
 
 \section{Answering the Research Questions}
 
-\paragraph{RQ1.} The unoptimized performance gap between Qwen~2.5 7B-Instruct
+\paragraph{RQ1.} \textit{What is the performance gap between unoptimized small
+language models (1B--8B parameters) and frontier models on tool-calling benchmarks?}
+
+The unoptimized performance gap between Qwen~2.5 7B-Instruct
 and frontier models on BFCL~v4 \texttt{simple\_python} is approximately
 98.5 percentage points: the base model (Base) achieves 1.5\%, while
 frontier models range from 71.00\% (Claude Haiku~4.5) to 79.58\%
@@ -16,7 +19,12 @@ Sonnet~4.5 (72.58\%). The residual gap is in argument value accuracy,
 where frontier models have a moderate advantage attributable to stronger
 learned associations for specific numeric, string, and format conventions.
 
-\paragraph{RQ2.} Constrained decoding is the dominant optimization
+\paragraph{RQ2.} \textit{What is the marginal contribution of each optimization
+technique---constrained decoding, prompt engineering, retrieval-augmented
+generation, quantization, and LoRA fine-tuning---when applied cumulatively to
+small models for tool calling?}
+
+Constrained decoding is the dominant optimization
 technique, contributing $+71.25$ percentage points at zero additional
 inference cost. AWQ INT4 quantization reduces model memory by 63.5\%
 (14.25~GiB to 5.20~GiB) and startup time by 83.5\% (212~s to 35~s) at a
@@ -49,7 +57,10 @@ be addressed by prompting: these errors are in the model's learned value
 priors, and only training-based interventions with aligned format can change
 them.
 
-\paragraph{RQ3.} Three configurations achieve production-viable accuracy on
+\paragraph{RQ3.} \textit{Can a fully optimized small language model configuration
+achieve production-viable tool-calling accuracy on consumer hardware?}
+
+Three configurations achieve production-viable accuracy on
 consumer hardware. CD+Q achieves 72.25\% on 5.20~GiB of GPU memory
 with no training required, fitting on a consumer NVIDIA RTX~4090 (24~GiB)
 with substantial remaining capacity for the key-value cache.
