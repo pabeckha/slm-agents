@@ -1,0 +1,261 @@
+[
+  {
+    "name": "get_issue",
+    "description": "Get details of a specific issue",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"},
+      "issue_number": {"type": "number"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo", "issue_number"]
+  },
+  {
+    "name": "list_issues",
+    "description": "List issues for a repository",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"},
+      "state": {"type": "string"},
+      "labels": {"type": "string"},
+      "per_page": {"type": "number"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo"]
+  },
+  {
+    "name": "search_issues",
+    "description": "Search issues and pull requests across GitHub",
+    "parameters": {
+      "query": {"type": "string"},
+      "sort": {"type": "string"},
+      "order": {"type": "string"},
+      "per_page": {"type": "number"}
+    },
+    "returns": {"type": "object"},
+    "required": ["query"]
+  },
+  {
+    "name": "create_issue",
+    "description": "Create a new issue in a repository",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"},
+      "title": {"type": "string"},
+      "body": {"type": "string"},
+      "labels": {"type": "array"},
+      "assignees": {"type": "array"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo", "title"]
+  },
+  {
+    "name": "update_issue",
+    "description": "Update an existing issue",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"},
+      "issue_number": {"type": "number"},
+      "title": {"type": "string"},
+      "body": {"type": "string"},
+      "state": {"type": "string"},
+      "labels": {"type": "array"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo", "issue_number"]
+  },
+  {
+    "name": "add_issue_comment",
+    "description": "Add a comment to an issue",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"},
+      "issue_number": {"type": "number"},
+      "body": {"type": "string"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo", "issue_number", "body"]
+  },
+  {
+    "name": "get_pr",
+    "description": "Get details of a specific pull request",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"},
+      "pull_number": {"type": "number"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo", "pull_number"]
+  },
+  {
+    "name": "list_prs",
+    "description": "List pull requests for a repository",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"},
+      "state": {"type": "string"},
+      "per_page": {"type": "number"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo"]
+  },
+  {
+    "name": "list_pr_comments",
+    "description": "List review comments on a pull request",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"},
+      "pull_number": {"type": "number"},
+      "per_page": {"type": "number"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo", "pull_number"]
+  },
+  {
+    "name": "create_pr",
+    "description": "Create a new pull request",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"},
+      "title": {"type": "string"},
+      "head": {"type": "string"},
+      "base": {"type": "string"},
+      "body": {"type": "string"},
+      "draft": {"type": "boolean"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo", "title", "head", "base"]
+  },
+  {
+    "name": "merge_pr",
+    "description": "Merge a pull request",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"},
+      "pull_number": {"type": "number"},
+      "merge_method": {"type": "string"},
+      "commit_title": {"type": "string"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo", "pull_number"]
+  },
+  {
+    "name": "get_repo",
+    "description": "Get details of a specific repository",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo"]
+  },
+  {
+    "name": "list_repos",
+    "description": "List repositories for the authenticated user or a specific user/org",
+    "parameters": {
+      "owner": {"type": "string"},
+      "type": {"type": "string"},
+      "per_page": {"type": "number"}
+    },
+    "returns": {"type": "object"},
+    "required": []
+  },
+  {
+    "name": "search_repos",
+    "description": "Search GitHub repositories",
+    "parameters": {
+      "query": {"type": "string"},
+      "sort": {"type": "string"},
+      "order": {"type": "string"},
+      "per_page": {"type": "number"}
+    },
+    "returns": {"type": "object"},
+    "required": ["query"]
+  },
+  {
+    "name": "create_repo",
+    "description": "Create a new repository",
+    "parameters": {
+      "name": {"type": "string"},
+      "description": {"type": "string"},
+      "private": {"type": "boolean"},
+      "auto_init": {"type": "boolean"}
+    },
+    "returns": {"type": "object"},
+    "required": ["name"]
+  },
+  {
+    "name": "update_repo",
+    "description": "Update repository settings such as visibility, description, or name",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"},
+      "name": {"type": "string"},
+      "description": {"type": "string"},
+      "private": {"type": "boolean"},
+      "default_branch": {"type": "string"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo"]
+  },
+  {
+    "name": "delete_repo",
+    "description": "Delete a repository (requires admin access)",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo"]
+  },
+  {
+    "name": "push_files",
+    "description": "Atomically commit multiple files to a repository in a single commit",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"},
+      "message": {"type": "string"},
+      "files": {"type": "array"},
+      "branch": {"type": "string"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo", "message", "files"]
+  },
+  {
+    "name": "create_or_update_file",
+    "description": "Create or update a single file in a repository",
+    "parameters": {
+      "owner": {"type": "string"},
+      "repo": {"type": "string"},
+      "path": {"type": "string"},
+      "message": {"type": "string"},
+      "content": {"type": "string"},
+      "branch": {"type": "string"},
+      "sha": {"type": "string"}
+    },
+    "returns": {"type": "object"},
+    "required": ["owner", "repo", "path", "message", "content"]
+  },
+  {
+    "name": "search_code",
+    "description": "Search code across GitHub repositories",
+    "parameters": {
+      "query": {"type": "string"},
+      "per_page": {"type": "number"}
+    },
+    "returns": {"type": "object"},
+    "required": ["query"]
+  },
+  {
+    "name": "search_users",
+    "description": "Search GitHub users and organizations",
+    "parameters": {
+      "query": {"type": "string"},
+      "sort": {"type": "string"},
+      "order": {"type": "string"},
+      "per_page": {"type": "number"}
+    },
+    "returns": {"type": "object"},
+    "required": ["query"]
+  }
+]
