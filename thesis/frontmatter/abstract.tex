@@ -20,7 +20,8 @@ percentage points below frontier models. With constrained decoding alone,
 and Claude Sonnet~4.5 (72.58\%); AWQ INT4 quantization retains 72.25\% while
 reducing memory from 14.25~GiB to 5.20~GiB. Few-shot prompting,
 chain-of-thought reasoning, and retrieval-augmented generation each reduce
-accuracy, by 2.5, 6.75, and 24 percentage points respectively.
+accuracy relative to constrained decoding, by 2.5, 7.25, and 24 percentage
+points respectively.
 Format-aligned LoRA fine-tuning reaches 76.75\%, and 74.25\% after subsequent
 quantization at the same memory footprint. On $\tau$-bench retail (115 tasks)
 and \texttt{parallel} calls, accuracy falls to 4.3\% and 0\% respectively,
