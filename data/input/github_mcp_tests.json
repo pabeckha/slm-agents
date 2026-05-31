@@ -1,0 +1,543 @@
+[
+  {
+    "id": 1,
+    "cluster": "issue_read",
+    "difficulty": "easy",
+    "prompt": "Show me issue #36 in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "get_issue",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "issue_number": 36}
+    }
+  },
+  {
+    "id": 2,
+    "cluster": "issue_read",
+    "difficulty": "easy",
+    "prompt": "Get the details of issue number 10 in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "get_issue",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "issue_number": 10}
+    }
+  },
+  {
+    "id": 3,
+    "cluster": "issue_read",
+    "difficulty": "medium",
+    "prompt": "What does issue 5 say in pabeckha/slm-agents?",
+    "ground_truth": {
+      "fn_name": "get_issue",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "issue_number": 5}
+    },
+    "notes": "A specific number is given so get_issue is correct; 'what does it say' could tempt list_issues"
+  },
+  {
+    "id": 4,
+    "cluster": "issue_read",
+    "difficulty": "medium",
+    "prompt": "Pull up issue #79 from pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "get_issue",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "issue_number": 79}
+    },
+    "notes": "Colloquial 'pull up' could be misread as list_issues; specific number disambiguates"
+  },
+  {
+    "id": 5,
+    "cluster": "issue_read",
+    "difficulty": "easy",
+    "prompt": "List all open issues in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "list_issues",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "state": "open"}
+    }
+  },
+  {
+    "id": 6,
+    "cluster": "issue_read",
+    "difficulty": "easy",
+    "prompt": "Show me the closed issues in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "list_issues",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "state": "closed"}
+    }
+  },
+  {
+    "id": 7,
+    "cluster": "issue_read",
+    "difficulty": "medium",
+    "prompt": "What issues tagged 'bug' are open in pabeckha/slm-agents?",
+    "ground_truth": {
+      "fn_name": "list_issues",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "state": "open", "labels": "bug"}
+    },
+    "notes": "Label filter within a single repo is list_issues; search_issues with a query string would also work but list_issues is the direct tool for this"
+  },
+  {
+    "id": 8,
+    "cluster": "issue_read",
+    "difficulty": "hard",
+    "prompt": "Get all enhancement issues in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "list_issues",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "labels": "enhancement"}
+    },
+    "notes": "search_issues is plausible but list_issues with a label is the simpler, scoped solution; disambiguation requires knowing list_issues supports label filtering"
+  },
+  {
+    "id": 9,
+    "cluster": "issue_read",
+    "difficulty": "easy",
+    "prompt": "Search GitHub for issues about constrained decoding",
+    "ground_truth": {
+      "fn_name": "search_issues",
+      "args": {"query": "constrained decoding is:issue"}
+    }
+  },
+  {
+    "id": 10,
+    "cluster": "issue_read",
+    "difficulty": "medium",
+    "prompt": "Find issues and pull requests mentioning LoRA training in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "search_issues",
+      "args": {"query": "LoRA training repo:pabeckha/slm-agents"}
+    },
+    "notes": "'Issues and pull requests' signals search_issues which covers both; list_issues returns only issues"
+  },
+  {
+    "id": 11,
+    "cluster": "issue_read",
+    "difficulty": "medium",
+    "prompt": "Find all closed issues about quantization across GitHub",
+    "ground_truth": {
+      "fn_name": "search_issues",
+      "args": {"query": "is:issue is:closed quantization"}
+    },
+    "notes": "Cross-repository scope makes list_issues wrong; search_issues is the only option"
+  },
+  {
+    "id": 12,
+    "cluster": "issue_read",
+    "difficulty": "hard",
+    "prompt": "Are there any open issues about the RAG experiment failing in pabeckha/slm-agents?",
+    "ground_truth": {
+      "fn_name": "search_issues",
+      "args": {"query": "RAG experiment failing is:issue is:open repo:pabeckha/slm-agents"}
+    },
+    "notes": "Descriptive phrase as search content — list_issues cannot filter by text body; search_issues is required"
+  },
+  {
+    "id": 13,
+    "cluster": "issue_write",
+    "difficulty": "easy",
+    "prompt": "Create an issue titled 'Add real-world evaluation' in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "create_issue",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "title": "Add real-world evaluation"}
+    }
+  },
+  {
+    "id": 14,
+    "cluster": "issue_write",
+    "difficulty": "easy",
+    "prompt": "Open a new bug report titled 'Pipeline crashes on empty input' in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "create_issue",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "title": "Pipeline crashes on empty input", "labels": ["bug"]}
+    }
+  },
+  {
+    "id": 15,
+    "cluster": "issue_write",
+    "difficulty": "medium",
+    "prompt": "File a new issue in pabeckha/slm-agents: the decoder segfaults when the input is None",
+    "ground_truth": {
+      "fn_name": "create_issue",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "title": "Decoder segfaults when input is None"}
+    },
+    "notes": "The issue description becomes the title; model must extract title from natural language description"
+  },
+  {
+    "id": 16,
+    "cluster": "issue_write",
+    "difficulty": "easy",
+    "prompt": "Close issue #36 in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "update_issue",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "issue_number": 36, "state": "closed"}
+    }
+  },
+  {
+    "id": 17,
+    "cluster": "issue_write",
+    "difficulty": "easy",
+    "prompt": "Rename issue #5 in pabeckha/slm-agents to 'Refactor decoder pipeline'",
+    "ground_truth": {
+      "fn_name": "update_issue",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "issue_number": 5, "title": "Refactor decoder pipeline"}
+    }
+  },
+  {
+    "id": 18,
+    "cluster": "issue_write",
+    "difficulty": "hard",
+    "prompt": "Mark issue #10 as resolved in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "update_issue",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "issue_number": 10, "state": "closed"}
+    },
+    "notes": "'Mark as resolved' maps to state=closed via update_issue; could be confused with add_issue_comment saying 'Resolved'"
+  },
+  {
+    "id": 19,
+    "cluster": "issue_write",
+    "difficulty": "easy",
+    "prompt": "Add the comment 'Fixed in latest commit' to issue #36 in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "add_issue_comment",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "issue_number": 36, "body": "Fixed in latest commit"}
+    }
+  },
+  {
+    "id": 20,
+    "cluster": "issue_write",
+    "difficulty": "medium",
+    "prompt": "Reply 'Will investigate this week' on issue #5 in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "add_issue_comment",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "issue_number": 5, "body": "Will investigate this week"}
+    },
+    "notes": "'Reply' means posting a new comment, not editing the issue body; add_issue_comment not update_issue"
+  },
+  {
+    "id": 21,
+    "cluster": "issue_write",
+    "difficulty": "hard",
+    "prompt": "Leave a note on issue #10 in pabeckha/slm-agents: 'Reproduced on main branch'",
+    "ground_truth": {
+      "fn_name": "add_issue_comment",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "issue_number": 10, "body": "Reproduced on main branch"}
+    },
+    "notes": "'Leave a note' adds a new comment; update_issue would replace the description — key semantic difference"
+  },
+  {
+    "id": 22,
+    "cluster": "pr_read",
+    "difficulty": "easy",
+    "prompt": "Show me the details of pull request #79 in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "get_pr",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "pull_number": 79}
+    }
+  },
+  {
+    "id": 23,
+    "cluster": "pr_read",
+    "difficulty": "easy",
+    "prompt": "What is in PR #45 of pabeckha/slm-agents?",
+    "ground_truth": {
+      "fn_name": "get_pr",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "pull_number": 45}
+    }
+  },
+  {
+    "id": 24,
+    "cluster": "pr_read",
+    "difficulty": "medium",
+    "prompt": "Fetch pull request 80 from pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "get_pr",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "pull_number": 80}
+    },
+    "notes": "Specific PR number means get_pr; 'fetch' without context could imply list_prs"
+  },
+  {
+    "id": 25,
+    "cluster": "pr_read",
+    "difficulty": "easy",
+    "prompt": "List all open pull requests in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "list_prs",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "state": "open"}
+    }
+  },
+  {
+    "id": 26,
+    "cluster": "pr_read",
+    "difficulty": "easy",
+    "prompt": "Show me all closed PRs in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "list_prs",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "state": "closed"}
+    }
+  },
+  {
+    "id": 27,
+    "cluster": "pr_read",
+    "difficulty": "medium",
+    "prompt": "What pull requests are currently open in pabeckha/slm-agents?",
+    "ground_truth": {
+      "fn_name": "list_prs",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "state": "open"}
+    },
+    "notes": "Paraphrase of case 25; tests robustness to question-form prompts vs imperative"
+  },
+  {
+    "id": 28,
+    "cluster": "pr_read",
+    "difficulty": "easy",
+    "prompt": "Show me the review comments on PR #79 in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "list_pr_comments",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "pull_number": 79}
+    }
+  },
+  {
+    "id": 29,
+    "cluster": "pr_read",
+    "difficulty": "medium",
+    "prompt": "What did reviewers say on pull request #45 in pabeckha/slm-agents?",
+    "ground_truth": {
+      "fn_name": "list_pr_comments",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "pull_number": 45}
+    },
+    "notes": "get_pr returns PR metadata and description, not reviewer comments; list_pr_comments is the correct tool"
+  },
+  {
+    "id": 30,
+    "cluster": "pr_read",
+    "difficulty": "hard",
+    "prompt": "Get the inline code comments left on PR #80 in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "list_pr_comments",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "pull_number": 80}
+    },
+    "notes": "Inline code comments are what list_pr_comments returns; naive model may pick get_pr"
+  },
+  {
+    "id": 31,
+    "cluster": "pr_write",
+    "difficulty": "easy",
+    "prompt": "Open a PR in pabeckha/slm-agents from branch 'feature/rag' to 'main' titled 'Add RAG pipeline'",
+    "ground_truth": {
+      "fn_name": "create_pr",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "title": "Add RAG pipeline", "head": "feature/rag", "base": "main"}
+    }
+  },
+  {
+    "id": 32,
+    "cluster": "pr_write",
+    "difficulty": "easy",
+    "prompt": "Create a pull request from 'fix/decoder-bug' to 'main' in pabeckha/slm-agents titled 'Fix decoder crash on empty input'",
+    "ground_truth": {
+      "fn_name": "create_pr",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "title": "Fix decoder crash on empty input", "head": "fix/decoder-bug", "base": "main"}
+    }
+  },
+  {
+    "id": 33,
+    "cluster": "pr_write",
+    "difficulty": "medium",
+    "prompt": "Submit the changes from branch 'write/results-size-sweep-tau-bench' into 'main' in pabeckha/slm-agents as a PR titled 'Add tau-bench size sweep results'",
+    "ground_truth": {
+      "fn_name": "create_pr",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "title": "Add tau-bench size sweep results", "head": "write/results-size-sweep-tau-bench", "base": "main"}
+    },
+    "notes": "Long branch name tests argument extraction fidelity under paraphrase overhead"
+  },
+  {
+    "id": 34,
+    "cluster": "pr_write",
+    "difficulty": "easy",
+    "prompt": "Merge PR #45 in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "merge_pr",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "pull_number": 45}
+    }
+  },
+  {
+    "id": 35,
+    "cluster": "pr_write",
+    "difficulty": "medium",
+    "prompt": "Squash and merge pull request #80 in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "merge_pr",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "pull_number": 80, "merge_method": "squash"}
+    },
+    "notes": "Optional arg extraction: 'squash and merge' must map to merge_method=squash"
+  },
+  {
+    "id": 36,
+    "cluster": "pr_write",
+    "difficulty": "medium",
+    "prompt": "Rebase and merge PR #60 in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "merge_pr",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "pull_number": 60, "merge_method": "rebase"}
+    },
+    "notes": "Optional arg extraction: 'rebase and merge' must map to merge_method=rebase"
+  },
+  {
+    "id": 37,
+    "cluster": "repo_read",
+    "difficulty": "easy",
+    "prompt": "Show me the details of the pabeckha/slm-agents repository",
+    "ground_truth": {
+      "fn_name": "get_repo",
+      "args": {"owner": "pabeckha", "repo": "slm-agents"}
+    }
+  },
+  {
+    "id": 38,
+    "cluster": "repo_read",
+    "difficulty": "medium",
+    "prompt": "What are the current settings of pabeckha/slm-agents on GitHub?",
+    "ground_truth": {
+      "fn_name": "get_repo",
+      "args": {"owner": "pabeckha", "repo": "slm-agents"}
+    },
+    "notes": "'Settings' could suggest update_repo; get_repo is correct for reading current configuration"
+  },
+  {
+    "id": 39,
+    "cluster": "repo_read",
+    "difficulty": "easy",
+    "prompt": "List all repositories owned by pabeckha on GitHub",
+    "ground_truth": {
+      "fn_name": "list_repos",
+      "args": {"owner": "pabeckha"}
+    }
+  },
+  {
+    "id": 40,
+    "cluster": "repo_read",
+    "difficulty": "medium",
+    "prompt": "Show me all my GitHub repositories",
+    "ground_truth": {
+      "fn_name": "list_repos",
+      "args": {}
+    },
+    "notes": "'My repositories' means no owner arg (defaults to authenticated user); should not be confused with search_repos"
+  },
+  {
+    "id": 41,
+    "cluster": "repo_read",
+    "difficulty": "easy",
+    "prompt": "Search GitHub for repositories about small language model tool calling",
+    "ground_truth": {
+      "fn_name": "search_repos",
+      "args": {"query": "small language model tool calling"}
+    }
+  },
+  {
+    "id": 42,
+    "cluster": "repo_read",
+    "difficulty": "hard",
+    "prompt": "Find Python repositories on GitHub related to constrained decoding",
+    "ground_truth": {
+      "fn_name": "search_repos",
+      "args": {"query": "constrained decoding language:python"}
+    },
+    "notes": "search_code (content inside files) vs search_repos (finding repositories) — 'repositories' is the key word"
+  },
+  {
+    "id": 43,
+    "cluster": "repo_write",
+    "difficulty": "easy",
+    "prompt": "Create a new private GitHub repository named 'slm-eval-results'",
+    "ground_truth": {
+      "fn_name": "create_repo",
+      "args": {"name": "slm-eval-results", "private": true}
+    }
+  },
+  {
+    "id": 44,
+    "cluster": "repo_write",
+    "difficulty": "medium",
+    "prompt": "Update the description of pabeckha/slm-agents to 'Agents with Small Language Models — DTU Master Thesis'",
+    "ground_truth": {
+      "fn_name": "update_repo",
+      "args": {"owner": "pabeckha", "repo": "slm-agents", "description": "Agents with Small Language Models — DTU Master Thesis"}
+    },
+    "notes": "Model must pick update_repo over get_repo or create_repo; description is the specific optional arg to set"
+  },
+  {
+    "id": 45,
+    "cluster": "repo_write",
+    "difficulty": "easy",
+    "prompt": "Delete the repository pabeckha/test-scratch",
+    "ground_truth": {
+      "fn_name": "delete_repo",
+      "args": {"owner": "pabeckha", "repo": "test-scratch"}
+    }
+  },
+  {
+    "id": 46,
+    "cluster": "repo_write",
+    "difficulty": "medium",
+    "prompt": "Commit two files to pabeckha/slm-agents on main in one atomic commit: 'data/eval_a.json' with content '{}' and 'data/eval_b.json' with content '[]', with message 'Add eval output files'",
+    "ground_truth": {
+      "fn_name": "push_files",
+      "args": {
+        "owner": "pabeckha",
+        "repo": "slm-agents",
+        "branch": "main",
+        "message": "Add eval output files",
+        "files": [
+          {"path": "data/eval_a.json", "content": "{}"},
+          {"path": "data/eval_b.json", "content": "[]"}
+        ]
+      }
+    },
+    "notes": "Multi-file atomic commit → push_files; create_or_update_file handles only one file at a time"
+  },
+  {
+    "id": 47,
+    "cluster": "repo_write",
+    "difficulty": "hard",
+    "prompt": "Create or overwrite the file 'results/summary.md' in pabeckha/slm-agents on the main branch with content '# Results' and commit message 'Update summary'",
+    "ground_truth": {
+      "fn_name": "create_or_update_file",
+      "args": {
+        "owner": "pabeckha",
+        "repo": "slm-agents",
+        "path": "results/summary.md",
+        "message": "Update summary",
+        "content": "# Results",
+        "branch": "main"
+      }
+    },
+    "notes": "'Create or overwrite a single file' exactly matches create_or_update_file semantics over push_files"
+  },
+  {
+    "id": 48,
+    "cluster": "search",
+    "difficulty": "easy",
+    "prompt": "Search for the function 'load_function_definitions' in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "search_code",
+      "args": {"query": "load_function_definitions repo:pabeckha/slm-agents"}
+    }
+  },
+  {
+    "id": 49,
+    "cluster": "search",
+    "difficulty": "medium",
+    "prompt": "Find all Python files that import vllm in pabeckha/slm-agents",
+    "ground_truth": {
+      "fn_name": "search_code",
+      "args": {"query": "import vllm repo:pabeckha/slm-agents language:python"}
+    },
+    "notes": "Searching inside file contents (search_code) vs finding repositories (search_repos) — 'files that import' signals code search"
+  },
+  {
+    "id": 50,
+    "cluster": "search",
+    "difficulty": "easy",
+    "prompt": "Search GitHub for users with the username 'pabeckha'",
+    "ground_truth": {
+      "fn_name": "search_users",
+      "args": {"query": "pabeckha"}
+    }
+  }
+]
