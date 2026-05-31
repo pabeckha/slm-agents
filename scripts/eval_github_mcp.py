@@ -58,14 +58,19 @@ def _normalise(v: object) -> str:
 
 def _args_match(predicted: dict, ground_truth: dict) -> bool:
     """True iff every key in ground_truth is present and equal in predicted."""
+    if not isinstance(predicted, dict):
+        return False
     for key, expected in ground_truth.items():
         if key not in predicted:
             return False
         got = predicted[key]
         if isinstance(expected, bool):
-            if bool(got) != expected:
+            got_bool = str(got).lower() in ("true", "1", "yes")
+            if got_bool != expected:
                 return False
         elif isinstance(expected, (int, float)) and not isinstance(expected, bool):
+            if isinstance(got, bool):
+                return False
             try:
                 if float(got) != float(expected):
                     return False
@@ -219,7 +224,7 @@ def main() -> None:
     guided = cli.config in ("CD", "CDQ")
 
     functions = load_function_definitions(TOOLS_PATH)
-    tests = json.loads(TESTS_PATH.read_text())
+    tests = json.loads(TESTS_PATH.read_text(encoding="utf-8"))
     print(f"Loaded {len(functions)} tools, {len(tests)} test cases")
     print(f"Config: {cli.config} | guided={guided} | model={cli.model}")
 
@@ -306,7 +311,7 @@ def main() -> None:
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "results": results,
         "metrics": metrics,
-    }, indent=2))
+    }, indent=2), encoding="utf-8")
     print(f"\nResults → {out_path}")
 
 
