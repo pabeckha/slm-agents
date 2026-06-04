@@ -21,7 +21,7 @@
 | CD+FT-aligned (guided, bf16 merged) | 59.2% | 66.0% | 66.8% | 76.75% |
 
 7B values taken from established phase 1 runs (phase1-ablation-summary.md); earlier draft had transcription errors.
-Multiple and parallel categories for 7B CD baseline: both 0% across all configs. CD+FT-aligned multiple/parallel for 0.5B–3B run separately — see section below.
+7B CD multiple re-run (job 28601829, 2026-06-04) after crash fix: **70.5% (141/200)**. Earlier AWQ-only runs (May 3) were pre-crash-fix and produced corrupted empty outputs. 7B CD parallel: 0% (same as all other configs/sizes). CD+FT-aligned multiple/parallel for 0.5B–3B run separately — see section below.
 
 ### Quantization cost by size (CD vs CD+Q)
 
