@@ -87,13 +87,6 @@ model, typically accessed through an external API. The routing
 decision may be based on query complexity, output confidence, or
 post-hoc structural validation of the smaller model's response.
 
-The economic motivation is that frontier model APIs are charged per
-token and introduce network round-trip latency, while a locally
-deployed small model incurs a fixed hardware cost independent of
-query volume. If the small model handles a fraction $p$ of requests
-correctly, the fraction of traffic escalated to the frontier model
-is at most $1 - p$, reducing variable inference cost in proportion.
-
 For tool-calling tasks, structural validity is a necessary but not
 sufficient condition for accepting a small model's response. A
 response that is syntactically valid JSON and names an existing
@@ -104,10 +97,8 @@ mode is argument value errors cannot be filtered by structural
 checks alone.
 
 This thesis is framed around extending the small model operating
-region within a cascade. Each optimization technique is evaluated
-by how much it reduces the residual failure rate, and
-correspondingly the fraction of traffic that must be escalated to
-a frontier model.
+region within a cascade; the economic motivation and deployment
+context are described in Chapter~\ref{ch:introduction}.
 
 \section{Constrained Decoding}
 
@@ -121,7 +112,7 @@ For tool calling, this means the model is guaranteed to produce valid JSON that 
 
 \subsection{Guided Decoding Techniques}
 
-Several libraries implement constrained decoding for language models. Outlines~\cite{outlines2024} uses finite-state machines compiled from regular expressions or JSON schemas to guide generation. LMQL~\cite{beurer2024guidance} combines constrained decoding with a query language that allows expressing complex output constraints declaratively.
+Several libraries implement constrained decoding for language models. Outlines~\cite{outlines2024} uses finite-state machines compiled from regular expressions or JSON schemas to guide generation. LMQL~\cite{beurer2023lmql} combines constrained decoding with a query language that allows expressing complex output constraints declaratively.
 
 These techniques are particularly impactful for small models because they eliminate an entire class of errors (malformed outputs) without requiring any additional training. Constrained decoding is the foundational method in this thesis and serves as the base layer upon which other techniques are stacked.
 
@@ -131,7 +122,7 @@ These techniques are particularly impactful for small models because they elimin
 
 Few-shot prompting provides the model with examples of correct input-output pairs directly in the prompt~\cite{brown2020language}. For tool calling, this means including examples of user requests paired with the expected function calls. The model uses these examples as templates to guide its own generation.
 
-Few-shot prompting is a zero-cost technique (no training required) that can significantly improve task performance, especially for smaller models that benefit from explicit demonstrations of the expected output format and reasoning process.
+Few-shot prompting is a zero-cost technique (no training required) that can improve task performance on format-learning and pattern-matching tasks. Its effectiveness depends on whether the bottleneck is output format compliance or semantic convention matching; for the latter, in-context examples may not generalise across function domains.
 
 \subsection{Chain-of-Thought Reasoning}
 
@@ -158,7 +149,7 @@ user's request is encoded by the same model, and the $k$ tool
 embeddings with the highest cosine similarity to the query embedding
 are retrieved. FAISS (Facebook AI Similarity Search) is a widely used
 library for this purpose, providing efficient exact and approximate
-search over large embedding collections~\cite{lewis2020retrieval}.
+search over large embedding collections~\cite{johnson2019billion}.
 
 The primary failure mode of RAG for tool calling is candidate
 disambiguation. When multiple tools have semantically similar
@@ -376,7 +367,7 @@ higher: without constraints, Qwen~2.5 7B produces unparseable output
 on 98.5\% of BFCL test cases, a failure rate that constrained
 decoding eliminates entirely.
 
-LMQL~\cite{beurer2024guidance} offers an alternative approach through
+LMQL~\cite{beurer2023lmql} offers an alternative approach through
 a declarative query language in which output constraints are expressed
 as Python predicates evaluated during generation. The approach is
 more flexible than FSM-based methods for constraints that are

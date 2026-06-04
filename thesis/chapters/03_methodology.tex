@@ -1,9 +1,10 @@
 \chapter{Methodology} \label{ch:methodology}
 
-The experiments are structured around a simple logic: a bare baseline is defined first,
-and one technique is added at a time. The Qwen 2.5 model family is used, tested across
-four sizes from 0.5B to 7B. Five techniques are covered: constrained decoding,
-quantization, few-shot prompting, RAG, and LoRA fine-tuning. All configurations are
+The experimental design follows a cumulative evaluation ladder: a baseline configuration
+is established first, and one technique is added at each subsequent step to isolate its
+marginal contribution. The Qwen~2.5 model family is evaluated across four sizes from
+0.5B to 7B. Five techniques are covered: constrained decoding, quantization, few-shot
+prompting, retrieval-augmented generation, and LoRA fine-tuning. All configurations are
 evaluated on the Berkeley Function Calling Leaderboard.
 
 \section{Experimental Design}
@@ -365,7 +366,13 @@ examples are added only to the argument extraction stage, where all CD
 failures occur.
 
 The three examples are constructed to target the most frequent failure
-categories observed in CD. The first example demonstrates numeric
+categories observed in CD by inspecting the full set of 109 incorrect
+predictions on the test split. The examples are not drawn from the test
+split itself; they are hand-authored to illustrate the identified
+failure classes. This design choice is a limitation: the failure
+categories are identified from the same test split used to evaluate PE,
+so the examples are informed by test-set error patterns rather than a
+held-out development set. The first example demonstrates numeric
 precision: the expected value is \texttt{9.81}, not the rounded approximation
 \texttt{9.8}. The second demonstrates string format with a location qualifier:
 the expected value is \texttt{"San Francisco, CA"}, not

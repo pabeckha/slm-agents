@@ -40,8 +40,8 @@ improves by 2.0--2.5~pp at 0.5B--3B but decreases by 2.5~pp at
 7B~\cite{brown2020language}, indicating that the direction of
 effect is not consistent across model scale.
 Chain-of-thought reasoning (CD+Q+ITC) reduces accuracy at every
-model size by approximately 6~pp at double the per-case
-latency~\cite{wei2022chain}.
+model size by approximately 6~pp at increased per-case inference time from the additional reasoning
+tokens~\cite{wei2022chain}.
 Retrieval-augmented generation (CD+Q+RAG) reduces accuracy at every
 model size, with decreases of 16--26~pp relative to CD+Q, despite
 a retrieval recall@5 of 97.2\%; the loss is attributable to function
@@ -117,8 +117,9 @@ with substantial remaining capacity for the key-value cache.
 \textbf{Step~3: Evaluate prompting interventions cautiously.}
 Both few-shot prompting and chain-of-thought reasoning produced accuracy
 regressions in this evaluation: $-2.5$~pp for few-shot (Config~PE) and
-$-6.75$~pp for chain-of-thought (Config~CD+Q+ITC) at approximately
-double the per-case latency. Prompting interventions are not recommended
+$-6.75$~pp for chain-of-thought (Config~CD+Q+ITC), with increased
+per-case inference time from the additional reasoning tokens.
+Prompting interventions are not recommended
 when constrained decoding is already active, because the residual
 failures are semantic rather than format-related and are not addressed
 by additional structure in the prompt.

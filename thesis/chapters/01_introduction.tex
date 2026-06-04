@@ -60,7 +60,11 @@ fixed hardware cost independent of query volume. If the small model
 handles 75\% of requests correctly, 75\% of per-query API costs are
 eliminated. The central challenge is extending the fraction of requests
 that the small model can handle reliably, which is precisely what each
-optimization technique in this thesis is evaluated against.
+optimization technique in this thesis is evaluated against. This thesis
+evaluates the SLM tier in isolation; the cascade router and escalation
+mechanism are not implemented. BFCL accuracy serves as a proxy for the
+fraction of requests the SLM tier could handle, providing a comparable
+basis for estimating cascade economics across configurations.
 
 The optimization techniques are ordered by implementation cost. Methods
 that require no modification to the model weights -- constrained
@@ -99,13 +103,18 @@ training-based interventions that update the model's learned priors,
 or retrieval-based methods that ground generation in retrieved
 factual content. The central question is therefore not whether SLMs
 fail, but which failure type dominates and which intervention
-addresses it most effectively.
+addresses it most effectively. The central finding of this thesis is
+that constrained decoding converts the problem from format compliance
+--- fixable structurally at inference time --- into semantic
+argument-value accuracy, which only format-aligned training can
+further improve.
 
-The central question is whether these failures stem from fundamental
-limitations in model capacity or from insufficient constraints and
-guidance during generation. If the latter, then a carefully chosen
-stack of optimization techniques should be able to make small models
-competitive with frontier models on agentic benchmarks.
+Whether these failures stem from fundamental limitations in model
+capacity or from insufficient constraints and guidance during
+generation determines the appropriate intervention. If the latter,
+a carefully chosen stack of optimization techniques should be
+sufficient to make small models competitive with frontier models on
+agentic benchmarks.
 
 \section{Research Questions}
 
