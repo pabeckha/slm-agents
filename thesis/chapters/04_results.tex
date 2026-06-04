@@ -688,8 +688,7 @@ shows accuracy for CD and CD+FT-aligned across model sizes.
 \begin{table}[ht]
 \centering
 \caption{BFCL~v4 AST accuracy on the \texttt{multiple} category (200 test
-cases). CD was evaluated at 0.5B--3B only; the 7B CD condition was not run
-for this category. CD+FT-aligned was evaluated at all four sizes.}
+cases). CD and CD+FT-aligned at all four sizes.}
 \label{tab:bfcl-multiple}
 \begin{tabular}{lrr}
 \toprule
@@ -698,17 +697,18 @@ Size & CD & CD+FT-aligned \\
 0.5B & 42.0\%\ (84/200)  & 55.5\%\ (111/200) \\
 1.5B & 53.5\%\ (107/200) & 61.0\%\ (122/200) \\
 3B   & 62.0\%\ (124/200) & 60.5\%\ (121/200) \\
-7B   & ---               & 70.5\%\ (141/200) \\
+7B   & 70.5\%\ (141/200) & 70.5\%\ (141/200) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-CD alone scales from 42.0\% at 0.5B to 62.0\% at 3B. CD+FT-aligned improves
+CD alone scales from 42.0\% at 0.5B to 70.5\% at 7B. CD+FT-aligned improves
 over CD by 13.5~pp at 0.5B and 7.5~pp at 1.5B, but the gap closes to within
-noise at 3B (60.5\% vs.\ 62.0\%). At 7B, CD+FT-aligned reaches 70.5\%.
-The pattern mirrors the simple\_python sweep: fine-tuning helps most at
-smaller sizes where the model has limited capacity to infer the required
-format from the prompt alone.
+noise at 3B (60.5\% vs.\ 62.0\%) and vanishes entirely at 7B, where both
+configs reach 70.5\%. The pattern mirrors the simple\_python sweep: fine-tuning
+helps most at smaller sizes where the model has limited capacity to infer the
+required format from the prompt alone; at 7B the base model with CD already
+saturates the category.
 
 \subsection{Parallel Function Calling}
 

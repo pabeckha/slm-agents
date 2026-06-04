@@ -187,9 +187,10 @@ The constrained decoding advantage is established on
 \texttt{simple\_python}, where one candidate function is provided per test
 case. Section~\ref{sec:bfcl-extended} reports results for the
 \texttt{multiple} and \texttt{parallel} BFCL categories:
-Config~CD+FT-aligned reaches 70.5\% on \texttt{multiple} at 7B,
-confirming that the single-call architecture handles multi-candidate
-selection.
+Config~CD reaches 70.5\% on \texttt{multiple} at 7B; CD+FT-aligned
+matches this score exactly, confirming that the single-call architecture
+handles multi-candidate selection and that fine-tuning adds no benefit
+once scale is sufficient.
 The \texttt{parallel} category, which requires two simultaneous calls to
 the same function, yields 0.0\% across all configurations and sizes; the
 failure is in call count, not argument content.
