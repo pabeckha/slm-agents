@@ -14,7 +14,7 @@ without guidance.
 This distinction has a direct consequence for interpreting the frontier
 comparison. CD achieves 72.75\% on BFCL~v4 \texttt{simple\_python},
 matching GPT-4.1 (72.67\%) and Claude Sonnet~4.5 (72.58\%), and exceeding
-Claude Haiku~4.5 (71.00\%)~\cite{bfcl2024}. The primary mechanism is that
+Claude Haiku~4.5 (71.00\%)~\cite{bfcl2024}.\footnote{Frontier model scores are taken from the BFCL~v4 leaderboard, accessed 2026-06-04. The live leaderboard is updated over time, so these values represent a snapshot at that date.} The primary mechanism is that
 constrained decoding enforces valid JSON and valid function names by
 construction, which is precisely what frontier models' native tool-calling
 APIs also do. Once format compliance is equalized, a 7B model and a frontier
