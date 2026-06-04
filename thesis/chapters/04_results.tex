@@ -12,9 +12,10 @@ Table~\ref{tab:baseline-results} summarizes the baseline results for Qwen~2.5 7B
 \toprule
 Config & Description & Correct & Accuracy \\
 \midrule
-B  & Raw model (no optimization)     & 6/400   & 1.5\% \\
-PE & Few-shot prompting + guided      & 281/400 & 70.25\% \\
+B  & Raw model, no optimization       & 6/400   & 1.5\% \\
+\midrule
 CD & Constrained decoding (guided)    & 291/400 & 72.75\% \\
+PE & Few-shot + constrained decoding  & 281/400 & 70.25\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -23,7 +24,7 @@ CD & Constrained decoding (guided)    & 291/400 & 72.75\% \\
 
 Constrained decoding (CD) recovers 71.25 percentage points, achieving 72.75\% accuracy. Function selection reaches 100\% accuracy via \texttt{guided\_choice}, confirming that the format enforcement fully solves tool selection. The remaining 27.25\% failure rate is entirely in argument extraction: wrong numeric precision (e.g., 9.8 vs.\ 9.81), string format mismatches (e.g., ``kilometers/hour'' vs.\ ``km/h''), and incorrect optional parameter defaults.
 
-Few-shot prompting (PE) decreases accuracy by 2.5 percentage points relative to CD. The three few-shot examples, targeting known failure modes, did not transfer across function domains. This negative result indicates that the argument extraction errors reflect the model's learned associations rather than a formatting gap that in-context examples can bridge.
+Few-shot prompting (PE) also uses constrained decoding and decreases accuracy by 2.5 percentage points relative to CD alone. The three few-shot examples, targeting known failure modes, did not transfer across function domains. This negative result indicates that the argument extraction errors reflect the model's learned associations rather than a formatting gap that in-context examples can bridge.
 
 \section{No-Training Methods}
 
@@ -229,7 +230,7 @@ the failure distribution across the 209 incorrect predictions.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.55\textwidth]{pictures/figures/fig_rag_breakdown.pdf}
-\caption{Failure breakdown for CD+Q+RAG (209 incorrect predictions
+\caption{Failure breakdown for CD+Q+RAG on the 7B model (209 incorrect predictions
          out of 400 test cases). The dominant failure mode is wrong function
          selection (32\%), not retrieval miss or argument extraction error.}
 \label{fig:rag-breakdown}
@@ -296,10 +297,10 @@ match those of the evaluation benchmark.
 The format mismatch identified in CD+FT is addressed by rewriting
 the training data preprocessor to produce assistant-turn responses that
 match the inference pipeline's argument extraction prompt exactly.
-Two variants are evaluated: FT-aligned-ng, which applies the
-format-aligned adapter without constrained decoding, and
-CD+FT-aligned, which combines the adapter with the full
-constrained decoding pipeline.
+Two variants are evaluated: FT-aligned-ng (\textit{ng}: no guided
+decoding), which applies the format-aligned adapter without
+constrained decoding, and CD+FT-aligned, which combines the
+adapter with the full constrained decoding pipeline.
 
 FT-aligned-ng achieves 13.25\% accuracy (53/400), a decrease of
 0.5~pp relative to FT-only. The format-aligned training objective
@@ -609,10 +610,14 @@ CD+FT-aligned & 59.25\% & 66.00\% & 66.75\% & 76.75\% \\
 
 Base accuracy is near-zero across all model sizes, ranging from 1.50\%
 to 4.75\%, with no consistent trend with scale. The 3B model achieves 2.75\%,
-lower than both the 1.5B (4.75\%) and 0.5B (3.50\%) models. This confirms
-that the baseline failure mode is format non-compliance rather than semantic
-understanding: increasing model size alone does not recover structured output
-generation without an explicit constraint mechanism.
+lower than both the 1.5B (4.75\%) and 0.5B (3.50\%) models; at this accuracy
+range, the absolute difference is at most 8 correct outputs out of 400, which
+is within the noise floor of near-zero unguided generation. The non-monotonic
+ordering across sizes is not statistically meaningful and does not reflect a
+capacity difference. What the near-zero baseline uniformly confirms is that
+format non-compliance dominates at every scale: increasing model size alone
+does not recover structured output generation without an explicit constraint
+mechanism.
 
 CD accuracy scales consistently with model size. The 0.5B model achieves
 51.50\%, the 1.5B achieves 62.25\%, the 3B achieves 64.75\%, and the 7B
@@ -683,7 +688,8 @@ shows accuracy for CD and CD+FT-aligned across model sizes.
 \begin{table}[ht]
 \centering
 \caption{BFCL~v4 AST accuracy on the \texttt{multiple} category (200 test
-cases). CD results at 0.5B--3B; CD+FT-aligned at all four sizes.}
+cases). CD was evaluated at 0.5B--3B only; the 7B CD condition was not run
+for this category. CD+FT-aligned was evaluated at all four sizes.}
 \label{tab:bfcl-multiple}
 \begin{tabular}{lrr}
 \toprule

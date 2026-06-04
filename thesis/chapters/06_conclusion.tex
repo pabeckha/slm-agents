@@ -5,57 +5,73 @@
 \paragraph{RQ1.} \textit{What is the performance gap between unoptimized small
 language models (1B--8B parameters) and frontier models on tool-calling benchmarks?}
 
-The unoptimized performance gap between Qwen~2.5 7B-Instruct
-and frontier models on BFCL~v4 \texttt{simple\_python} is approximately
-98.5 percentage points: the base model (Base) achieves 1.5\%, while
-frontier models range from 71.00\% (Claude Haiku~4.5) to 79.58\%
-(Gemini~3 Pro)~\cite{bfcl2024}. This gap is almost entirely a format
-compliance gap. The base model understands the queries but cannot produce
-structured output without guidance: 394 of 400 failures in Base are
-malformed outputs rather than semantically wrong answers. Constrained
-decoding alone (CD) closes the gap to approximately 7 percentage
-points (72.75\% vs.\ 79.58\%), matching GPT-4.1 (72.67\%) and Claude
-Sonnet~4.5 (72.58\%). The residual gap is in argument value accuracy,
-where frontier models have a moderate advantage attributable to stronger
-learned associations for specific numeric, string, and format conventions.
+Across all four Qwen~2.5 Instruct sizes evaluated on
+BFCL~v4 \texttt{simple\_python}, the unoptimized baseline achieves
+1.5--4.75\%, with no consistent trend across model scale.
+The dominant failure mode is format non-compliance: 394 of 400
+failures in the 7B base model are malformed outputs rather than
+semantically wrong answers, and the same pattern holds at all sizes.
+Frontier models range from 71.00\% (Claude Haiku~4.5) to 79.58\%
+(Gemini~3 Pro)~\cite{bfcl2024}.
+Constrained decoding closes the gap at every size without modifying
+model weights, raising accuracy to 51.50\% (0.5B), 62.25\% (1.5B),
+64.75\% (3B), and 72.75\% (7B).
+At 7B, the residual gap to the best frontier model is approximately
+7~pp, with performance matching GPT-4.1 (72.67\%) and Claude
+Sonnet~4.5 (72.58\%).
+The residual gap is in argument value accuracy, where frontier models
+have a moderate advantage attributable to stronger learned associations
+for specific numeric, string, and format conventions.
 
 \paragraph{RQ2.} \textit{What is the marginal contribution of each optimization
 technique---constrained decoding, prompt engineering, retrieval-augmented
 generation, quantization, and LoRA fine-tuning---when applied cumulatively to
 small models for tool calling?}
 
-Constrained decoding is the dominant optimization
-technique, contributing $+71.25$ percentage points at zero additional
-inference cost. AWQ INT4 quantization reduces model memory by 63.5\%
-(14.25~GiB to 5.20~GiB) and startup time by 83.5\% (212~s to 35~s) at a
-cost of $-0.5$ percentage points, within run-to-run
-variance~\cite{lin2024awq}. Both prompting interventions evaluated produced
-negative outcomes: few-shot prompting (PE) reduced accuracy by
-2.5 percentage points~\cite{brown2020language}, and chain-of-thought
-reasoning (CD+Q+ITC) reduced accuracy by 6.75 percentage points at
-approximately double the per-case latency~\cite{wei2022chain}. Retrieval-augmented
-generation (CD+Q+RAG) reduced accuracy by 24 percentage points
-despite a retrieval recall@5 of 97.2\%, with the loss attributable to
-function disambiguation failure rather than retrieval
-quality~\cite{lewis2020retrieval}. LoRA fine-tuning on
+Constrained decoding is the dominant optimization technique,
+contributing $+48$--$+71$~pp across the 0.5B to 7B size range at
+zero additional inference cost; at 7B the gain is $+71.25$~pp.
+AWQ INT4 quantization reduces model memory by 63.5\% (14.25~GiB to
+5.20~GiB at 7B) and startup time by 83.5\% (212~s to 35~s) at a
+cost of at most 0.5~pp above 1.5B, within run-to-run
+variance~\cite{lin2024awq}; at 0.5B the penalty is 3.75~pp.
+Few-shot prompting (PE) produces a size-dependent effect: accuracy
+improves by 2.0--2.5~pp at 0.5B--3B but decreases by 2.5~pp at
+7B~\cite{brown2020language}, indicating that the direction of
+effect is not consistent across model scale.
+Chain-of-thought reasoning (CD+Q+ITC) reduces accuracy at every
+model size by approximately 6~pp at double the per-case
+latency~\cite{wei2022chain}.
+Retrieval-augmented generation (CD+Q+RAG) reduces accuracy at every
+model size, with decreases of 16--26~pp relative to CD+Q, despite
+a retrieval recall@5 of 97.2\%; the loss is attributable to function
+disambiguation failure rather than retrieval
+quality~\cite{lewis2020retrieval}.
+The disambiguation failure does not improve with model scale: the
+7B model is no more reliable than the 1.5B model at distinguishing
+semantically similar candidate functions.
+LoRA fine-tuning on
 \texttt{xlam-function-calling-60k}~\cite{zhang2024xlam, hu2022lora}
-produced a 3 percentage point regression under CD+FT relative to
-CD, attributed to a format mismatch between the training distribution
-and the evaluation pipeline. The format mismatch hypothesis is confirmed by
-CD+FT-aligned, which reformats training outputs to match the inference
-pipeline exactly and achieves 76.75\% (307/400), a gain of 4.00 percentage
-points above CD and the best result in the evaluation.
+produced a 3~pp regression under CD+FT at 7B, attributed to a
+format mismatch between the training distribution and the evaluation
+pipeline.
+The format mismatch hypothesis is confirmed by CD+FT-aligned, which
+reformats training outputs to match the inference pipeline exactly.
+CD+FT-aligned improves accuracy at every size: $+7.75$~pp at 0.5B,
+$+3.75$~pp at 1.5B, $+2.00$~pp at 3B, and $+4.00$~pp at 7B
+(76.75\%, matching Claude Opus~4.5 at 76.83\%).
 CD+Q+FT-aligned applies AWQ INT4 quantization to the format-aligned
-LoRA-merged model and achieves 74.25\% (297/400), a gain of 1.5 percentage
-points above CD. The quantization penalty relative to CD+FT-aligned is
-2.5 percentage points, larger than the 0.5 percentage point penalty observed
-when quantizing the base model, suggesting that AWQ interacts more
-destructively with fine-tuned weight deltas when the calibration distribution
-does not match the fine-tuning domain. The finding for
-RQ2 is that the residual 27\% failure rate after constrained decoding cannot
-be addressed by prompting: these errors are in the model's learned value
-priors, and only training-based interventions with aligned format can change
-them.
+LoRA-merged model and achieves 74.25\% (297/400) at 7B on the same
+5.20~GiB footprint.
+The quantization penalty relative to CD+FT-aligned is 2.5~pp at
+7B, larger than the 0.5~pp penalty observed when quantizing the
+base model, suggesting that AWQ interacts more destructively with
+fine-tuned weight deltas when the calibration distribution does not
+match the fine-tuning domain.
+The finding for RQ2 is that the residual failure rate after
+constrained decoding cannot be addressed by prompting at any model
+size: these errors are in the model's learned value priors, and only
+training-based interventions with aligned format can change them.
 
 \paragraph{RQ3.} \textit{Can a fully optimized small language model configuration
 achieve production-viable tool-calling accuracy on consumer hardware?}
@@ -74,7 +90,7 @@ accuracy ceiling.
 
 \section{Practical Deployment Guidelines}
 
-The results across ten configurations suggest a concrete decision
+The results across eleven configurations suggest a concrete decision
 procedure for teams deploying SLMs in tool-calling production systems.
 The procedure is ordered by implementation cost and is designed to allow
 an early exit at each step when the achieved accuracy meets the
@@ -146,17 +162,14 @@ The $\tau$-bench airline domain offers a second evaluation environment that
 would indicate whether the retail result generalises across task structures
 and tool catalog sizes.
 
-The full configuration ladder has been evaluated in depth only on the 7B
-model. Evaluating the same configurations on Qwen~2.5 sizes 0.5B, 1.5B,
-and 3B would characterise the interaction between model scale and each
-optimization technique, and identify whether there is a minimum scale
-threshold below which constrained decoding no longer closes the frontier
-gap.
-The size-sweep results reported in Section~\ref{sec:model-size} cover the
-majority of configurations across all four Qwen~2.5 sizes; extending this
-analysis to Config~CD+Q+FT-aligned would reveal whether quantization applied
-to a fine-tuned model incurs a larger accuracy penalty at smaller scales, or
-whether the 2.5~pp penalty observed at 7B is consistent across the size range.
+The size-sweep reported in Section~\ref{sec:model-size} covers seven
+configurations across all four Qwen~2.5 sizes.
+Config~CD+Q+FT-aligned has been evaluated at 7B only; extending this
+to 0.5B, 1.5B, and 3B would reveal whether the 2.5~pp quantization
+penalty observed at 7B is consistent across the size range, or
+whether it increases at smaller scales where the interaction between
+fine-tuned weight deltas and INT4 quantization may be more
+pronounced.
 
 RAG-based tool selection requires a stronger disambiguation signal than
 top-5 retrieval provides for a 7B model. Three concrete directions are:
