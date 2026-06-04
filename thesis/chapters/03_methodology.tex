@@ -13,17 +13,21 @@ effect of each technique on tool-calling accuracy.
 
 \subsection{Cumulative Evaluation Ladder}
 
-Seven configurations are evaluated in total, as illustrated in
+Eleven configurations are evaluated in total, as illustrated in
 Figure~\ref{fig:eval-ladder}. Four form a main chain, each building on the
 previous one. Config~B is the baseline: the model is prompted without
 constrained decoding at full precision. In Config~CD, constrained decoding is
 added, forcing the output to conform to a valid JSON schema. In Config~CD+Q,
 AWQ INT4 quantization is applied to reduce memory footprint while preserving
-accuracy as much as possible. In Config~CD+Q+FT, LoRA fine-tuning is added to
-the quantized model. Three parallel configurations are also evaluated:
-Config~PE uses few-shot prompting, Config~CD+Q+ITC adds chain-of-thought
-inference-time compute to Config~CD+Q, and Config~CD+Q+RAG adds
-retrieval-augmented generation to Config~CD+Q.
+accuracy as much as possible. In Config~CD+Q+FT-aligned, a format-aligned LoRA
+adapter is applied to the quantized model. Three inference-time parallel
+configurations are also evaluated from Config~CD+Q: Config~PE uses few-shot
+prompting, Config~CD+Q+ITC adds chain-of-thought inference-time compute, and
+Config~CD+Q+RAG adds retrieval-augmented generation. Fine-tuning branches from
+Config~CD: Config~CD+FT applies a misaligned LoRA adapter and
+Config~CD+FT-aligned applies the format-aligned adapter. Two unguided variants
+are evaluated without constrained decoding: Config~FT-only (misaligned adapter)
+and Config~FT-aligned-ng (format-aligned adapter, ng: no guided decoding).
 
 \begin{figure}[ht]
 \centering
@@ -31,37 +35,61 @@ retrieval-augmented generation to Config~CD+Q.
 \begin{tikzpicture}[
     box/.style={
         rectangle, draw, rounded corners=4pt,
-        minimum width=3.0cm, minimum height=0.9cm,
+        minimum width=2.8cm, minimum height=0.85cm,
         align=center, font=\small
     },
     main/.style={box, fill=blue!8},
     side/.style={box, fill=orange!8},
     para/.style={box, fill=gray!10, draw=gray!60},
+    ft/.style={box, fill=green!8},
     arr/.style={-{Stealth}, thick},
-    darr/.style={-{Stealth}, thick, dashed, gray!70}
+    darr/.style={-{Stealth}, thick, dashed, gray!60}
 ]
 
-\node[main] (B)     {Base};
-\node[main, right=1.6cm of B]   (CD)    {CD};
-\node[main, right=1.6cm of CD]  (CDQ)   {CD+Q};
-\node[main, right=1.6cm of CDQ] (CDQFT) {CD+Q+FT};
+% Main chain (top row)
+\node[main] (B)        {Base};
+\node[main, right=1.5cm of B]   (CD)       {CD};
+\node[main, right=1.5cm of CD]  (CDQ)      {CD+Q};
+\node[main, right=1.5cm of CDQ] (CDQFTa)   {CD+Q+\\FT-aligned};
 
-\node[side, below=1.2cm of CDQ]  (CDQRAG) {CD+Q+RAG};
-\node[side, below=1.2cm of CD]   (CDQITC) {CD+Q+ITC};
-\node[para, below=1.2cm of B]    (PE)     {PE};
+% Inference-time branches from CD+Q (second row)
+\node[side, below=1.1cm of CDQ, xshift=-1.5cm] (CDQITC) {CD+Q+ITC};
+\node[side, below=1.1cm of CDQ, xshift= 1.5cm] (CDQRAG) {CD+Q+RAG};
 
-\draw[arr] (B)   -- node[above, font=\footnotesize]{$+$CD}  (CD);
-\draw[arr] (CD)  -- node[above, font=\footnotesize]{$+$Q}   (CDQ);
-\draw[arr] (CDQ) -- node[above, font=\footnotesize]{$+$FT}  (CDQFT);
-\draw[arr] (CDQ) -- node[right, font=\footnotesize]{$+$RAG} (CDQRAG);
-\draw[arr] (CDQ) -- node[right, font=\footnotesize]{$+$ITC} (CDQITC);
-\draw[darr](B)   -- node[right, font=\footnotesize]{parallel} (PE);
+% Fine-tuning branches from CD (third row)
+\node[ft, below=2.4cm of CD, xshift=-1.5cm] (CDFT)  {CD+FT};
+\node[ft, below=2.4cm of CD, xshift= 1.5cm] (CDFTa) {CD+FT-aligned};
+
+% Unguided standalone (bottom row, below B)
+\node[para, below=2.4cm of B, xshift=-1.8cm] (FTonly)  {FT-only};
+\node[para, below=2.4cm of B, xshift=  0cm]  (FTalng)  {FT-aligned-ng};
+\node[para, below=2.4cm of B, xshift= 1.8cm] (PE)      {PE};
+
+% Main chain arrows
+\draw[arr] (B)   -- node[above, font=\footnotesize]{$+$CD}           (CD);
+\draw[arr] (CD)  -- node[above, font=\footnotesize]{$+$Q}            (CDQ);
+\draw[arr] (CDQ) -- node[above, font=\footnotesize]{$+$FT\textsubscript{aligned}} (CDQFTa);
+
+% Inference-time tracks from CD+Q
+\draw[arr] (CDQ.south) -- node[left,  font=\footnotesize]{$+$ITC} (CDQITC.north);
+\draw[arr] (CDQ.south) -- node[right, font=\footnotesize]{$+$RAG} (CDQRAG.north);
+
+% Fine-tuning tracks from CD
+\draw[darr] (CD.south) -- node[left,  font=\footnotesize]{$+$FT}           (CDFT.north);
+\draw[darr] (CD.south) -- node[right, font=\footnotesize]{$+$FT\textsubscript{aligned}} (CDFTa.north);
+
+% Unguided standalone tracks from B
+\draw[darr] (B.south) -- (FTonly.north);
+\draw[darr] (B.south) -- (FTalng.north);
+\draw[darr] (B.south) -- (PE.north);
 
 \end{tikzpicture}%
 }
-\caption{Incremental evaluation ladder. Each configuration in the main
-chain (top row) extends the previous one by adding a single technique.
-CD+Q+RAG, CD+Q+ITC, and PE are evaluated as parallel tracks.}
+\caption{Incremental evaluation ladder showing all eleven configurations.
+The main chain (top row, solid arrows) adds one technique at a time.
+Orange nodes are inference-time branches from CD+Q\@.
+Green nodes are fine-tuning branches from CD\@.
+Gray nodes are unguided standalone configurations (no constrained decoding).}
 \label{fig:eval-ladder}
 \end{figure}
 
@@ -96,12 +124,14 @@ results, and iterate until a task is done.
 \subsection{Berkeley Function Calling Leaderboard}
 
 All configurations are evaluated on the Berkeley Function
-Calling Leaderboard (BFCL) v4~\cite{bfcl2024}. Three
+Calling Leaderboard (BFCL) v4~\cite{bfcl2024}. Four
 categories are used: \texttt{simple\_python} (400 test
-cases, one candidate function per test), \texttt{multiple\_function}
+cases, one candidate function per test), \texttt{multiple}
 (the model must select the correct function from several
-candidates), and \texttt{parallel\_function} (the model
-must produce multiple function calls simultaneously). Each
+candidates), \texttt{parallel} (the model must produce
+multiple simultaneous calls to the same function), and
+\texttt{parallel\_multiple} (simultaneous calls to
+different candidate functions). Each
 test case consists of a user prompt and one or more function
 definitions; the model is required to produce the correct
 function call with the correct arguments. Frontier model
@@ -116,7 +146,14 @@ argument types. Evaluation is performed using the BFCL
 \texttt{ast\_checker}, which applies lenient type coercion
 between compatible types (e.g., integer and float). All
 inference runs use temperature 0 to ensure deterministic
-outputs across configurations. Function selection accuracy
+outputs across configurations; at temperature~0 vLLM applies
+greedy decoding, producing identical outputs on repeated
+runs with the same model and prompt. Single-run evaluation is
+therefore equivalent to multi-run evaluation for all
+BFCL configurations. The CD+Q result (289/400) was
+empirically confirmed across six independent re-runs, all
+producing identical predictions, validating the single-run
+protocol. Function selection accuracy
 and argument extraction accuracy are reported separately to
 identify where failures occur along the prediction pipeline.
 
@@ -300,7 +337,7 @@ output.
 
 CD+Q adds AWQ INT4 quantization~\cite{lin2024awq}
 to CD. The pre-quantized model
-\texttt{Qwen/Qwen2.5-7B-Instruct-AWQ} is used, loaded via
+\texttt{Qwen/\allowbreak{}Qwen2.5-\allowbreak{}7B-\allowbreak{}Instruct-\allowbreak{}AWQ} is used, loaded via
 vLLM with the \texttt{awq\_marlin} backend, which applies
 optimized Marlin kernels for efficient INT4 inference on
 GPU. All other settings remain unchanged.

@@ -163,8 +163,8 @@ search over large embedding collections~\cite{lewis2020retrieval}.
 The primary failure mode of RAG for tool calling is candidate
 disambiguation. When multiple tools have semantically similar
 descriptions (for example, \texttt{calculate\_area},
-\texttt{calculate\_triangle\_area}, and
-\texttt{calc\_area\_triangle}), the retrieval step returns all of them
+\texttt{calculate\_\allowbreak{}triangle\_\allowbreak{}area}, and
+\texttt{calc\_\allowbreak{}area\_\allowbreak{}triangle}), the retrieval step returns all of them
 as high-similarity candidates, and the language model must then select
 the correct one. This
 selection task requires understanding subtle distinctions in tool

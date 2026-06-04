@@ -32,9 +32,9 @@ the same class of errors; the gap of 6.83 percentage points to Gemini~3 Pro
 models, not a qualitatively different failure mode.
 
 The implication for RQ1 is that the raw unoptimized gap of approximately
-98.5 percentage points (Base vs.\ frontier) collapses to approximately
-7 percentage points with constrained decoding alone, on this benchmark
-category. Scale is not the bottleneck for format compliance. The residual
+78 percentage points (7B Base at 1.5\% vs.\ Gemini~3 Pro at 79.58\%)
+collapses to approximately 7 percentage points with constrained decoding
+alone, on this benchmark category. Scale is not the bottleneck for format compliance. The residual
 gap is a semantic problem, attributable to the model's learned associations
 between function schema contexts and specific value forms.
 
@@ -43,7 +43,7 @@ between function schema contexts and specific value forms.
 The format compliance failure that accounts for 98.5\% of Base errors
 is not resolved by scale.
 Without constrained decoding, accuracy across the 0.5B, 1.5B, 3B,
-and 7B Qwen~2.5 models ranges from 2.8\% to 4.8\%, despite a
+and 7B Qwen~2.5 models ranges from 1.50\% to 4.75\%, despite a
 14-fold difference in parameter count.
 The six correct outputs in 7B Base and the fourteen correct outputs
 in 0.5B Base are produced by chance; the underlying failure mode,
@@ -108,30 +108,22 @@ Few-shot prompting (PE) and chain-of-thought reasoning
 wei2022chain}. PE reduces accuracy by 2.5 percentage points with a
 context overhead of approximately 300 tokens per query. CD+Q+ITC
 reduces accuracy by 6.75 percentage points while approximately doubling
-per-case latency. Both techniques add cost and reduce accuracy. The failure
-mechanism is the same in both cases: the residual 27\% failure rate after
-constrained decoding is caused by a mismatch between the model's learned
-value priors and the benchmark's ground truth conventions. Prompting
-interventions that ask the model to reason more explicitly or reference
-examples move it further from the benchmark's arbitrary conventions rather
-than toward them. Two independent negative results with the same directional
-outcome and a shared mechanistic explanation establish that prompting cannot
-address this failure class.
+per-case latency (Section~\ref{ch:results} details the per-case flip
+analysis and the three mechanisms behind the CoT regression). Both
+techniques share the same root cause: the residual 27\% failure rate
+after constrained decoding is a mismatch between the model's learned
+value priors and the benchmark's ground truth conventions, and asking
+the model to reason more explicitly moves it further from those
+arbitrary conventions rather than toward them. Two independent negative
+results with the same directional outcome and the same mechanistic
+explanation establish that prompting cannot address this failure class.
 
 This finding aligns with the scope conditions reported by Wei et
-al.~\cite{wei2022chain}: chain-of-thought prompting improves performance on
-tasks that require multi-step arithmetic decomposition or symbolic
-manipulation, but not on tasks where the bottleneck is value recall rather
-than reasoning. Argument extraction from a function schema is not a reasoning
-problem in that sense: the model either has the correct value convention for a
-given schema context in its parametric knowledge or it does not. An explicit
-reasoning step directs additional compute at the wrong subproblem. Snell et
-al.~\cite{snell2024scaling} generalise this point in the context of
-inference-time scaling: additional compute at generation time improves
-performance when directed at tasks that benefit from systematic search or
-decomposition. Single-call argument extraction with a constrained output space
-does not have that structure, which explains why chain-of-thought reasoning
-reduces rather than improves accuracy in this setting.
+al.~\cite{wei2022chain}: chain-of-thought prompting improves performance
+on tasks requiring multi-step arithmetic or symbolic decomposition, not
+on tasks where the bottleneck is value recall. Argument extraction is
+not a reasoning problem in that sense; an explicit reasoning step
+directs compute at the wrong subproblem~\cite{snell2024scaling}.
 
 Retrieval-augmented generation produces the largest accuracy drop: $-24$
 percentage points relative to CD+Q, despite a retrieval recall@5 of
@@ -189,51 +181,38 @@ The results are based on the \texttt{simple\_python} category of BFCL~v4,
 which is the least demanding of the four BFCL categories~\cite{bfcl2024}.
 Each test case consists of a single user turn, a single candidate function,
 and a single expected call. The constrained decoding advantage depends on
-the oracle function provision: \texttt{guided\_choice} guarantees correct
+oracle function provision: \texttt{guided\_choice} guarantees correct
 function selection only when the correct function is the sole candidate.
-The RAG results (47.75\% at top-5) show that this assumption fails under
-realistic conditions. Generalisation to harder BFCL categories (multiple
-function candidates, parallel function calls, multi-turn interactions) is
-not established and may not hold.
+Generalisation to harder categories is partial: CD+FT-aligned reaches
+70.5\% on \texttt{multiple} at 7B, but \texttt{parallel} yields 0.0\%
+across all configurations and sizes. The \texttt{parallel} failure is
+not a soft accuracy limitation that more training or a larger model
+would gradually close. Inspection of the raw outputs shows that the
+model consistently produces exactly one call regardless of the prompt
+structure; the two-stage pipeline is architecturally constrained to
+emit one function name and one argument object per inference call.
+Parallel call emission requires either a structured output schema that
+allows a JSON array of calls, or a multi-step execution loop where
+each iteration emits one call. Neither is present in the pipeline
+evaluated here. This result establishes the boundary of the evaluated
+architecture: optimization techniques applied within the two-stage
+single-call design cannot address the \texttt{parallel} category,
+and the ceiling for this architecture is therefore 0\% on tasks that
+require simultaneous multi-call output.
 
-The size sweep extends coverage to CD+Q, PE, CD+Q+ITC, and CD+Q+RAG
-across 0.5B, 1.5B, 3B, and 7B, confirming that the directional findings
-from Phase~1 generalise across the evaluated size range.
-CD+Q is safe above 1.5B (loss within noise) and introduces a 3.7~pp
-penalty at 0.5B.
-PE helps at 0.5B--3B and reverses at 7B.
-CD+Q+ITC is harmful at every size by a consistent margin of 5.7--6.75~pp.
-CD+Q+RAG is harmful at every size, with no improvement in disambiguation
-accuracy at larger scales.
-The CD+FT-aligned size sweep characterises the interaction between model
-scale and LoRA fine-tuning across 0.5B, 1.5B, 3B, and 7B.
-Fine-tuning provides a consistent gain over the CD baseline at every size:
-7.75~pp at 0.5B, 3.75~pp at 1.5B, 2.00~pp at 3B, and 4.00~pp at 7B.
-The benefit is largest at 0.5B, suggesting that format-aligned fine-tuning
-compensates in part for weaker argument-value representations at smaller
-scales. On $\tau$-bench, fine-tuning does not improve agentic pass rates
-at any size: CD+FT-aligned achieves 0.00\%, 3.48\%, 4.35\%, and 3.48\%
-at 0.5B, 1.5B, 3B, and 7B respectively, closely tracking the CD-only
-results. The fine-tuning benefit is specific to single-call argument
-extraction and does not transfer to multi-step reasoning.
+All experiments use a single model family (Qwen~2.5) across four sizes.
+Directional findings, such as the ordering of techniques by accuracy,
+the size-dependence of the PE effect, and the quantization penalty
+profile, are observed consistently within this family. Whether they
+transfer to other SLM families with different training regimes (e.g.\
+Llama~3.2, Phi-4) is not established and should not be assumed.
 
-The regression in CD+FT v1 is attributed to the format mismatch between
-the xlam training distribution and the evaluation pipeline. This attribution is
-confirmed by the controlled experiment: CD+FT-aligned holds all
-variables fixed and changes only the training output format, recovering to
-76.75\% and surpassing CD by 4.00 percentage points. The v1 regression
-is therefore attributable to the training format, not to the xlam content or
-to a fundamental incompatibility between fine-tuning and constrained decoding.
-
-The $\tau$-bench retail evaluation reveals a sharp discontinuity between
-single-call and multi-step performance. CD achieves 72.75\% on BFCL
-\texttt{simple\_python} but only 4.35\% pass rate on $\tau$-bench retail,
-which requires reasoning across 5--15 tool calls with real observations per
-task. Simple function calling accuracy does not predict multi-step agentic
-performance; the 7 percentage point frontier gap on the single-call category
-widens to roughly 95 percentage points on multi-step tasks, where the failure
-mode shifts from argument value errors to multi-turn planning and error
-recovery.
+The cascade architecture is the motivating deployment context for this
+evaluation, but no direct cascade experiment is reported. The benefit
+fractions ($p \approx 0.72$--$0.77$) cited for each configuration are
+extrapolated from single-model BFCL accuracy; actual cascade economics
+depend on routing accuracy, latency characteristics, and the query
+distribution of the production workload, none of which were measured.
 
 The BFCL ground truth encodes specific value conventions that are often
 arbitrary from a deployment perspective. A model that produces
@@ -243,91 +222,61 @@ failure rate after constrained decoding may overestimate the practical error
 rate for production use, where value conventions are defined by the API
 schema rather than by a benchmarking dataset.
 
+Multi-step performance ($\tau$-bench: 4.35\% pass rate) is evaluated for
+CD at 7B and for CD and CD+FT-aligned across the size sweep, but not for
+the full configuration set. The $\tau$-bench result establishes that
+single-call accuracy does not predict multi-step agentic performance; the
+remaining no-training configurations were not evaluated on $\tau$-bench
+because the bottleneck identified is multi-turn planning rather than
+argument formatting.
+
 \section{Practical Implications}
 
-Three configurations are production-viable on consumer hardware, each
-addressing a different deployment constraint. Config~CD+Q achieves
-72.25\% AST accuracy on 5.20~GiB of GPU memory with a 35~s model
-load time on an NVIDIA L40S. The same configuration fits on a
-consumer RTX~4090 (24~GiB) with ample remaining capacity for the
-key-value cache. It requires no training and is deployable
-immediately from a pre-quantized checkpoint. Config~CD+Q+FT-aligned
-achieves 74.25\% on the same 5.20~GiB footprint, adding a
-format-aligned LoRA adapter merged before quantization. It offers
-fine-tuned capability at INT4 size, at the cost of a fine-tuning run
-and a 2.5~pp quantization penalty relative to the unquantized
-CD+FT-aligned. Config~CD+FT-aligned achieves 76.75\% on the same
-hardware (FP16 merged weights), delivering the highest accuracy at
-the cost of a larger memory footprint before quantization and the
-same fine-tuning run.
+The cascade architecture motivating this work posits that an SLM handles
+the majority of tool-calling requests locally, escalating only those it
+cannot handle reliably to a frontier model API. The results allow the
+cost-benefit of this architecture to be quantified directly. If frontier
+API calls cost $c$ per query and the SLM tier cost is approximated as
+zero per query (amortized over fixed hardware), a cascade in which the
+SLM correctly handles a fraction $p$ of requests saves $p \cdot c$ per
+query relative to routing all traffic to the frontier model.
+CD+Q achieves $p \approx 0.72$, CD+Q+FT-aligned achieves $p \approx 0.74$,
+and CD+FT-aligned achieves $p \approx 0.77$, all on a single consumer GPU\@.
+The marginal benefit of each additional technique is therefore expressible
+directly in terms of API cost reduction: a 2.0~pp gain from adding
+quantized fine-tuning on top of CD+Q eliminates 2.0\% of remaining
+frontier API calls per unit time at high query volume.
 
-In a cascade architecture where an SLM handles routine tool-calling
-requests and escalates to a frontier model when uncertain,
-Config~CD+Q defines the no-training operating point: approximately
-72\% of requests are handled correctly at 5.20~GiB memory, with the
-remaining 28\% escalated. Config~CD+Q+FT-aligned extends this to
-approximately 74\%, and Config~CD+FT-aligned to approximately 77\%,
-each reducing escalation traffic at progressively higher deployment
-cost. The escalation boundary across all three configurations
-corresponds to the same failure classes: wrong optional parameter
-defaults, numeric precision mismatches, and string format
-conventions. Queries with explicit argument values and unambiguous
-types are reliably handled at the SLM tier; queries involving
-domain-specific numeric precision or underspecified optional
-parameters remain candidates for escalation.
+Whether this gain justifies the training investment depends on query
+volume. At low throughput, the API cost reduction does not accumulate
+quickly enough to recover the fine-tuning compute cost; the no-training
+CD+Q configuration is preferable. At high throughput, the per-query
+saving compounds and the break-even point moves earlier in the
+deployment lifecycle. The exact break-even is deployment-specific, but
+the 2.0--5.0~pp accuracy range separating the three production-viable
+configurations represents a concrete trade-off space.
 
-The routing decision in the cascade tier determines which queries reach the
-frontier model. Structural validation -- checking that the output is valid
-JSON and names a known function -- is satisfied by every output under
-Config~CD and above, and therefore cannot serve as a routing gate after
-constrained decoding is applied. Two alternative routing signals are more
-appropriate. Query-level classification, applied before inference, estimates
-whether a query is likely to involve underspecified optional parameters or
-domain-specific numeric conventions, and routes predicted-hard queries
-directly to the frontier tier before the SLM is invoked. Confidence-based
-routing, applied after inference, uses the token-level probability of the
-generated argument values as a proxy for answer reliability, and escalates
-low-confidence outputs. Neither signal is evaluated in this thesis; both are
-viable directions for future work that the current residual failure analysis
-motivates.
+The residual failure classes common to all configurations (wrong optional
+parameter defaults, numeric precision mismatches, and string format
+conventions) define the queries that will be escalated regardless of which
+configuration is deployed. Structural output validation, which would be
+the natural first routing signal, is ineffective after constrained decoding
+is applied: every output is valid JSON naming a known function. The
+relevant routing signals are semantic: query-level classification of
+likely hard cases before inference, or token-probability confidence scoring
+after inference. Both are tractable extensions of the evaluated pipeline
+and represent the primary mechanisms for narrowing the escalation boundary
+beyond what the optimization techniques evaluated here can achieve.
 
-The economic argument for the cascade tier can be quantified directly from
-these results. If frontier model calls cost $c$ per query and the SLM tier
-cost is approximated as zero per query (amortized over hardware), a cascade
-in which the SLM correctly handles a fraction $p$ of requests saves
-$p \cdot c$ per query relative to routing everything to the frontier model.
-Config~CD+Q achieves $p \approx 0.72$, Config~CD+Q+FT-aligned achieves
-$p \approx 0.74$, and Config~CD+FT-aligned achieves $p \approx 0.77$.
-The additional 2.0 percentage point gain from stacking quantized fine-tuning
-on top of Config~CD+Q translates directly to a 2.0 percentage point
-reduction in frontier API traffic relative to the no-training baseline.
-Whether the fine-tuning cost is recovered depends on query volume: at high
-throughput, the API cost reduction per query accumulates rapidly; at low
-throughput, the no-training configuration is preferable.
-
-Chain-of-thought reasoning is contraindicated at the SLM tier. CD+Q+ITC
-raises the failure rate by 6.75 percentage points relative to CD+Q,
-increasing escalation traffic rather than reducing it~\cite{wei2022chain}.
-The mechanism is structural: the reasoning step moves the model toward
-linguistically natural value forms that differ from the conventions the
-ground truth encodes.
-
-For tool catalogs with many functions, RAG-based tool selection requires a
-disambiguation capability that the 7B model does not have at top-5
-retrieval~\cite{lewis2020retrieval}. A more viable configuration would use
-top-1 or top-2 retrieval, a re-ranking step before the selection stage, or
-a fine-tuning signal on tool-selection examples to reduce the frequency of
-sibling-function confusion.
-
-Fine-tuning remains the most direct path to accuracy above the 72--73\%
-no-training ceiling. The key constraint is training data alignment: the
-training format must match the inference pipeline's prompt structure and
-output conventions exactly. The v1 xlam experiment shows that a
-general-purpose function-calling dataset with a different output convention
-actively degrades performance under constrained decoding. A production
-fine-tuning pipeline would require training examples generated from the
-target deployment's own tool schemas and argument conventions, not from a
-general-purpose corpus.
+Fine-tuning alignment is the binding constraint on the achievable accuracy
+ceiling. The xlam experiment demonstrates that a general-purpose
+function-calling corpus with a different output convention actively degrades
+performance under constrained decoding: the model learns value priors from
+the training distribution that conflict with the evaluation pipeline's
+format. This means that the fine-tuning gain is not portable across
+pipelines. A production fine-tuning run must generate training examples
+from the target deployment's own tool schemas; otherwise the format
+mismatch replaces the original semantic failure class with a new one.
 
 \section{Relation to Prior Work}
 

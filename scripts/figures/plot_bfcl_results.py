@@ -204,31 +204,32 @@ print(f"Saved {out}")
 # ---------------------------------------------------------------------------
 
 RAG_LABELS = [
-    "Correct answer\nidentical to non-RAG",
-    "Wrong function\nselected",
-    "Wrong parameter\nvalues",
+    "Wrong parameter values",
+    "Wrong function selected",
+    "Correct answer identical to non-RAG",
 ]
-RAG_SIZES  = [66, 32, 2]
-RAG_COLS   = [C_GREEN, C_RED, C_ORANGE]
-RAG_EXPLODE = (0.03, 0.03, 0.06)
+RAG_SIZES  = [2, 32, 66]
+RAG_COLS   = [C_ORANGE, C_RED, C_GREEN]
 
-fig, ax = plt.subplots(figsize=(4.5, 3.2))
+fig, ax = plt.subplots(figsize=(4.5, 2.4))
 
-wedges, texts, autotexts = ax.pie(
-    RAG_SIZES,
-    labels=RAG_LABELS,
-    colors=RAG_COLS,
-    explode=RAG_EXPLODE,
-    autopct="%1.0f%%",
-    startangle=140,
-    textprops={"fontsize": LABEL_FONTSIZE},
-    pctdistance=0.75,
-)
-for at in autotexts:
-    at.set_fontsize(LABEL_FONTSIZE)
-    at.set_color("white")
+bars = ax.barh(RAG_LABELS, RAG_SIZES, color=RAG_COLS, height=0.5)
 
-ax.set_title("RAG failure breakdown\n(209 incorrect answers, CD+Q+RAG)", fontsize=BODY_FONTSIZE)
+for bar, val in zip(bars, RAG_SIZES):
+    ax.text(
+        bar.get_width() + 1.0,
+        bar.get_y() + bar.get_height() / 2,
+        f"{val}%",
+        va="center",
+        fontsize=LABEL_FONTSIZE,
+    )
+
+ax.set_xlim(0, 80)
+ax.set_xlabel("Share of 209 incorrect answers (%)", fontsize=LABEL_FONTSIZE)
+ax.set_title("RAG failure breakdown (CD+Q+RAG, 7B, 209 incorrect)", fontsize=BODY_FONTSIZE)
+ax.spines["top"].set_visible(False)
+ax.spines["right"].set_visible(False)
+ax.tick_params(axis="y", labelsize=LABEL_FONTSIZE)
 
 fig.tight_layout()
 out = OUT_DIR / "fig_rag_breakdown.pdf"

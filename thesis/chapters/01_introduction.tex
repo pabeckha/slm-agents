@@ -26,25 +26,26 @@ model cannot reliably express that knowledge in the structured format
 that agentic systems require.
 
 This thesis investigates that assumption directly.
-The results show that constrained decoding alone eliminates the
-format compliance failure entirely, collapsing the 98.5~pp gap
-between the unoptimized 7B model and frontier performance to
-7~pp on BFCL~v4 \texttt{simple\_python}, without modifying
-model weights.
-The constrained-decoding configuration (Config~CD) achieves 72.75\%.
-AWQ INT4 quantization applied to this configuration (Config~CD+Q)
-reduces model memory by 63.5\%, from 14.25~GiB to 5.20~GiB, at
-a cost of 0.5~pp of accuracy (72.25\%), within run-to-run variance.
-Format-aligned LoRA fine-tuning on the full-precision model
-(Config~CD+FT-aligned) raises accuracy to 76.75\%, placing the 7B
-model within 0.08~pp of Claude Opus~4.5 (76.83\%) on the same
-benchmark on a single consumer GPU.
+Four Qwen~2.5 Instruct sizes (0.5B, 1.5B, 3B, and 7B) are evaluated
+across eleven configurations on BFCL~v4 \texttt{simple\_python}.
+Constrained decoding alone eliminates format compliance failures
+at every model size, raising accuracy from 1.5--4.75\% (unoptimized)
+to 51.50--72.75\% depending on size, without modifying model weights.
+The 0.5B model reaches 51.50\% under constrained decoding, approaching
+GPT-5-mini (59.92\%) without any training.
+AWQ INT4 quantization reduces memory by 63.5\% at the 7B size
+(from 14.25~GiB to 5.20~GiB) at a cost of at most 0.5~pp above
+1.5B, within run-to-run variance.
+Format-aligned LoRA fine-tuning improves accuracy at every size.
+At 7B, the CD+FT-aligned configuration achieves 76.75\%, within
+0.08~pp of Claude Opus~4.5 (76.83\%) on the same benchmark on a
+single consumer GPU.
 The quantized fine-tuned variant (Config~CD+Q+FT-aligned) achieves
-74.25\% on the same 5.20~GiB memory footprint.
-The failures that persist across all configurations are
-semantic rather than structural: wrong optional parameter
-defaults, numeric precision mismatches, and string format
-conventions that the model's learned priors do not match.
+74.25\% on the same 5.20~GiB footprint.
+The failures that persist across all configurations and sizes are
+semantic rather than structural: wrong optional parameter defaults,
+numeric precision mismatches, and string format conventions that the
+model's learned priors do not match.
 That distinction, between failures that constraints can fix and
 failures that only training can address, organises the entire
 evaluation.
@@ -125,20 +126,23 @@ To answer these questions, the thesis evaluates an incremental pipeline of metho
 The main contributions of this thesis are:
 
 \begin{enumerate}
-    \item A demonstration that constrained decoding alone recovers 71.25 percentage
-    points of BFCL accuracy on Qwen~2.5 7B, lifting the unoptimized baseline
-    from 1.5\% to 72.75\% by eliminating format failures entirely, without
-    any modification to model weights.
-    \item An incremental ablation study across ten configurations that isolates the
+    \item A demonstration that constrained decoding alone recovers
+    48--71~pp of BFCL accuracy across the Qwen~2.5 size range (0.5B
+    to 7B), lifting the near-zero unoptimized baseline (1.5--4.75\%)
+    to 51.50--72.75\%, by eliminating format failures without any
+    modification to model weights.
+    \item An incremental ablation study across eleven configurations that isolates the
     marginal contribution of constrained decoding, prompt engineering,
     inference-time chain-of-thought, retrieval-augmented generation,
     quantization, and LoRA fine-tuning to BFCL \texttt{simple\_python}
     accuracy. The best configuration (CD+FT-aligned, 76.75\%) matches
     Claude Opus 4.5 (76.83\%) on the same benchmark.
-    \item A model-size scaling analysis showing that constrained decoding is
-    effective across the full Qwen~2.5 size range (0.5B to 7B), with CD gains
-    ranging from 48.0~pp at 0.5B to 71.25~pp at 7B, and the 0.5B model
-    already approaching GPT-5-mini (59.92\%) under constrained decoding.
+    \item A scaling analysis across Qwen~2.5 0.5B, 1.5B, 3B, and 7B
+    showing that constrained decoding gains scale with model size
+    (48~pp at 0.5B to 71.25~pp at 7B), that quantization cost is
+    negligible above 1.5B, that few-shot prompting reverses direction
+    at 7B, and that format-aligned fine-tuning improves accuracy at
+    every size.
     \item A characterization of the pipeline boundary: the two-stage single-call
     architecture achieves 0\% accuracy on \texttt{multiple\_function} and
     \texttt{parallel\_function} categories, establishing where architectural
