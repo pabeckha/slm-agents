@@ -20,7 +20,7 @@ CD & Constrained decoding (guided)    & 291/400 & 72.75\% \\
 \end{tabular}
 \end{table}
 
-\noindent Without constrained decoding (Base), the model achieves only 1.5\% accuracy. The dominant failure mode is format non-compliance: 394 out of 400 outputs fail to parse as valid JSON, producing \texttt{Extra data} errors or empty results. The model is not incapable of understanding the queries---it simply cannot express its answers in the required structured format.
+\noindent Without constrained decoding (Base), the model achieves only 1.5\% accuracy. The dominant failure mode is format non-compliance: 394 out of 400 outputs fail to parse as valid JSON, producing \texttt{Extra data} errors or empty results. The model is not incapable of understanding the queries: it simply cannot express its answers in the required structured format.
 
 Constrained decoding (CD) recovers 71.25 percentage points, achieving 72.75\% accuracy. Function selection reaches 100\% accuracy via \texttt{guided\_choice}, confirming that the format enforcement fully solves tool selection. The remaining 27.25\% failure rate is entirely in argument extraction: wrong numeric precision (e.g., 9.8 vs.\ 9.81), string format mismatches (e.g., ``kilometers/hour'' vs.\ ``km/h''), and incorrect optional parameter defaults.
 
@@ -65,7 +65,7 @@ introduced, and the relative frequency of existing failure types is unchanged.
 The accuracy difference of two test cases falls within run-to-run variance,
 confirmed by six re-runs that consistently produced 289/400. CD+Q
 therefore provides equivalent accuracy to CD at a substantially
-reduced memory footprint, and serves as the operating baseline for subsequent
+reduced memory footprint, and is the operating baseline for subsequent
 no-training experiments. Fig.~\ref{fig:memory-accuracy} plots GPU memory
 against accuracy for the main configurations.
 
@@ -462,7 +462,7 @@ CD+FT-aligned reaches 76.75\%, within 0.08~pp of Claude Opus~4.5
 (76.83\%). The gap to the best frontier model (Gemini~3 Pro at 79.58\%)
 is 2.83 percentage points.
 
-This suggests that for single-call function calling with a well-defined schema, constrained decoding on a 7B model closes the gap to frontier-level performance. The remaining gap is driven by argument value accuracy, not format compliance or function selection---the same bottleneck that limits the frontier models themselves.
+This suggests that for single-call function calling with a well-defined schema, constrained decoding on a 7B model closes the gap to frontier-level performance. The remaining gap is driven by argument value accuracy, not format compliance or function selection, which is the same bottleneck that limits the frontier models themselves.
 
 A note on statistical precision: with $n=400$ binary test cases, the 95\%
 Wilson confidence interval is approximately $\pm$4.1~pp for accuracy values

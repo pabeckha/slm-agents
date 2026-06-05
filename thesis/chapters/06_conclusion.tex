@@ -3,7 +3,7 @@
 \section{Answering the Research Questions}
 
 \paragraph{RQ1.} \textit{What is the performance gap between unoptimized small
-language models (1B--8B parameters) and frontier models on tool-calling benchmarks?}
+language models (0.5B--7B parameters) and frontier models on tool-calling benchmarks?}
 
 Across all four Qwen~2.5 Instruct sizes evaluated on
 BFCL~v4 \texttt{simple\_python}, the unoptimized baseline achieves
@@ -24,8 +24,8 @@ have a moderate advantage attributable to stronger learned associations
 for specific numeric, string, and format conventions.
 
 \paragraph{RQ2.} \textit{What is the marginal contribution of each optimization
-technique---constrained decoding, prompt engineering, retrieval-augmented
-generation, quantization, and LoRA fine-tuning---when applied cumulatively to
+technique (constrained decoding, prompt engineering, retrieval-augmented
+generation, quantization, and LoRA fine-tuning) when applied cumulatively to
 small models for tool calling?}
 
 Constrained decoding is the dominant optimization technique,
@@ -94,7 +94,10 @@ The results across eleven configurations suggest a concrete decision
 procedure for teams deploying SLMs in tool-calling production systems.
 The procedure is ordered by implementation cost and is designed to allow
 an early exit at each step when the achieved accuracy meets the
-deployment requirement.
+deployment requirement. The cascade cost model that quantifies the
+saving from each step is developed in
+Section~\ref{sec:practical-implications}; the steps below summarise the
+resulting recommendations.
 
 \textbf{Step~1: Apply constrained decoding first.}
 Constrained decoding requires no modification to model weights and no
@@ -111,8 +114,6 @@ AWQ INT4 quantization reduces the 7B model memory from 14.25~GiB to
 accuracy (Config~CD+Q: 72.25\%). This cost is within run-to-run
 variance, and the quantized configuration is recommended whenever
 hardware capacity or cold-start latency are deployment constraints.
-The 5.20~GiB footprint fits on a single consumer NVIDIA RTX~4090
-with substantial remaining capacity for the key-value cache.
 
 \textbf{Step~3: Evaluate prompting interventions cautiously.}
 Both few-shot prompting and chain-of-thought reasoning produced accuracy
@@ -150,8 +151,8 @@ complementary techniques described in Section~\ref{sec:future-work}.
 The $\tau$-bench result (4.35\% pass rate on retail) establishes that
 single-call accuracy does not predict multi-step agentic performance.
 Improving multi-step reliability is the most important open direction.
-The failure mode on $\tau$-bench is not argument formatting -- constrained
-decoding handles that -- but multi-turn planning and error recovery across
+The failure mode on $\tau$-bench is not argument formatting (constrained
+decoding handles that) but multi-turn planning and error recovery across
 5--15 tool calls. Techniques such as process reward models, chain-of-thought
 with tool-observation grounding, and task-specific fine-tuning on multi-turn
 trajectories are natural next steps~\cite{taubench2024}.
@@ -207,8 +208,8 @@ provide a direct learning signal for the value conventions that the
 no-training configurations fail on. Such data could be generated
 synthetically from the BFCL training split or from API documentation of
 the production tool catalog.
-A systematic study varying the source of training data -- from fully
-synthetic, to domain-matched, to human-curated examples -- would
+A systematic study varying the source of training data (from fully
+synthetic, to domain-matched, to human-curated examples) would
 quantify how much of the 23.25~pp residual gap after CD+FT-aligned can
 be closed by data quality improvements alone, without further changes to
 the model architecture or the optimization pipeline.

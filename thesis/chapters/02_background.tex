@@ -1,6 +1,6 @@
 \chapter{Background} \label{ch:background}
 
-This chapter introduces the theoretical foundations underlying this thesis. It covers language model architectures and their scaling properties, the design of agentic systems, and the optimization techniques evaluated in subsequent chapters.
+Reliable tool calling with small language models draws on several areas of prior work: the architecture and scaling behaviour of language models, the design of agentic systems that invoke external tools, and the inference-time and training-time techniques used to control model output. These foundations are developed in the sections that follow.
 
 \section{Language Models}
 
@@ -51,7 +51,7 @@ More recently, the focus has shifted toward inference-time scaling~\cite{snell20
 
 Large language models (LLMs) such as GPT-4~\cite{openai2023gpt4} and the Claude model family operate at hundreds of billions of parameters and demonstrate strong performance across a wide range of tasks, including complex reasoning and tool use. However, their size demands significant computational resources, typically requiring multi-GPU clusters or cloud API access for inference.
 
-Small language models (SLMs), in the range of 1B to 8B parameters, can run on consumer hardware such as a single GPU with 24GB of VRAM. Recent open-weight SLMs, including Qwen 2.5~\cite{qwen2024qwen25}, Llama 3~\cite{llama2024llama32}, and Phi-4~\cite{abdin2024phi}, have narrowed the gap with larger models on standard benchmarks through improved training data, better tokenizers, and architectural refinements such as grouped-query attention (GQA).
+Small language models (SLMs), typically under 10B parameters~\cite{sharma2025slmagents}, can run on consumer hardware such as a single GPU with 24GB of VRAM. Recent open-weight SLMs, including Qwen 2.5~\cite{qwen2024qwen25}, Llama 3~\cite{llama2024llama32}, and Phi-4~\cite{abdin2024phi}, have narrowed the gap with larger models on standard benchmarks through improved training data, better tokenizers, and architectural refinements such as grouped-query attention (GQA).
 
 Despite these improvements, SLMs still lag behind frontier models on tasks that require multi-step reasoning, tool selection from large schemas, and reliable structured output generation. This gap motivates the optimization techniques explored in this thesis.
 
@@ -114,7 +114,7 @@ For tool calling, this means the model is guaranteed to produce valid JSON that 
 
 Several libraries implement constrained decoding for language models. Outlines~\cite{outlines2024} uses finite-state machines compiled from regular expressions or JSON schemas to guide generation. LMQL~\cite{beurer2023lmql} combines constrained decoding with a query language that allows expressing complex output constraints declaratively.
 
-These techniques are particularly impactful for small models because they eliminate an entire class of errors (malformed outputs) without requiring any additional training. Constrained decoding is the foundational method in this thesis and serves as the base layer upon which other techniques are stacked.
+These techniques are particularly impactful for small models because they eliminate an entire class of errors (malformed outputs) without requiring any additional training. Constrained decoding is the base layer of this thesis, upon which the other techniques are stacked.
 
 \section{Prompt Engineering and Inference-Time Compute}
 
@@ -343,7 +343,7 @@ inference begins, so that the per-step cost at generation time
 consists only of a state transition lookup.
 
 The Outlines library~\cite{outlines2024} implements the FSM approach
-and serves as the constrained generation backend used in this thesis
+and is the constrained generation backend used in this thesis
 via vLLM~\cite{kwon2023vllm}. Two generation modes are relevant to
 the two-stage tool-calling pipeline. The \texttt{guided\_choice} mode
 restricts output to one string from a predefined list and is used in

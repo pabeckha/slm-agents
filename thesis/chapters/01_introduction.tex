@@ -4,7 +4,7 @@
 
 Large language models (LLMs) have become the dominant backbone for agentic systems, powering applications that reason over user requests, decompose tasks, and call external tools to produce structured outputs. Frontier models such as GPT-4 and Claude demonstrate strong performance on these tasks, but their deployment comes with significant trade-offs: high inference costs, dependency on external APIs, increased latency, and limited control over data privacy. For many real-world applications, these constraints make frontier models impractical.
 
-Small language models (SLMs), typically ranging from 1B to 8B parameters, offer an alternative. Recent open-weight models such as Qwen 2.5~\cite{qwen2024qwen25}, Llama 3~\cite{llama2024llama32}, and Phi-4~\cite{abdin2024phi} can run on consumer-grade hardware, enable local deployment, and drastically reduce per-query costs. However, out of the box, SLMs struggle with the core capabilities that agentic systems demand. They frequently produce malformed structured outputs, select incorrect tools, hallucinate function arguments, and fail at multi-step reasoning. These shortcomings have led to a widespread assumption that reliable agentic behavior requires large-scale models.
+Small language models (SLMs), typically under 10B parameters, offer an alternative. Recent open-weight models such as Qwen 2.5~\cite{qwen2024qwen25}, Llama 3~\cite{llama2024llama32}, and Phi-4~\cite{abdin2024phi} can run on consumer-grade hardware, enable local deployment, and drastically reduce per-query costs. However, out of the box, SLMs struggle with the core capabilities that agentic systems demand. They frequently produce malformed structured outputs, select incorrect tools, hallucinate function arguments, and fail at multi-step reasoning. These shortcomings have led to a widespread assumption that reliable agentic behavior requires large-scale models.
 
 The failure mode is concrete. Consider a user query such as
 \textit{``What is the sum of 265 and 345?''} directed at Qwen~2.5 7B-Instruct
@@ -62,14 +62,14 @@ eliminated. The central challenge is extending the fraction of requests
 that the small model can handle reliably, which is precisely what each
 optimization technique in this thesis is evaluated against. This thesis
 evaluates the SLM tier in isolation; the cascade router and escalation
-mechanism are not implemented. BFCL accuracy serves as a proxy for the
+mechanism are not implemented. BFCL accuracy is a proxy for the
 fraction of requests the SLM tier could handle, providing a comparable
 basis for estimating cascade economics across configurations.
 
 The optimization techniques are ordered by implementation cost. Methods
-that require no modification to the model weights -- constrained
+that require no modification to the model weights (constrained
 decoding, prompt engineering, retrieval-augmented generation, and
-post-training quantization -- are evaluated first, as they can be
+post-training quantization) are evaluated first, as they can be
 applied to any pre-trained checkpoint without additional compute.
 LoRA fine-tuning is evaluated last, as it requires a training run on a
 GPU cluster. This ordering reflects a practical decision ladder: a
@@ -105,7 +105,7 @@ factual content. The central question is therefore not whether SLMs
 fail, but which failure type dominates and which intervention
 addresses it most effectively. The central finding of this thesis is
 that constrained decoding converts the problem from format compliance
---- fixable structurally at inference time --- into semantic
+(fixable structurally at inference time) into semantic
 argument-value accuracy, which only format-aligned training can
 further improve.
 
@@ -121,8 +121,8 @@ agentic benchmarks.
 This thesis addresses three research questions:
 
 \begin{description}
-    \item[RQ1] \textit{What is the performance gap between unoptimized small language models (1B--8B parameters) and frontier models on tool-calling benchmarks?}
-    \item[RQ2] \textit{What is the marginal contribution of each optimization technique---constrained decoding, prompt engineering, retrieval-augmented generation, quantization, and LoRA fine-tuning---when applied cumulatively to small models for tool calling?}
+    \item[RQ1] \textit{What is the performance gap between unoptimized small language models (0.5B--7B parameters) and frontier models on tool-calling benchmarks?}
+    \item[RQ2] \textit{What is the marginal contribution of each optimization technique (constrained decoding, prompt engineering, retrieval-augmented generation, quantization, and LoRA fine-tuning) when applied cumulatively to small models for tool calling?}
     \item[RQ3] \textit{Can a fully optimized small language model configuration achieve production-viable tool-calling accuracy on consumer hardware?}
 \end{description}
 

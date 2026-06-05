@@ -237,9 +237,9 @@ Several factors limit the generalisability of the findings.
 
 \textbf{Single model family.}
 All experiments use the Qwen~2.5 Instruct family across four sizes.
-Directional findings---the ordering of techniques by accuracy, the
+Directional findings (the ordering of techniques by accuracy, the
 size-dependence of the few-shot effect, and the quantization penalty
-profile---are observed consistently within this family but may not
+profile) are observed consistently within this family but may not
 transfer to other SLM families with different pre-training regimes or
 instruction-tuning data (e.g.\ Llama~3.2, Phi-4).
 
@@ -279,7 +279,7 @@ specific value conventions (e.g.\ \texttt{"gas"} not
 production API schema would not impose. The residual failures
 represent convention mismatches, not functional errors, in many cases.
 
-\section{Practical Implications}
+\section{Practical Implications} \label{sec:practical-implications}
 
 The cascade architecture motivating this work posits that an SLM handles
 the majority of tool-calling requests locally, escalating only those it
