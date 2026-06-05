@@ -51,7 +51,7 @@ More recently, the focus has shifted toward inference-time scaling~\cite{snell20
 
 Large language models (LLMs) such as GPT-4~\cite{openai2023gpt4} and the Claude model family operate at hundreds of billions of parameters and demonstrate strong performance across a wide range of tasks, including complex reasoning and tool use. However, their size demands significant computational resources, typically requiring multi-GPU clusters or cloud API access for inference.
 
-Small language models (SLMs), typically under 10B parameters~\cite{sharma2025slmagents}, can run on consumer hardware such as a single GPU with 24GB of VRAM. Recent open-weight SLMs, including Qwen 2.5~\cite{qwen2024qwen25}, Llama 3~\cite{llama2024llama32}, and Phi-4~\cite{abdin2024phi}, have narrowed the gap with larger models on standard benchmarks through improved training data, better tokenizers, and architectural refinements such as grouped-query attention (GQA).
+Small language models (SLMs), typically under 10B parameters~\cite{sharma2025slmagents}, can run on consumer hardware such as a single GPU with 24GB of VRAM. Recent open-weight SLMs, including Qwen 2.5~\cite{qwen2024qwen25}, Llama 3.2~\cite{metaai2024llama32}, and Phi-4~\cite{abdin2024phi}, have narrowed the gap with larger models on standard benchmarks through improved training data, better tokenizers, and architectural refinements such as grouped-query attention (GQA).
 
 Despite these improvements, SLMs still lag behind frontier models on tasks that require multi-step reasoning, tool selection from large schemas, and reliable structured output generation. This gap motivates the optimization techniques explored in this thesis.
 
@@ -108,7 +108,7 @@ Constrained decoding modifies the generation process so that the model can only 
 
 The key idea is to define the valid output space using a formal grammar, typically a context-free grammar (CFG) or a JSON schema. At each decoding step, the grammar determines which tokens are valid continuations given the tokens generated so far. Invalid tokens receive a probability of zero (or negative infinity in log-space), ensuring that only grammatically valid sequences can be produced.
 
-For tool calling, this means the model is guaranteed to produce valid JSON that conforms to the tool's argument schema. Field names, types, and structure are enforced by construction rather than learned behavior. Willard and Louf~\cite{willard2023efficient} formalized this approach using finite-state machines compiled from regular expressions and context-free grammars.
+For tool calling, this means the model is guaranteed to produce valid JSON that conforms to the tool's argument schema. Field names, types, and structure are enforced by construction rather than learned behavior. Willard and Louf~\cite{willard2023efficient} formalized this approach using finite-state machines compiled from regular expressions and parsers for context-free grammars.
 
 \subsection{Guided Decoding Techniques}
 
