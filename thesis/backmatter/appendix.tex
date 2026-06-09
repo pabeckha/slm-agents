@@ -81,6 +81,9 @@ CD      & Constrained decoding              & 291/400 & 72.75\% & baseline    \\
 CD+Q    & CD + AWQ INT4                     & 289/400 & 72.25\% & $-0.50$~pp  \\
 CD+Q+ITC & CD+Q + chain-of-thought         & 262/400 & 65.50\% & $-7.25$~pp  \\
 CD+Q+RAG & CD+Q + FAISS top-5              & 191/400 & 47.75\% & $-25.00$~pp \\
+RAG-ng  & Retrieval, no CD                  & 10/400  & 2.50\%  & $-70.25$~pp \\
+PE-ng   & Few-shot, no CD                   & 18/400  & 4.50\%  & $-68.25$~pp \\
+ITC-ng  & Chain-of-thought, no CD           & 105/400 & 26.25\% & $-46.50$~pp \\
 FT-only & LoRA merged, no CD               & 55/400  & 13.75\% & $-59.00$~pp \\
 CD+FT   & CD + LoRA merged (v1)            & 279/400 & 69.75\% & $-3.00$~pp  \\
 FT-aligned-ng & Format-aligned LoRA, no CD   & 53/400  & 13.25\% & $-59.50$~pp \\

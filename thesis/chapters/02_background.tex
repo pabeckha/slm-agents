@@ -112,7 +112,7 @@ For tool calling, this means the model is guaranteed to produce valid JSON that 
 
 \subsection{Guided Decoding Techniques}
 
-Several libraries implement constrained decoding for language models. Outlines~\cite{outlines2024} uses finite-state machines compiled from regular expressions or JSON schemas to guide generation. LMQL~\cite{beurer2023lmql} combines constrained decoding with a query language that allows expressing complex output constraints declaratively.
+Several libraries implement constrained decoding for language models. Outlines~\cite{outlines2024} uses finite-state machines compiled from regular expressions or JSON schemas to guide generation. LMQL~\cite{beurer2023lmql} combines constrained decoding with a query language that allows expressing complex output constraints declaratively. XGrammar~\cite{dong2024xgrammar} accelerates context-free grammar execution with a token-mask cache, reducing the per-step overhead of grammar-constrained generation. Format constraints are not free in general: Tam et al.~\cite{tam2024letmespeak} report that strict format restrictions can degrade reasoning performance on tasks where free-form derivation helps, a trade-off examined empirically for tool calling in Chapter~\ref{ch:results}.
 
 These techniques are particularly impactful for small models because they eliminate an entire class of errors (malformed outputs) without requiring any additional training. Constrained decoding is the base layer of this thesis, upon which the other techniques are stacked.
 
@@ -298,12 +298,13 @@ context rather than rely on memorized API signatures.
 The xLAM model family~\cite{zhang2024xlam} extends the fine-tuning
 approach with a large-scale training pipeline that draws from diverse
 function-calling datasets. The \texttt{xlam-function-calling-60k}
-dataset used in this thesis for LoRA fine-tuning contains 60,000
-function-calling examples across a wide range of API types and
-domains. The diversity is intended to improve generalization beyond
-the specific schemas seen during training. Models trained on this
-dataset are competitive with frontier systems on standard tool-use
-benchmarks.
+dataset used in this thesis for LoRA fine-tuning was produced by the
+APIGen pipeline~\cite{liu2024apigen}, which generates and
+automatically verifies function-calling examples across a wide range
+of API types and domains. The diversity is intended to improve
+generalization beyond the specific schemas seen during training.
+Models trained on this dataset are competitive with frontier systems
+on standard tool-use benchmarks.
 
 The format of training outputs has a direct effect on how fine-tuning
 interacts with constrained decoding at inference time. This

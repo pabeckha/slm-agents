@@ -43,20 +43,21 @@ C_LIGHT  = "#aec7e8"
 C_PURPLE = "#9467bd"
 
 # ---------------------------------------------------------------------------
-# Figure 1 — BFCL ablation bar chart (all 10 configurations)
+# Figure 1 — BFCL ablation bar chart (all 11 configurations)
 # ---------------------------------------------------------------------------
 
 CONFIGS = [
-    ("B",             "B\n(raw)",              1.50,  C_RED),
-    ("FT-aligned-ng", "FT-aligned\n(no CD)",  13.25, C_ORANGE),
-    ("FT-only",       "FT-only\n(no CD)",     13.75, C_ORANGE),
-    ("CD+Q+RAG",      "CD+Q\n+RAG",           47.75, C_GREY),
-    ("CD+Q+ITC",      "CD+Q\n+CoT",           65.50, C_GREY),
-    ("CD+FT",         "CD+FT\n(misaligned)",  69.75, C_BLUE),
-    ("PE",            "PE\n(few-shot)",        70.25, C_BLUE),
-    ("CD+Q",          "CD+Q\n(INT4)",         72.25, C_GREEN),
-    ("CD",            "CD",                   72.75, C_GREEN),
-    ("CD+FT-aligned", "CD+FT\n(aligned)",     76.75, C_PURPLE),
+    ("B",               "B\n(raw)",              1.50,  C_RED),
+    ("FT-aligned-ng",   "FT-aligned\n(no CD)",  13.25, C_ORANGE),
+    ("FT-only",         "FT-only\n(no CD)",     13.75, C_ORANGE),
+    ("CD+Q+RAG",        "CD+Q\n+RAG",           47.75, C_GREY),
+    ("CD+Q+ITC",        "CD+Q\n+CoT",           65.50, C_GREY),
+    ("CD+FT",           "CD+FT\n(misaligned)",  69.75, C_BLUE),
+    ("PE",              "PE\n(few-shot)",        70.25, C_BLUE),
+    ("CD+Q",            "CD+Q\n(INT4)",         72.25, C_GREEN),
+    ("CD",              "CD",                   72.75, C_GREEN),
+    ("CD+Q+FT-aligned", "CD+Q+FT\n(aligned)",   74.25, C_PURPLE),
+    ("CD+FT-aligned",   "CD+FT\n(aligned)",     76.75, C_PURPLE),
 ]
 
 labels   = [c[1] for c in CONFIGS]
@@ -200,18 +201,21 @@ print(f"Saved {out}")
 
 
 # ---------------------------------------------------------------------------
-# Figure 4 — RAG failure breakdown (pie chart)
+# Figure 4 — RAG outcome breakdown (horizontal bars)
 # ---------------------------------------------------------------------------
+# The three categories partition all 400 test cases:
+# 264 identical to CD+Q (66.0%), 128 wrong function (32.0%),
+# 8 correct function but wrong arguments (2.0%).
 
 RAG_LABELS = [
-    "Wrong parameter values",
-    "Wrong function selected",
-    "Correct answer identical to non-RAG",
+    "Correct function,\nwrong arguments (8/400)",
+    "Wrong function selected (128/400)",
+    "Output identical to CD+Q (264/400)",
 ]
 RAG_SIZES  = [2, 32, 66]
 RAG_COLS   = [C_ORANGE, C_RED, C_GREEN]
 
-fig, ax = plt.subplots(figsize=(4.5, 2.4))
+fig, ax = plt.subplots(figsize=(4.8, 2.4))
 
 bars = ax.barh(RAG_LABELS, RAG_SIZES, color=RAG_COLS, height=0.5)
 
@@ -225,8 +229,8 @@ for bar, val in zip(bars, RAG_SIZES):
     )
 
 ax.set_xlim(0, 80)
-ax.set_xlabel("Share of 209 incorrect answers (%)", fontsize=LABEL_FONTSIZE)
-ax.set_title("RAG failure breakdown (CD+Q+RAG, 7B, 209 incorrect)", fontsize=BODY_FONTSIZE)
+ax.set_xlabel("Share of all 400 test cases (%)", fontsize=LABEL_FONTSIZE)
+ax.set_title("CD+Q+RAG outcome breakdown (7B, 400 test cases)", fontsize=BODY_FONTSIZE)
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 ax.tick_params(axis="y", labelsize=LABEL_FONTSIZE)

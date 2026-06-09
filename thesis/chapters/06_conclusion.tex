@@ -13,11 +13,15 @@ of each optimization technique.
 language models (0.5B--7B parameters) and frontier models on tool-calling benchmarks?}
 
 Across all four Qwen~2.5 Instruct sizes evaluated on
-BFCL~v4 \texttt{simple\_python}, the unoptimized baseline achieves
+BFCL~v4 \texttt{simple\_python}, the model-agnostic baseline achieves
 1.5--4.75\%, with no consistent trend across model scale.
 The dominant failure mode is format non-compliance: 394 of 400
 failures in the 7B base model are malformed outputs rather than
 semantically wrong answers, and the same pattern holds at all sizes.
+This gap quantifies the cost of a naive generic integration rather
+than an intrinsic capability deficit: under the official BFCL harness
+with the model's native tool-calling template, the same model is
+reported far above this floor (Chapter~\ref{ch:introduction}).
 Frontier models range from 71.00\% (Claude Haiku~4.5) to 79.58\%
 (Gemini~3 Pro)~\cite{bfcl2024}.
 Constrained decoding closes the gap at every size without modifying
@@ -36,29 +40,29 @@ generation, quantization, and LoRA fine-tuning) when applied cumulatively to
 small models for tool calling?}
 
 Constrained decoding is the dominant optimization technique,
-contributing $+48$--$+71$~pp across the 0.5B to 7B size range at
-zero additional inference cost; at 7B the gain is $+71.25$~pp.
+contributing $+48$--$+71$~pp across the 0.5B to 7B size range
+without training and without generating additional tokens; at 7B the
+gain is $+71.25$~pp.
 AWQ INT4 quantization reduces model memory by 63.5\% (14.25~GiB to
 5.20~GiB at 7B) and startup time by 83.5\% (212~s to 35~s) at a
 cost of at most 0.5~pp above 1.5B, within run-to-run
-variance~\cite{lin2024awq}; at 0.5B the penalty is 3.75~pp.
+variance; at 0.5B the penalty is 3.75~pp.
 Few-shot prompting (PE) produces a size-dependent effect: accuracy
 improves by 2.0--2.5~pp at 0.5B--3B but decreases by 2.5~pp at
-7B~\cite{brown2020language}, indicating that the direction of
+7B, indicating that the direction of
 effect is not consistent across model scale.
 Chain-of-thought reasoning (CD+Q+ITC) reduces accuracy at every
 model size by approximately 6~pp at increased per-case inference time from the additional reasoning
-tokens~\cite{wei2022chain}.
+tokens.
 Retrieval-augmented generation (CD+Q+RAG) reduces accuracy at every
 model size, with decreases of 16--26~pp relative to CD+Q, despite
 a retrieval recall@5 of 97.2\%; the loss is attributable to function
-disambiguation failure rather than retrieval
-quality~\cite{lewis2020retrieval}.
+disambiguation failure rather than retrieval quality.
 The disambiguation failure does not improve with model scale: the
 7B model is no more reliable than the 1.5B model at distinguishing
 semantically similar candidate functions.
 LoRA fine-tuning on
-\texttt{xlam-function-calling-60k}~\cite{zhang2024xlam, hu2022lora}
+\texttt{xlam-function-calling-60k}~\cite{zhang2024xlam}
 produced a 3~pp regression under CD+FT at 7B, attributed to a
 format mismatch between the training distribution and the evaluation
 pipeline.
@@ -66,7 +70,8 @@ The format mismatch hypothesis is confirmed by CD+FT-aligned, which
 reformats training outputs to match the inference pipeline exactly.
 CD+FT-aligned improves accuracy at every size: $+7.75$~pp at 0.5B,
 $+3.75$~pp at 1.5B, $+2.00$~pp at 3B, and $+4.00$~pp at 7B
-(76.75\%, matching Claude Opus~4.5 at 76.83\%).
+(76.75\%, on par with Claude Opus~4.5 at 76.83\% within single-run
+uncertainty).
 CD+Q+FT-aligned applies AWQ INT4 quantization to the format-aligned
 LoRA-merged model and achieves 74.25\% (297/400) at 7B on the same
 5.20~GiB footprint.
@@ -83,17 +88,25 @@ training-based interventions with aligned format can change them.
 \paragraph{RQ3.} \textit{Can a fully optimized small language model configuration
 achieve production-viable tool-calling accuracy on consumer hardware?}
 
-Three configurations achieve production-viable accuracy on
-consumer hardware. CD+Q achieves 72.25\% on 5.20~GiB of GPU memory
+Against the viability criterion defined in
+Chapter~\ref{ch:introduction} (single-call accuracy within the range
+spanned by deployed frontier models on the same category, on a single
+consumer GPU), three configurations qualify. CD+Q achieves 72.25\% on
+5.20~GiB of GPU memory
 with no training required, fitting on a consumer NVIDIA RTX~4090 (24~GiB)
 with substantial remaining capacity for the key-value cache.
 CD+Q+FT-aligned achieves 74.25\% on the same 5.20~GiB footprint, adding
 a format-aligned LoRA adapter merged and quantized to INT4 before
 deployment. CD+FT-aligned achieves 76.75\% with the merged adapter at
-full FP16 precision. For the \texttt{simple\_python} use case, a fully
-optimized SLM configuration is production-viable on consumer hardware,
-with training data alignment as the binding constraint on the achievable
-accuracy ceiling.
+full bfloat16 precision. The criterion is deliberately scoped: it
+covers single-call, schema-constrained tool calling, and it presumes
+that the residual semantic failures (23--28\% of requests, which are
+structurally valid and therefore not detectable by output validation)
+are absorbed by escalation in a cascade deployment. Under that
+scoping, a fully optimized SLM configuration is production-viable on
+consumer hardware, with training data alignment as the binding
+constraint on the achievable accuracy ceiling; multi-turn agentic
+workloads remain outside the viable region (Section~\ref{sec:future-work}).
 
 \section{Practical Deployment Guidelines}
 
@@ -109,7 +122,8 @@ resulting recommendations.
 \textbf{Step~1: Apply constrained decoding first.}
 Constrained decoding requires no modification to model weights and no
 training data. On BFCL~v4 \texttt{simple\_python} it raises accuracy
-from 1.5\% to 72.75\% for the 7B model by eliminating format failures
+from 1.5\% (the model-agnostic baseline without native tool-calling
+templates) to 72.75\% for the 7B model by eliminating format failures
 entirely. For tasks in which format compliance is the dominant failure
 mode this single step may be sufficient for production deployment,
 particularly when the target use case involves a fixed, well-documented
@@ -136,7 +150,8 @@ by additional structure in the prompt.
 ceiling.}
 Format-aligned LoRA fine-tuning is the only configuration that improves
 on constrained decoding alone. Config~CD+FT-aligned achieves 76.75\%,
-matching Claude Opus~4.5 (76.83\%) on the same benchmark. The binding
+on par with Claude Opus~4.5 (76.83\%) on the same benchmark within
+single-run uncertainty. The binding
 constraint is training data alignment: the training distribution must
 match the inference pipeline's output format exactly. Applying the
 merged adapter to the quantized model (Config~CD+Q+FT-aligned) yields
