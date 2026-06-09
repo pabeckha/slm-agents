@@ -2,29 +2,33 @@
 
 \section{Baseline Performance}
 
-Table~\ref{tab:baseline-results} summarizes the baseline and constrained decoding results for Qwen~2.5 7B-Instruct on BFCL~v4 \texttt{simple\_python} (400 test cases). All no-training configurations, including few-shot prompting, are reported in Section~\ref{sec:no-training}.
+Table~\ref{tab:baseline-results} summarizes the baseline, the native-template control, and the constrained decoding results for Qwen~2.5 7B-Instruct on BFCL~v4 \texttt{simple\_python} (400 test cases). All no-training configurations, including few-shot prompting, are reported in Section~\ref{sec:no-training}.
 
 \begin{table}[ht]
 \centering
 \caption{BFCL v4 \texttt{simple\_python} AST accuracy for Qwen~2.5 7B-Instruct:
-         baseline (B) and constrained decoding (CD).}
+         baseline (B), native-template control (B-template), and constrained
+         decoding (CD).}
 \label{tab:baseline-results}
 \begin{tabular}{llrr}
 \toprule
 Config & Description & Correct & Accuracy \\
 \midrule
-B  & Raw model, no optimization       & 6/400   & 1.5\% \\
+B          & Raw model, generic prompt, no optimization & 6/400   & 1.5\% \\
+B-template & Native chat template, free generation      & 384/400 & 96.00\% \\
 \midrule
-CD & Constrained decoding (guided)    & 291/400 & 72.75\% \\
+CD         & Constrained decoding (guided)              & 291/400 & 72.75\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\noindent Without constrained decoding (Base), the model achieves only 1.5\% accuracy. The dominant failure mode is format non-compliance: 394 out of 400 outputs fail to parse as valid JSON, producing \texttt{Extra data} errors or empty results. The model is not incapable of understanding the queries: it simply cannot express its answers in the required structured format.
+\noindent Without constrained decoding (Base), the model achieves only 1.5\% accuracy. The dominant failure mode is format non-compliance: 394 out of 400 outputs fail to parse as valid JSON, producing \texttt{Extra data} errors or empty results. The model is not incapable of understanding the queries: it simply cannot express its answers in the required structured format. B-template confirms this directly: with the model's native tool-calling template and free generation, the same model reaches 96.00\% (384/400), so the 1.5\% floor is a property of the generic integration, not of the model. That B-template also exceeds CD shows that the value of constrained decoding lies in its structural guarantee, which holds for any model and any schema, rather than in raw accuracy against a model-specific template (Chapter~\ref{ch:discussion} returns to this point).
 
 Constrained decoding (CD) recovers 71.25 percentage points, achieving 72.75\% accuracy. Function selection reaches 100\% accuracy via \texttt{guided\_choice}; in this category each test case provides a single candidate function, so guided selection cannot fail, and the meaningful evidence on tool selection comes from the \texttt{multiple} category (Section~\ref{sec:bfcl-extended}). The remaining 27.25\% failure rate is entirely in argument extraction: wrong numeric precision (e.g., 9.8 vs.\ 9.81), string format mismatches (e.g., ``kilometers/hour'' vs.\ ``km/h''), and incorrect optional parameter defaults.
 
-Few-shot prompting (PE) also uses constrained decoding and decreases accuracy by 2.5 percentage points relative to CD alone. The three few-shot examples, targeting known failure modes, did not transfer across function domains. This negative result indicates that the argument extraction errors reflect the model's learned associations rather than a formatting gap that in-context examples can bridge.
+The B-template control also frames the residual failure analysis in the remainder of this chapter: it characterises the model-agnostic pipeline rather than the model's ceiling. Unlike the pipeline's prompts, the native template carries the full unmodified function schemas, and the failure categories that survive constrained decoding correspond closely to the kinds of information found in parameter descriptions, default values, and enumerations, which the pipeline omits (Chapter~\ref{ch:methodology}).
+
+Few-shot prompting (PE) also uses constrained decoding and decreases accuracy by 2.5 percentage points relative to CD alone. The three few-shot examples, targeting known failure modes, did not transfer across function domains. This negative result indicates that three in-context examples cannot substitute for the schema detail absent from the pipeline's prompts.
 
 \section{No-Training Methods}
 \label{sec:no-training}
@@ -62,8 +66,9 @@ reduction) and inference startup time from 212~s to 35~s (83.5\% reduction),
 with an accuracy change of $-0.5$~pp (289/400, 72.25\%)~\cite{lin2024awq}.
 The failure distribution does not change: no new error categories are
 introduced, and the relative frequency of existing failure types is unchanged.
-The accuracy difference of two test cases falls within run-to-run variance,
-confirmed by six re-runs that consistently produced 289/400. CD+Q
+The accuracy difference of two test cases falls within run-to-run variance:
+six consecutive re-runs produced identical predictions (289/400), while
+re-runs later in the project period varied by one case (288/400). CD+Q
 therefore provides equivalent accuracy to CD at a substantially
 reduced memory footprint, and is the operating baseline for subsequent
 no-training experiments. Fig.~\ref{fig:memory-accuracy} plots GPU memory
@@ -426,19 +431,24 @@ not a training failure. The difference in BFCL accuracy (69.75\% vs.\
 \end{figure}
 
 CD+FT-aligned achieves 76.75\% accuracy (307/400), an improvement
-of 4.0~pp over CD (a net gain of 16 of the 400 shared test cases) and
-7.0~pp over CD+FT. This is the highest accuracy observed across all
-configurations, and the only configuration family to exceed the
-no-training level of 72.75\% established by CD. Because both
-configurations are evaluated on the same 400 test cases, attaching a
-significance level to this delta requires a paired comparison
-(McNemar's test) over the per-case predictions; the single-proportion
-confidence interval reported in
-Section~\ref{sec:frontier-comparison} applies to absolute accuracies,
-not to paired differences. The stronger evidence that format
-alignment improves accuracy is the consistency of the effect: the
-gain is positive at all four model sizes
-(Section~\ref{sec:model-size}).
+of 4.0~pp over CD and 7.0~pp over CD+FT. This is the highest
+accuracy observed across all configurations, and the only
+configuration family to exceed the no-training level of 72.75\%
+established by CD. Because both configurations are evaluated on the
+same 400 test cases, significance is assessed with McNemar's exact
+test over the per-case predictions; the single-proportion confidence
+interval reported in Section~\ref{sec:frontier-comparison} applies
+to absolute accuracies, not to paired differences. On the stored
+paired prediction files, in which the CD run scores 289/400
+(repeated CD runs varied between 289 and 291 of 400 over the project
+period; Section~\ref{ch:methodology}), fine-tuning corrects 45 cases
+and breaks 27 ($p = 0.044$). This is nominally below the 0.05
+threshold but lies within the run-to-run spread: a CD run at the
+upper end of the 289--291 range would not reach significance. The
+single-category delta is therefore treated as borderline rather than
+established, and the stronger evidence that format alignment
+improves accuracy is the consistency of the effect: the gain is
+positive at all four model sizes (Section~\ref{sec:model-size}).
 
 The 23.25\% failure rate that remains under CD+FT-aligned follows
 the same taxonomy as CD: optional parameter defaults, numeric
@@ -472,8 +482,13 @@ changes.
 Despite the larger quantization penalty, the full stack retains a positive
 return on fine-tuning: CD+Q+FT-aligned (74.25\%) outperforms both the
 no-training ceiling Config~CD (72.75\%) and the quantized baseline
-Config~CD+Q (72.25\%). The LoRA training signal survives quantization in
-attenuated form. From a deployment perspective, CD+Q+FT-aligned occupies
+Config~CD+Q (72.25\%). McNemar's exact test on the stored paired
+predictions (46 cases corrected, 37 broken, $p = 0.38$) shows that this
+residual gain does not reach significance on its own: unlike the
+full-precision comparison, the quantized stack's advantage over CD+Q is
+within discordant-pair noise, so the retention of the training signal
+after quantization should be read as directional rather than
+statistically established. From a deployment perspective, CD+Q+FT-aligned occupies
 the same memory footprint as Config~CD+Q (approximately 5.2~GiB of GPU
 memory), making fine-tuned capability available on consumer hardware at
 INT4 size.
@@ -576,7 +591,15 @@ therefore within the confidence interval of a single evaluation run.
 These comparisons are best interpreted as showing parity rather than a
 definitive ranking. Frontier model scores are taken from the official
 BFCL leaderboard and are not re-evaluated under the same harness, so
-minor methodology differences may further affect comparability.
+methodology differences may further affect comparability. The
+B-template control underlines this caveat: 96.00\% under the local
+harness exceeds every frontier leaderboard score in
+Table~\ref{tab:frontier-comparison}, which is more plausibly explained
+by differences between the local evaluation and the leaderboard's
+category composition and scoring than by the 7B model outperforming
+frontier models. Cross-harness comparisons in this section are
+therefore indicative only; the internally consistent comparisons are
+those between configurations evaluated under the same local harness.
 
 However, this result requires careful interpretation. The \texttt{simple\_python} category is the least demanding BFCL scenario: single-turn, single-function calls with no selection ambiguity (one candidate function per test case). Both constrained decoding and frontier models' native tool-calling APIs guarantee valid JSON and valid function names, levelling the playing field on format compliance. The only differentiator is argument value accuracy, where a 7B model can be competitive on straightforward lookups.
 

@@ -5,18 +5,25 @@ Status legend: [ ] open · [~] partially fixed (needs HPC data or author decisio
 
 ## Critical
 
-- [~] **1. Baseline fairness (RQ1 framing).** Reframed everywhere: the abstract,
+- [x] **1. Baseline fairness (RQ1 framing).** Reframed everywhere: the abstract,
   §1.1, §3.4, the §5.3.1 threats (new "Baseline construction" entry), and the RQ1
-  answer now present 1.5% as the floor of a minimal model-agnostic integration,
-  citing the official-harness reference point (Qwen2.5-7B-Instruct at 94.50% on
-  non-live simple AST, ToLeaP, arXiv:2505.11833, with an explicit
-  version-comparability caveat). Constrained decoding is now framed as restoring
-  format compliance without model-specific templates.
-  *Remaining (HPC):* run Config B-template (native chat template, free
-  generation) via `bsub < scripts/hpc/run_bfcl_template_baseline.sh` and replace
-  the ToLeaP citation with our own measured number. Backend implemented in
-  `src/chat_template_backend.py` (`--backend vllm-template`). Full instructions
-  in `docs/handoff-hpc-examiner-fixes.md`, Task 1.
+  answer now present 1.5% as the floor of a minimal model-agnostic integration.
+  B-template run completed 2026-06-09: 96.00% (384/400) on simple_python with
+  the native chat template and free decoding, zero parse failures. All five
+  anchor passages plus the abstract now quote the measured 96.00% (ToLeaP
+  94.50% kept in §1.1 as corroboration), and Table 4.1 gained a B-template row.
+  Since B-template lands above CD, the framing is that constrained decoding's
+  value is the structural guarantee and model-agnosticism, not raw accuracy
+  superiority over the native template. Follow-on edits drawn from the code
+  inspection (`FunctionParameter` stores only the type; prompts omit parameter
+  descriptions, defaults, and enums): the residual-failure interpretation in
+  §4.1/§5.1/§5.2, the abstract, and RQ2 now attribute much of the post-CD
+  residual to this schema information loss rather than solely to learned value
+  priors; the threats entry was extended; §4.5 gained a comparability caveat
+  (B-template at 96% exceeds every v4 leaderboard frontier score, so
+  cross-harness comparisons are indicative only); Step 1 of the deployment
+  guidelines now says to benchmark the native template first; future work
+  gained the schema-enriched CD prompt experiment.
 - [x] **2. Parallel-category contradiction.** Root cause identified in
   `src/vllm_backend.py:process_parallel`: the parallel stage selects a set of
   distinct function names and runs one deterministic argument extraction per name,
@@ -33,15 +40,17 @@ Status legend: [ ] open · [~] partially fixed (needs HPC data or author decisio
   wrong arguments); §4.2.4 prose now also decomposes the 209 incorrect cases
   (128 + 8 + 73 shared failures); caption fixed; §5.2 "66% of RAG failures"
   corrected to "66% of all test cases".
-- [~] **4. No paired significance test.** §4.4.1 no longer claims to "break the
-  ceiling"; it reports the +16 net cases, states that significance requires
-  McNemar's test on the per-case predictions, and rests the qualitative claim on
-  the consistent positive direction across all four sizes. Wilson CI corrected to
-  ±4.1–4.4 pp.
-  *Remaining (HPC):* run `scripts/mcnemar_bfcl.py` on the stored result files
-  for CD vs CD+FT-aligned and CD+Q vs CD+Q+FT-aligned, then insert the
-  discordant counts and p-values into §4.4.1. Exact commands in
-  `docs/handoff-hpc-examiner-fixes.md`, Task 2.
+- [x] **4. No paired significance test.** McNemar's exact test run on the
+  stored paired prediction files (2026-06-09, see
+  `docs/decisions/mcnemar-significance-results.md`): CD vs CD+FT-aligned gives
+  b=45, c=27, p=0.044 (borderline; the paired CD file scores 289/400 while
+  recorded CD runs spread 289–291); CD+Q vs CD+Q+FT-aligned gives b=46, c=37,
+  p=0.38 (not significant). §4.4.1 and §4.4.2 now report both tests with the
+  conservative framing; the abstract and RQ2 hedge the quantized-retention
+  claim. **Follow-on finding:** the reruns showed ±1–2 case variance across the
+  project period, contradicting the original "identical re-runs" determinism
+  claim; §3.2.1, §4.2.1, and the §5.3.1 single-run-protocol threat were
+  corrected to state the ±0.5 pp run-to-run spread.
 - [x] **5. τ-bench simulator confound.** Documented in §3.2.2 (departure from the
   reference setup), §4.6 (pass rate is a conservative estimate; comparisons not
   like-for-like), and a new "τ-bench user simulator" threat in §5.3.1.
@@ -91,9 +100,11 @@ Status legend: [ ] open · [~] partially fixed (needs HPC data or author decisio
   Qwen2.5-7B-Instruct 94.50% non-live simple AST).
 - [x] Leaderboard snapshot dates unified to 2026-06-04 (footnotes in §4.5 and
   Fig 4.6 caption; matches bib urldate).
-- [ ] Config B-template run on HPC (issue 1) — see
-  `docs/handoff-hpc-examiner-fixes.md`, Task 1.
-- [ ] McNemar discordant counts from HPC result files (issue 4) — Task 2.
+- [x] Config B-template run on HPC (issue 1): 96.00% (384/400), run
+  2026-06-09T20-28-36, `data/output/bfcl_template_baseline/`.
+- [x] McNemar discordant counts from HPC result files (issue 4) — done
+  2026-06-09; the original per-case files behind the exact 291/289 figures were
+  overwritten, so the tests use the surviving paired files (CD at 289/400).
 - [ ] Optional: BFCL v4 leaderboard entry for Qwen 2.5 7B-Instruct (issue 1);
   the public CSV endpoint was not reachable from this machine.
 - [ ] Optional: guided decoding latency measurements (issue 7) — Task 3.

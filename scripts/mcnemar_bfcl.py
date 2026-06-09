@@ -38,6 +38,44 @@ from src.bfcl_adapter import (  # noqa: E402
 )
 
 
+def _safe_eval(n: ast.AST) -> object:
+    """Recursively evaluate the AST nodes repr() can produce, and nothing else."""
+    if isinstance(n, ast.Constant):
+        return n.value
+    if isinstance(n, ast.Name):
+        if n.id == "nan":
+            return float("nan")
+        if n.id == "inf":
+            return float("inf")
+        raise ValueError(f"unsupported name: {n.id}")
+    if isinstance(n, ast.UnaryOp) and isinstance(n.op, ast.USub):
+        return -_safe_eval(n.operand)
+    if isinstance(n, ast.List):
+        return [_safe_eval(elt) for elt in n.elts]
+    if isinstance(n, ast.Tuple):
+        return tuple(_safe_eval(elt) for elt in n.elts)
+    if isinstance(n, ast.Set):
+        return {_safe_eval(elt) for elt in n.elts}
+    if isinstance(n, ast.Dict):
+        return {_safe_eval(k): _safe_eval(v) for k, v in zip(n.keys, n.values)}
+    raise ValueError(f"unsupported AST node: {type(n).__name__}")
+
+
+def _eval_value(node: ast.expr):
+    """Evaluate one keyword value from a stored repr().
+
+    ast.literal_eval covers every repr() of the basic types except float
+    nan/inf, which repr() writes as bare names that literal_eval rejects.
+    Fall back to a restricted recursive AST evaluation so that nan, inf,
+    -inf, and containers holding them round-trip correctly, without
+    eval() on model-derived text.
+    """
+    try:
+        return ast.literal_eval(node)
+    except ValueError:
+        return _safe_eval(node)
+
+
 def decode_python_str(python_str: str) -> list[dict]:
     """Decode "[fn(a=1), g.h(b='x')]" into [{"fn": {"a": 1}}, ...].
 
@@ -65,13 +103,13 @@ def decode_python_str(python_str: str) -> list[dict]:
                 return [{}]
             name = ".".join(reversed(parts))
             args = {
-                kw.arg: ast.literal_eval(kw.value)
+                kw.arg: _eval_value(kw.value)
                 for kw in call.keywords
                 if kw.arg is not None
             }
             decoded.append({name: args})
         return decoded or [{}]
-    except (SyntaxError, ValueError):
+    except (SyntaxError, ValueError, NameError):
         return [{}]
 
 
@@ -93,7 +131,7 @@ def load_results(path: Path, test_data: list[dict]) -> list[dict]:
             "both runs must cover the same test cases"
         )
 
-    return [
+    results = [
         {
             "id": e["id"],
             "decoded": decode_python_str(by_id[e["id"]]),
@@ -101,6 +139,19 @@ def load_results(path: Path, test_data: list[dict]) -> list[dict]:
         }
         for e in test_data
     ]
+
+    # Surface decode failures: stored strings that did not round-trip.
+    # A nonempty list here means the re-scored accuracy is NOT comparable
+    # to the original run and the discordant counts cannot be trusted.
+    bad = [r["id"] for r in results
+           if r["decoded"] == [{}] and r["python_str"].strip() not in ("[]", "")]
+    if bad:
+        print(f"WARNING {path}: {len(bad)} stored results failed to decode "
+              f"and will score as wrong: {bad[:10]}")
+        print("  Inspect these lines in the result file before using the "
+              "p-value; the paired counts are unreliable until this is 0.")
+
+    return results
 
 
 def mcnemar_exact(b: int, c: int) -> float:

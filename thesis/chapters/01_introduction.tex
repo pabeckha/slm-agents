@@ -28,18 +28,23 @@ that agentic systems require.
 The 1.5\% figure characterises a deliberately minimal, model-agnostic
 integration: the evaluation pipeline presents plain-text prompts and
 parses the completion as JSON, without using the model-specific
-tool-calling prompt template that Qwen~2.5 provides. Under the official
-BFCL harness, which formats requests through each model's native
-template and applies a tolerant multi-format parser, the same model has
-been reported at 94.50\% on the non-live simple AST category of an
-earlier benchmark revision~\cite{chen2025toleap}, which is not directly
-comparable to the v4 snapshot used in this thesis. The baseline should
+tool-calling prompt template that Qwen~2.5 provides. A control
+configuration (B-template) quantifies this directly: prompting the
+same model through its native tool-calling chat template, with free
+generation and the model's native \texttt{<tool\_call>} output format,
+reaches 96.00\% (384/400) on the same test cases, confirming that the
+baseline gap is a property of the generic integration rather than of
+the model. This is consistent with the 94.50\% reported for the same
+model under the official BFCL harness on an earlier benchmark
+revision~\cite{chen2025toleap}. The baseline should
 therefore be read as the floor for a generic integration, not as the
 model's best achievable unoptimized performance. The contribution of
 constrained decoding examined here is that it restores format
 compliance structurally, with guarantees that hold for any model and
 any schema, rather than relying on model-specific templates and
-lenient output parsing.
+lenient output parsing; the accuracy cost of that model-agnosticism,
+visible in the gap between the constrained configurations and
+B-template, is analysed in Chapter~\ref{ch:discussion}.
 
 This thesis investigates that assumption directly.
 Four Qwen~2.5 Instruct sizes (0.5B, 1.5B, 3B, and 7B) are evaluated

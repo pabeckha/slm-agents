@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import statistics
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -246,6 +248,7 @@ def write_run_manifest(
     lora_base_model: str | None = None,
     parallel: bool = False,
     scores: dict | None,
+    latency: dict | None = None,
     output_dir: Path,
 ) -> Path:
     """Write a structured run manifest for experiment tracking."""
@@ -285,6 +288,8 @@ def write_run_manifest(
         manifest["correct_count"] = scores["correct_count"]
         manifest["total_count"] = scores["total_count"]
         manifest["failure_count"] = len(scores.get("failures", []))
+    if latency is not None:
+        manifest["latency"] = latency
 
     manifest_dir = output_dir / "runs"
     manifest_dir.mkdir(parents=True, exist_ok=True)
@@ -471,8 +476,10 @@ def main() -> None:
     print(f"\n=== Running {len(test_data)} test cases (parallel={use_parallel}) ===")
     results = []
     rag_hits = 0
+    latencies = []
     for i, entry in enumerate(test_data):
         print(f"[{i + 1}/{len(test_data)}] {entry['id']}: {entry['prompt'][:60]}...")
+        case_start = time.perf_counter()
 
         # Replace functions with RAG-retrieved candidates when enabled.
         functions = entry["functions"]
@@ -513,6 +520,25 @@ def main() -> None:
                 "decoded": [{}],
                 "python_str": "[]",
             })
+        elapsed = time.perf_counter() - case_start
+        latencies.append(elapsed)
+        print(f"  time: {elapsed:.2f}s")
+
+    latency_summary = None
+    if latencies:
+        sorted_lat = sorted(latencies)
+        latency_summary = {
+            "count": len(latencies),
+            "mean_s": round(statistics.mean(latencies), 3),
+            "median_s": round(statistics.median(latencies), 3),
+            "p95_s": round(sorted_lat[int(0.95 * (len(sorted_lat) - 1))], 3),
+            "total_s": round(sum(latencies), 1),
+        }
+        print(
+            f"\nLatency over {latency_summary['count']} cases: "
+            f"mean {latency_summary['mean_s']}s, median {latency_summary['median_s']}s, "
+            f"p95 {latency_summary['p95_s']}s, total {latency_summary['total_s']}s"
+        )
 
     if rag_index is not None:
         print(f"\nRAG recall@{args.rag_top_k}: {rag_hits}/{len(test_data)} ({rag_hits/len(test_data):.1%})")
@@ -566,6 +592,7 @@ def main() -> None:
         lora_base_model=args.lora_base_model,
         parallel=use_parallel,
         scores=scores,
+        latency=latency_summary,
         output_dir=output_dir,
     )
     print(f"Run manifest written to {manifest_path}")
