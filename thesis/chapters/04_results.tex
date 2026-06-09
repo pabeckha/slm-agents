@@ -72,7 +72,7 @@ against accuracy for the main configurations.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.65\textwidth]{pictures/figures/fig_memory_vs_accuracy.pdf}
-\caption{GPU memory footprint vs.\ BFCL simple\_python AST accuracy for
+\caption{GPU memory footprint vs.\ BFCL \texttt{simple\_python} AST accuracy for
          selected configurations. CD+Q achieves equivalent accuracy
          to CD at 63.5\% lower memory. The GPT-4.1 reference line
          (72.67\%) is shown for comparison.}
@@ -381,7 +381,7 @@ a bar chart with frontier reference lines.
 
 \begin{table}[h]
 \centering
-\caption{BFCL v4 simple\_python AST accuracy across all eleven configurations.
+\caption{BFCL v4 \texttt{simple\_python} AST accuracy across all eleven configurations.
          $\Delta$ is relative to Config~CD (72.75\%).}
 \label{tab:full-ablation}
 \begin{tabular}{llrr}
@@ -406,7 +406,7 @@ CD+FT-aligned   & CD + format-aligned LoRA           & \textbf{76.75\%} & $\math
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{pictures/figures/fig_bfcl_ablation.pdf}
-\caption{BFCL v4 simple\_python AST accuracy for all eleven configurations.
+\caption{BFCL v4 \texttt{simple\_python} AST accuracy for all eleven configurations.
          Dashed reference lines show Gemini~3 Pro (79.58\%),
          Claude Opus~4.5 (76.83\%), and GPT-4.1 (72.67\%).
          CD+FT-aligned and CD+Q+FT-aligned are the only configurations to
@@ -445,7 +445,7 @@ Qwen 2.5 7B (raw)           & SLM (ours) & 1.50\%  \\
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{pictures/figures/fig_frontier_comparison.pdf}
-\caption{BFCL v4 simple\_python AST accuracy for Qwen~2.5 7B configurations
+\caption{BFCL v4 \texttt{simple\_python} AST accuracy for Qwen~2.5 7B configurations
          (this work) vs.\ frontier models from the official leaderboard
          (accessed April 2026). CD+FT-aligned reaches 76.75\%,
          within 0.08~pp of Claude Opus~4.5 (76.83\%).}
@@ -455,7 +455,7 @@ Qwen 2.5 7B (raw)           & SLM (ours) & 1.50\%  \\
 \noindent Fig.~\ref{fig:frontier-comparison} and
 Table~\ref{tab:frontier-comparison} compare the Qwen~2.5 7B results against
 the leaderboard. Qwen~2.5 7B-Instruct with constrained decoding alone
-(72.75\%) matches or exceeds several frontier models on Simple Function
+(72.75\%) matches or exceeds several frontier models on \texttt{simple\_python}
 accuracy, including GPT-4.1 (72.67\%), Claude Sonnet~4.5 (72.58\%), and
 Claude Haiku~4.5 (71.00\%). With format-aligned fine-tuning,
 CD+FT-aligned reaches 76.75\%, within 0.08~pp of Claude Opus~4.5
@@ -474,7 +474,7 @@ definitive ranking. Frontier model scores are taken from the official
 BFCL leaderboard and are not re-evaluated under the same harness, so
 minor methodology differences may further affect comparability.
 
-However, this result requires careful interpretation. The simple\_python category is the least demanding BFCL scenario: single-turn, single-function calls with no selection ambiguity (one candidate function per test case). Both constrained decoding and frontier models' native tool-calling APIs guarantee valid JSON and valid function names, levelling the playing field on format compliance. The only differentiator is argument value accuracy, where a 7B model can be competitive on straightforward lookups.
+However, this result requires careful interpretation. The \texttt{simple\_python} category is the least demanding BFCL scenario: single-turn, single-function calls with no selection ambiguity (one candidate function per test case). Both constrained decoding and frontier models' native tool-calling APIs guarantee valid JSON and valid function names, levelling the playing field on format compliance. The only differentiator is argument value accuracy, where a 7B model can be competitive on straightforward lookups.
 
 Frontier models distinguish themselves on harder tasks. Their BFCL overall
 scores, which weight multi-turn (30\%) and agentic tasks (40\%), remain
@@ -522,7 +522,7 @@ side by side.
 \toprule
 Benchmark & Setting & Pass rate (↑) \\
 \midrule
-BFCL simple\_python & Single call, 1 turn     & 72.75\% \\
+BFCL \texttt{simple\_python} & Single call, 1 turn     & 72.75\% \\
 $\tau$-bench retail & Multi-step, 5--15 turns & 4.35\%  \\
 \bottomrule
 \end{tabular}
@@ -578,7 +578,7 @@ Pass rates are uniformly low across all model sizes. All conditions except
 0.87~pp and the standard error is approximately 1.9~pp. The full spread
 across all conditions (1.74\%--4.35\%) is less than two standard errors, so
 no ranking between individual conditions is supported. These results establish
-a shared performance floor, not a scale trend. This contrasts with the BFCL simple\_python sweep, where
+a shared performance floor, not a scale trend. This contrasts with the BFCL \texttt{simple\_python} sweep, where
 CD accuracy increases by 21.25~pp from 0.5B to 7B. Scale improves single-call
 argument extraction but does not improve multi-turn task completion.
 
@@ -588,7 +588,7 @@ producing BFCL gains at every model size (Section~\ref{sec:model-size}). At
 the CD baseline at the same size. At 1.5B and 3B the pass rates are equal
 within noise; at 7B the mean of 4.35\% for CD lies within the single-run
 standard error of the 3.48\% CD+FT-aligned result. Format-aligned fine-tuning,
-which increases BFCL simple\_python accuracy by up to 7.75~pp, does not
+which increases BFCL \texttt{simple\_python} accuracy by up to 7.75~pp, does not
 transfer to multi-turn task completion.
 
 All conditions except 7B~CD are single runs. At $n=115$ binary tasks, one task
@@ -720,7 +720,7 @@ Size & CD & CD+FT-aligned \\
 CD alone scales from 42.0\% at 0.5B to 70.5\% at 7B. CD+FT-aligned improves
 over CD by 13.5~pp at 0.5B and 7.5~pp at 1.5B, but the gap closes to within
 noise at 3B (60.5\% vs.\ 62.0\%) and vanishes entirely at 7B, where both
-configs reach 70.5\%. The pattern mirrors the simple\_python sweep: fine-tuning
+configs reach 70.5\%. The pattern mirrors the \texttt{simple\_python} sweep: fine-tuning
 helps most at smaller sizes where the model has limited capacity to infer the
 required format from the prompt alone; at 7B the base model with CD already
 saturates the category.
