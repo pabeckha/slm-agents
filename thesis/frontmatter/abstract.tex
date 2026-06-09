@@ -39,6 +39,7 @@ production-viability criterion adopted in this thesis (single-call accuracy
 within the range of deployed frontier models, on consumer hardware) for
 schema-constrained tool calling on a consumer NVIDIA RTX~4090. Prompting interventions cannot close the residual 27\%
 failure rate because those errors are in the model's learned value conventions,
-not in output format. The LoRA training signal is retained in attenuated form after AWQ INT4
-quantization; fine-tuned capability is thus confirmed to be obtainable on
-consumer hardware at INT4 precision.
+not in output format. The LoRA training signal is retained in attenuated form
+after AWQ INT4 quantization, although the residual gain over the quantized
+base does not reach significance in a paired test; fine-tuned capability
+thus remains obtainable on consumer hardware at INT4 precision.

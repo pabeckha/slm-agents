@@ -80,6 +80,11 @@ The quantization penalty relative to CD+FT-aligned is 2.5~pp at
 base model, suggesting that AWQ interacts more destructively with
 fine-tuned weight deltas when the calibration distribution does not
 match the fine-tuning domain.
+Paired McNemar tests place the 7B fine-tuning gain at the edge of
+significance ($p = 0.044$, borderline against the observed
+run-to-run spread) and the quantized-stack gain within noise
+($p = 0.38$); the consistent positive direction across all four
+model sizes is the primary evidence for the format-alignment effect.
 The finding for RQ2 is that the residual failure rate after
 constrained decoding cannot be addressed by prompting at any model
 size: these errors are in the model's learned value priors, and only

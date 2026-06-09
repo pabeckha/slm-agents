@@ -33,15 +33,17 @@ Status legend: [ ] open · [~] partially fixed (needs HPC data or author decisio
   wrong arguments); §4.2.4 prose now also decomposes the 209 incorrect cases
   (128 + 8 + 73 shared failures); caption fixed; §5.2 "66% of RAG failures"
   corrected to "66% of all test cases".
-- [~] **4. No paired significance test.** §4.4.1 no longer claims to "break the
-  ceiling"; it reports the +16 net cases, states that significance requires
-  McNemar's test on the per-case predictions, and rests the qualitative claim on
-  the consistent positive direction across all four sizes. Wilson CI corrected to
-  ±4.1–4.4 pp.
-  *Remaining (HPC):* run `scripts/mcnemar_bfcl.py` on the stored result files
-  for CD vs CD+FT-aligned and CD+Q vs CD+Q+FT-aligned, then insert the
-  discordant counts and p-values into §4.4.1. Exact commands in
-  `docs/handoff-hpc-examiner-fixes.md`, Task 2.
+- [x] **4. No paired significance test.** McNemar's exact test run on the
+  stored paired prediction files (2026-06-09, see
+  `docs/decisions/mcnemar-significance-results.md`): CD vs CD+FT-aligned gives
+  b=45, c=27, p=0.044 (borderline; the paired CD file scores 289/400 while
+  recorded CD runs spread 289–291); CD+Q vs CD+Q+FT-aligned gives b=46, c=37,
+  p=0.38 (not significant). §4.4.1 and §4.4.2 now report both tests with the
+  conservative framing; the abstract and RQ2 hedge the quantized-retention
+  claim. **Follow-on finding:** the reruns showed ±1–2 case variance across the
+  project period, contradicting the original "identical re-runs" determinism
+  claim; §3.2.1, §4.2.1, and the §5.3.1 single-run-protocol threat were
+  corrected to state the ±0.5 pp run-to-run spread.
 - [x] **5. τ-bench simulator confound.** Documented in §3.2.2 (departure from the
   reference setup), §4.6 (pass rate is a conservative estimate; comparisons not
   like-for-like), and a new "τ-bench user simulator" threat in §5.3.1.
@@ -93,7 +95,9 @@ Status legend: [ ] open · [~] partially fixed (needs HPC data or author decisio
   Fig 4.6 caption; matches bib urldate).
 - [ ] Config B-template run on HPC (issue 1) — see
   `docs/handoff-hpc-examiner-fixes.md`, Task 1.
-- [ ] McNemar discordant counts from HPC result files (issue 4) — Task 2.
+- [x] McNemar discordant counts from HPC result files (issue 4) — done
+  2026-06-09; the original per-case files behind the exact 291/289 figures were
+  overwritten, so the tests use the surviving paired files (CD at 289/400).
 - [ ] Optional: BFCL v4 leaderboard entry for Qwen 2.5 7B-Instruct (issue 1);
   the public CSV endpoint was not reachable from this machine.
 - [ ] Optional: guided decoding latency measurements (issue 7) — Task 3.

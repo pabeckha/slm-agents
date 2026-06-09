@@ -310,9 +310,15 @@ output is a valid JSON object naming a known function; structural
 routing signals are no longer available. The reported $p$ values are
 upper-bound estimates that assume an ideal semantic router.
 
-\textbf{Deterministic single-run protocol.}
-BFCL results use temperature~0, making repeated runs identical;
-the six-run confirmation for CD+Q validates this protocol. For
+\textbf{Single-run protocol and run-to-run spread.}
+BFCL results use temperature~0; repeated runs within a fixed software
+environment produce identical outputs (six-run confirmation for CD+Q),
+but re-runs spread over the project period varied by one to two cases
+out of 400, an uncertainty of roughly $\pm$0.5~pp on any single
+accuracy figure. Differences of this magnitude between configurations
+(for example, the 0.5~pp CD-to-CD+Q delta) are therefore not
+individually meaningful, and the paired tests in
+Chapter~\ref{ch:results} are interpreted against this spread. For
 $\tau$-bench, three runs are completed at 7B but only single runs at
 smaller sizes, where one-task differences fall within the noise band.
 
