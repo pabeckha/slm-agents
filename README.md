@@ -12,10 +12,12 @@ LLM architecture.
 
 ## Approach
 
-A cumulative ablation study over Qwen 2.5 7B across optimization techniques,
-evaluated on BFCL v4 (simple_python, 400 tasks) and τ-bench (retail, 115 tasks):
+A cumulative ablation study on Qwen 2.5 7B across optimization techniques,
+evaluated on BFCL v4 (simple_python, 400 tasks) and τ-bench (retail, 115 tasks).
+The 7B table below is the primary result; the key configurations were also run
+as a model-size sweep across the full Qwen 2.5 family (0.5B, 1.5B, 3B, 7B).
 
-| Config | Techniques | BFCL AST |
+| Config | Techniques | BFCL AST (7B) |
 |--------|-----------|----------|
 | B | Baseline (no optimization) | 1.5% |
 | CD | + Constrained decoding | 72.75% |
@@ -30,6 +32,22 @@ evaluated on BFCL v4 (simple_python, 400 tasks) and τ-bench (retail, 115 tasks)
 | CD+Q+FT-aligned | + LoRA (format-aligned) + AWQ INT4 | 74.25% |
 
 τ-bench retail (Config CD): **4.35% pass rate** (mean of 3 runs × 115 tasks) — multi-step agentic baseline.
+
+### Model-size sweep (BFCL simple_python)
+
+The same family was evaluated at four sizes. The unoptimized baseline stays at
+1.5–4.75% across all four with no consistent trend, while constrained decoding
+lifts every size and scales with model size:
+
+| Size | + Constrained decoding (CD) |
+|------|------------------------------|
+| 0.5B | 51.5% |
+| 1.5B | 62.25% |
+| 3B   | 64.75% |
+| 7B   | 72.75% |
+
+A τ-bench size sweep and a multi-category BFCL sweep (multiple / parallel /
+parallel_multiple) were also run; see [docs/decisions/size-sweep-results.md](docs/decisions/size-sweep-results.md).
 
 ## Key Findings
 
