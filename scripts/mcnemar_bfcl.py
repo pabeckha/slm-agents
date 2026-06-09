@@ -38,6 +38,23 @@ from src.bfcl_adapter import (  # noqa: E402
 )
 
 
+def _eval_value(node: ast.expr):
+    """Evaluate one keyword value from a stored repr().
+
+    ast.literal_eval covers every repr() of the basic types except float
+    nan/inf, which repr() writes as bare names that literal_eval rejects.
+    Fall back to evaluating the unparsed expression in a namespace that
+    defines only those names (no builtins), so e.g. nan, inf, -inf, and
+    containers holding them round-trip correctly.
+    """
+    try:
+        return ast.literal_eval(node)
+    except ValueError:
+        text = ast.unparse(node)
+        allowed = {"nan": float("nan"), "inf": float("inf")}
+        return eval(text, {"__builtins__": {}}, allowed)  # noqa: S307 - own data
+
+
 def decode_python_str(python_str: str) -> list[dict]:
     """Decode "[fn(a=1), g.h(b='x')]" into [{"fn": {"a": 1}}, ...].
 
@@ -65,13 +82,13 @@ def decode_python_str(python_str: str) -> list[dict]:
                 return [{}]
             name = ".".join(reversed(parts))
             args = {
-                kw.arg: ast.literal_eval(kw.value)
+                kw.arg: _eval_value(kw.value)
                 for kw in call.keywords
                 if kw.arg is not None
             }
             decoded.append({name: args})
         return decoded or [{}]
-    except (SyntaxError, ValueError):
+    except (SyntaxError, ValueError, NameError):
         return [{}]
 
 
@@ -93,7 +110,7 @@ def load_results(path: Path, test_data: list[dict]) -> list[dict]:
             "both runs must cover the same test cases"
         )
 
-    return [
+    results = [
         {
             "id": e["id"],
             "decoded": decode_python_str(by_id[e["id"]]),
@@ -101,6 +118,19 @@ def load_results(path: Path, test_data: list[dict]) -> list[dict]:
         }
         for e in test_data
     ]
+
+    # Surface decode failures: stored strings that did not round-trip.
+    # A nonempty list here means the re-scored accuracy is NOT comparable
+    # to the original run and the discordant counts cannot be trusted.
+    bad = [r["id"] for r in results
+           if r["decoded"] == [{}] and r["python_str"].strip() not in ("[]", "")]
+    if bad:
+        print(f"WARNING {path}: {len(bad)} stored results failed to decode "
+              f"and will score as wrong: {bad[:10]}")
+        print("  Inspect these lines in the result file before using the "
+              "p-value; the paired counts are unreliable until this is 0.")
+
+    return results
 
 
 def mcnemar_exact(b: int, c: int) -> float:
