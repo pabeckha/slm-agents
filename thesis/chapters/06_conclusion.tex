@@ -19,9 +19,9 @@ The dominant failure mode is format non-compliance: 394 of 400
 failures in the 7B base model are malformed outputs rather than
 semantically wrong answers, and the same pattern holds at all sizes.
 This gap quantifies the cost of a naive generic integration rather
-than an intrinsic capability deficit: under the official BFCL harness
-with the model's native tool-calling template, the same model is
-reported far above this floor (Chapter~\ref{ch:introduction}).
+than an intrinsic capability deficit: under the same harness with the
+model's native tool-calling template and free decoding, the same 7B
+model reaches 96.00\% (Chapter~\ref{ch:introduction}).
 Frontier models range from 71.00\% (Claude Haiku~4.5) to 79.58\%
 (Gemini~3 Pro)~\cite{bfcl2024}.
 Constrained decoding closes the gap at every size without modifying

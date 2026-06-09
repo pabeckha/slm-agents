@@ -28,12 +28,13 @@ that agentic systems require.
 The 1.5\% figure characterises a deliberately minimal, model-agnostic
 integration: the evaluation pipeline presents plain-text prompts and
 parses the completion as JSON, without using the model-specific
-tool-calling prompt template that Qwen~2.5 provides. Under the official
-BFCL harness, which formats requests through each model's native
-template and applies a tolerant multi-format parser, the same model has
-been reported at 94.50\% on the non-live simple AST category of an
-earlier benchmark revision~\cite{chen2025toleap}, which is not directly
-comparable to the v4 snapshot used in this thesis. The baseline should
+tool-calling prompt template that Qwen~2.5 provides. Under the same
+harness with the model's native tool-calling template and free
+generation (Config B-template), the same model reaches 96.00\%
+(384/400), confirming that the baseline gap is a property of the
+generic integration rather than of the model; this is consistent with
+the 94.50\% reported for the same model under the official BFCL harness
+on an earlier benchmark revision~\cite{chen2025toleap}. The baseline should
 therefore be read as the floor for a generic integration, not as the
 model's best achievable unoptimized performance. The contribution of
 constrained decoding examined here is that it restores format

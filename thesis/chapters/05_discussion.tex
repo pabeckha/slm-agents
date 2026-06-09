@@ -258,10 +258,10 @@ Several factors limit the generalisability of the findings.
 
 \textbf{Baseline construction.}
 The Base configuration is a minimal model-agnostic integration that
-does not use Qwen~2.5's native tool-calling prompt template. The
-official BFCL harness, which applies model-specific templates and a
-tolerant multi-format parser, reports the same model far above the
-1.5\% measured here (Chapter~\ref{ch:introduction}). The headline gap
+does not use Qwen~2.5's native tool-calling prompt template. Under
+the same harness with the native template and free decoding
+(B-template), the same model reaches 96.00\%
+(Table~\ref{tab:baseline-results}). The headline gap
 to frontier models in RQ1 therefore quantifies the cost of naive
 integration rather than an intrinsic capability deficit, and the
 constrained decoding gain should be read as restoring format

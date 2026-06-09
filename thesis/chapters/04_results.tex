@@ -7,20 +7,22 @@ Table~\ref{tab:baseline-results} summarizes the baseline and constrained decodin
 \begin{table}[ht]
 \centering
 \caption{BFCL v4 \texttt{simple\_python} AST accuracy for Qwen~2.5 7B-Instruct:
-         baseline (B) and constrained decoding (CD).}
+         baseline (B), native-template baseline (B-template), and
+         constrained decoding (CD).}
 \label{tab:baseline-results}
 \begin{tabular}{llrr}
 \toprule
 Config & Description & Correct & Accuracy \\
 \midrule
 B  & Raw model, no optimization       & 6/400   & 1.5\% \\
+B-template & Native tool-calling template, free decoding & 384/400 & 96.00\% \\
 \midrule
 CD & Constrained decoding (guided)    & 291/400 & 72.75\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\noindent Without constrained decoding (Base), the model achieves only 1.5\% accuracy. The dominant failure mode is format non-compliance: 394 out of 400 outputs fail to parse as valid JSON, producing \texttt{Extra data} errors or empty results. The model is not incapable of understanding the queries: it simply cannot express its answers in the required structured format.
+\noindent Without constrained decoding (Base), the model achieves only 1.5\% accuracy. The dominant failure mode is format non-compliance: 394 out of 400 outputs fail to parse as valid JSON, producing \texttt{Extra data} errors or empty results. The model is not incapable of understanding the queries: it simply cannot express its answers in the required structured format. B-template confirms this directly: with the model's native tool-calling template and free decoding, the same model reaches 96.00\%, so the 1.5\% floor is a property of the generic integration, not of the model. That B-template also exceeds CD shows that the value of constrained decoding lies in its structural guarantee, which holds for any model and any schema, rather than in raw accuracy against a model-specific template (Section~\ref{ch:discussion} returns to this point).
 
 Constrained decoding (CD) recovers 71.25 percentage points, achieving 72.75\% accuracy. Function selection reaches 100\% accuracy via \texttt{guided\_choice}; in this category each test case provides a single candidate function, so guided selection cannot fail, and the meaningful evidence on tool selection comes from the \texttt{multiple} category (Section~\ref{sec:bfcl-extended}). The remaining 27.25\% failure rate is entirely in argument extraction: wrong numeric precision (e.g., 9.8 vs.\ 9.81), string format mismatches (e.g., ``kilometers/hour'' vs.\ ``km/h''), and incorrect optional parameter defaults.
 

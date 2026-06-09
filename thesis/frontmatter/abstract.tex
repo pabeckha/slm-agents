@@ -17,7 +17,8 @@ evaluated on four BFCL v4 categories (\texttt{simple\_python},
 $\tau$-bench retail. The baseline, a minimal model-agnostic integration that
 does not rely on the model's native tool-calling prompt template, scores 1.5\%,
 approximately 70--78 percentage points below frontier models
-(71.00\%--79.58\%). With constrained decoding alone, 72.75\% is reached without
+(71.00\%--79.58\%); with the native template and free decoding the same model
+reaches 96.00\%, locating the gap in the integration rather than the model. With constrained decoding alone, 72.75\% is reached without
 modifying model weights or generating additional tokens, on par with GPT-4.1
 (72.67\%) and Claude Sonnet~4.5 (72.58\%) within single-run uncertainty;
 AWQ INT4 quantization retains 72.25\% while

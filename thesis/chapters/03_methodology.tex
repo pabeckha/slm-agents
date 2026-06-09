@@ -332,7 +332,11 @@ the technique added at that rung of the evaluation ladder.
 Base is deliberately model-agnostic: it does not use the
 tool-calling prompt template that Qwen~2.5 provides, and the
 official BFCL harness, which does, reports far higher scores for the
-same model (Chapter~\ref{ch:introduction}). The 1.5\% figure
+same model (Chapter~\ref{ch:introduction}). The measured counterpart
+under this thesis's own harness is Config B-template, which renders
+prompts through the native template and parses the model's
+\texttt{<tool\_call>} output with free generation: it reaches 96.00\%
+(384/400) on the same category. The 1.5\% figure
 measures what a generic integration achieves without model-specific
 prompting, which is the relevant floor for the technique ladder
 evaluated here: every subsequent configuration changes exactly one
