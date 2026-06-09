@@ -14,7 +14,16 @@ Status legend: [ ] open · [~] partially fixed (needs HPC data or author decisio
   94.50% kept in §1.1 as corroboration), and Table 4.1 gained a B-template row.
   Since B-template lands above CD, the framing is that constrained decoding's
   value is the structural guarantee and model-agnosticism, not raw accuracy
-  superiority over the native template.
+  superiority over the native template. Follow-on edits drawn from the code
+  inspection (`FunctionParameter` stores only the type; prompts omit parameter
+  descriptions, defaults, and enums): the residual-failure interpretation in
+  §4.1/§5.1/§5.2, the abstract, and RQ2 now attribute much of the post-CD
+  residual to this schema information loss rather than solely to learned value
+  priors; the threats entry was extended; §4.5 gained a comparability caveat
+  (B-template at 96% exceeds every v4 leaderboard frontier score, so
+  cross-harness comparisons are indicative only); Step 1 of the deployment
+  guidelines now says to benchmark the native template first; future work
+  gained the schema-enriched CD prompt experiment.
 - [x] **2. Parallel-category contradiction.** Root cause identified in
   `src/vllm_backend.py:process_parallel`: the parallel stage selects a set of
   distinct function names and runs one deterministic argument extraction per name,

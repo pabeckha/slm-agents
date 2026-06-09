@@ -19,9 +19,10 @@ The dominant failure mode is format non-compliance: 394 of 400
 failures in the 7B base model are malformed outputs rather than
 semantically wrong answers, and the same pattern holds at all sizes.
 This gap quantifies the cost of a naive generic integration rather
-than an intrinsic capability deficit: under the same harness with the
-model's native tool-calling template and free decoding, the same 7B
-model reaches 96.00\% (Chapter~\ref{ch:introduction}).
+than an intrinsic capability deficit: the B-template control, which
+prompts the same model through its native tool-calling template with
+free generation and full schemas, reaches 96.00\% (384/400) on the
+same test cases.
 Frontier models range from 71.00\% (Claude Haiku~4.5) to 79.58\%
 (Gemini~3 Pro)~\cite{bfcl2024}.
 Constrained decoding closes the gap at every size without modifying
@@ -86,9 +87,12 @@ run-to-run spread) and the quantized-stack gain within noise
 ($p = 0.38$); the consistent positive direction across all four
 model sizes is the primary evidence for the format-alignment effect.
 The finding for RQ2 is that the residual failure rate after
-constrained decoding cannot be addressed by prompting at any model
-size: these errors are in the model's learned value priors, and only
-training-based interventions with aligned format can change them.
+constrained decoding is not addressed by prompt-level additions
+within the pipeline at any model size; format-aligned training
+reduces it, and the B-template control (96.00\% under native
+prompting with full schemas) indicates that much of the remainder
+reflects schema information the model-agnostic prompt does not
+carry, alongside the model's learned value priors.
 
 \paragraph{RQ3.} \textit{Can a fully optimized small language model configuration
 achieve production-viable tool-calling accuracy on consumer hardware?}
@@ -124,9 +128,15 @@ saving from each step is developed in
 Section~\ref{sec:practical-implications}; the steps below summarise the
 resulting recommendations.
 
-\textbf{Step~1: Apply constrained decoding first.}
-Constrained decoding requires no modification to model weights and no
-training data. On BFCL~v4 \texttt{simple\_python} it raises accuracy
+\textbf{Step~1: Benchmark the native template, then apply constrained
+decoding.}
+When the deployed model ships a tool-calling chat template, that
+template is the zero-cost reference point and should be benchmarked
+first; in this evaluation it reaches 96.00\% with free generation
+(B-template), at the cost of no structural validity guarantee and a
+model-specific integration. Constrained decoding requires no
+modification to model weights and no training data, and provides the
+guarantee: on BFCL~v4 \texttt{simple\_python} it raises accuracy
 from 1.5\% (the model-agnostic baseline without native tool-calling
 templates) to 72.75\% for the 7B model by eliminating format failures
 entirely. For tasks in which format compliance is the dominant failure
@@ -226,6 +236,16 @@ failure is in call count, not argument content.
 Extending the architecture to support parallel call emission is the
 prerequisite for applying the optimization techniques investigated here
 to the \texttt{parallel} and \texttt{parallel\_multiple} categories.
+
+The most direct unexplored improvement to the constrained pipeline is
+carrying the full schema detail (parameter descriptions, default values,
+and enumerations) into its prompts. The B-template control (96.00\%)
+indicates that much of the 23.25~pp residual under CD+FT-aligned
+reflects this missing information rather than model capability;
+enriching the argument extraction prompt while retaining
+\texttt{guided\_json} would test whether near-native accuracy is
+achievable with structural guarantees intact, and is a one-configuration
+experiment within the existing harness.
 
 Training data alignment is the binding constraint on LoRA fine-tuning for
 this task. Generating training examples from the target deployment's own

@@ -330,17 +330,28 @@ comparisons; any improvement over 1.5\% is attributable to
 the technique added at that rung of the evaluation ladder.
 
 Base is deliberately model-agnostic: it does not use the
-tool-calling prompt template that Qwen~2.5 provides, and the
-official BFCL harness, which does, reports far higher scores for the
-same model (Chapter~\ref{ch:introduction}). The measured counterpart
-under this thesis's own harness is Config B-template, which renders
-prompts through the native template and parses the model's
-\texttt{<tool\_call>} output with free generation: it reaches 96.00\%
-(384/400) on the same category. The 1.5\% figure
+tool-calling prompt template that Qwen~2.5 provides. The 1.5\% figure
 measures what a generic integration achieves without model-specific
 prompting, which is the relevant floor for the technique ladder
 evaluated here: every subsequent configuration changes exactly one
 component relative to this fixed pipeline.
+
+A control configuration, B-template, bounds this design choice from
+above. It prompts the same model through its native tool-calling
+chat template, passing the full unmodified BFCL function schemas
+(including parameter descriptions, default values, and
+enumerations), and parses the model's native \texttt{<tool\_call>}
+output with no guided decoding. B-template reaches 96.00\% (384/400)
+on \texttt{simple\_python}, with no parse failures: all 16 residual
+errors are argument-value errors. Two properties separate it from Base:
+the prompt format matches the model's instruction tuning, and the
+full schema detail is visible to the model, whereas the
+model-agnostic pipeline carries only parameter names and types. In
+exchange, B-template provides no structural validity guarantee and
+applies only to models that ship a tool-calling template. The
+implications of this control for interpreting the residual failure
+rate of the constrained configurations are discussed in
+Chapter~\ref{ch:discussion}.
 
 \section{Constrained Decoding}
 

@@ -17,8 +17,10 @@ evaluated on four BFCL v4 categories (\texttt{simple\_python},
 $\tau$-bench retail. The baseline, a minimal model-agnostic integration that
 does not rely on the model's native tool-calling prompt template, scores 1.5\%,
 approximately 70--78 percentage points below frontier models
-(71.00\%--79.58\%); with the native template and free decoding the same model
-reaches 96.00\%, locating the gap in the integration rather than the model. With constrained decoding alone, 72.75\% is reached without
+(71.00\%--79.58\%); a control configuration that prompts the same model
+through its native template with free generation reaches 96.00\%, so the
+unoptimized gap measures integration quality, not model capability. With
+constrained decoding alone, 72.75\% is reached without
 modifying model weights or generating additional tokens, on par with GPT-4.1
 (72.67\%) and Claude Sonnet~4.5 (72.58\%) within single-run uncertainty;
 AWQ INT4 quantization retains 72.25\% while
@@ -38,9 +40,11 @@ not wrong answers. This gap is resolved structurally by constrained decoding,
 and the quantized configuration (72.25\%, 5.20~GiB) meets the
 production-viability criterion adopted in this thesis (single-call accuracy
 within the range of deployed frontier models, on consumer hardware) for
-schema-constrained tool calling on a consumer NVIDIA RTX~4090. Prompting interventions cannot close the residual 27\%
-failure rate because those errors are in the model's learned value conventions,
-not in output format. The LoRA training signal is retained in attenuated form
+schema-constrained tool calling on a consumer NVIDIA RTX~4090. Prompting interventions inside the pipeline cannot close the residual 27\%
+failure rate; the native-template control indicates that much of this residual
+reflects schema information (parameter descriptions, defaults, enumerations)
+that the model-agnostic prompt does not carry, rather than missing model
+capability. The LoRA training signal is retained in attenuated form
 after AWQ INT4 quantization, although the residual gain over the quantized
 base does not reach significance in a paired test; fine-tuned capability
 thus remains obtainable on consumer hardware at INT4 precision.

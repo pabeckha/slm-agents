@@ -2,31 +2,33 @@
 
 \section{Baseline Performance}
 
-Table~\ref{tab:baseline-results} summarizes the baseline and constrained decoding results for Qwen~2.5 7B-Instruct on BFCL~v4 \texttt{simple\_python} (400 test cases). All no-training configurations, including few-shot prompting, are reported in Section~\ref{sec:no-training}.
+Table~\ref{tab:baseline-results} summarizes the baseline, the native-template control, and the constrained decoding results for Qwen~2.5 7B-Instruct on BFCL~v4 \texttt{simple\_python} (400 test cases). All no-training configurations, including few-shot prompting, are reported in Section~\ref{sec:no-training}.
 
 \begin{table}[ht]
 \centering
 \caption{BFCL v4 \texttt{simple\_python} AST accuracy for Qwen~2.5 7B-Instruct:
-         baseline (B), native-template baseline (B-template), and
-         constrained decoding (CD).}
+         baseline (B), native-template control (B-template), and constrained
+         decoding (CD).}
 \label{tab:baseline-results}
 \begin{tabular}{llrr}
 \toprule
 Config & Description & Correct & Accuracy \\
 \midrule
-B  & Raw model, no optimization       & 6/400   & 1.5\% \\
-B-template & Native tool-calling template, free decoding & 384/400 & 96.00\% \\
+B          & Raw model, generic prompt, no optimization & 6/400   & 1.5\% \\
+B-template & Native chat template, free generation      & 384/400 & 96.00\% \\
 \midrule
-CD & Constrained decoding (guided)    & 291/400 & 72.75\% \\
+CD         & Constrained decoding (guided)              & 291/400 & 72.75\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\noindent Without constrained decoding (Base), the model achieves only 1.5\% accuracy. The dominant failure mode is format non-compliance: 394 out of 400 outputs fail to parse as valid JSON, producing \texttt{Extra data} errors or empty results. The model is not incapable of understanding the queries: it simply cannot express its answers in the required structured format. B-template confirms this directly: with the model's native tool-calling template and free decoding, the same model reaches 96.00\%, so the 1.5\% floor is a property of the generic integration, not of the model. That B-template also exceeds CD shows that the value of constrained decoding lies in its structural guarantee, which holds for any model and any schema, rather than in raw accuracy against a model-specific template (Section~\ref{ch:discussion} returns to this point).
+\noindent Without constrained decoding (Base), the model achieves only 1.5\% accuracy. The dominant failure mode is format non-compliance: 394 out of 400 outputs fail to parse as valid JSON, producing \texttt{Extra data} errors or empty results. The model is not incapable of understanding the queries: it simply cannot express its answers in the required structured format. B-template confirms this directly: with the model's native tool-calling template and free generation, the same model reaches 96.00\% (384/400), so the 1.5\% floor is a property of the generic integration, not of the model. That B-template also exceeds CD shows that the value of constrained decoding lies in its structural guarantee, which holds for any model and any schema, rather than in raw accuracy against a model-specific template (Chapter~\ref{ch:discussion} returns to this point).
 
 Constrained decoding (CD) recovers 71.25 percentage points, achieving 72.75\% accuracy. Function selection reaches 100\% accuracy via \texttt{guided\_choice}; in this category each test case provides a single candidate function, so guided selection cannot fail, and the meaningful evidence on tool selection comes from the \texttt{multiple} category (Section~\ref{sec:bfcl-extended}). The remaining 27.25\% failure rate is entirely in argument extraction: wrong numeric precision (e.g., 9.8 vs.\ 9.81), string format mismatches (e.g., ``kilometers/hour'' vs.\ ``km/h''), and incorrect optional parameter defaults.
 
-Few-shot prompting (PE) also uses constrained decoding and decreases accuracy by 2.5 percentage points relative to CD alone. The three few-shot examples, targeting known failure modes, did not transfer across function domains. This negative result indicates that the argument extraction errors reflect the model's learned associations rather than a formatting gap that in-context examples can bridge.
+The B-template control also frames the residual failure analysis in the remainder of this chapter: it characterises the model-agnostic pipeline rather than the model's ceiling. Unlike the pipeline's prompts, the native template carries the full unmodified function schemas, and the failure categories that survive constrained decoding correspond closely to the kinds of information found in parameter descriptions, default values, and enumerations, which the pipeline omits (Chapter~\ref{ch:methodology}).
+
+Few-shot prompting (PE) also uses constrained decoding and decreases accuracy by 2.5 percentage points relative to CD alone. The three few-shot examples, targeting known failure modes, did not transfer across function domains. This negative result indicates that three in-context examples cannot substitute for the schema detail absent from the pipeline's prompts.
 
 \section{No-Training Methods}
 \label{sec:no-training}
@@ -589,7 +591,15 @@ therefore within the confidence interval of a single evaluation run.
 These comparisons are best interpreted as showing parity rather than a
 definitive ranking. Frontier model scores are taken from the official
 BFCL leaderboard and are not re-evaluated under the same harness, so
-minor methodology differences may further affect comparability.
+methodology differences may further affect comparability. The
+B-template control underlines this caveat: 96.00\% under the local
+harness exceeds every frontier leaderboard score in
+Table~\ref{tab:frontier-comparison}, which is more plausibly explained
+by differences between the local evaluation and the leaderboard's
+category composition and scoring than by the 7B model outperforming
+frontier models. Cross-harness comparisons in this section are
+therefore indicative only; the internally consistent comparisons are
+those between configurations evaluated under the same local harness.
 
 However, this result requires careful interpretation. The \texttt{simple\_python} category is the least demanding BFCL scenario: single-turn, single-function calls with no selection ambiguity (one candidate function per test case). Both constrained decoding and frontier models' native tool-calling APIs guarantee valid JSON and valid function names, levelling the playing field on format compliance. The only differentiator is argument value accuracy, where a 7B model can be competitive on straightforward lookups.
 
