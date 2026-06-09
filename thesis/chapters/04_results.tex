@@ -4,7 +4,7 @@
 
 Table~\ref{tab:baseline-results} summarizes the baseline and constrained decoding results for Qwen~2.5 7B-Instruct on BFCL~v4 \texttt{simple\_python} (400 test cases). All no-training configurations, including few-shot prompting, are reported in Section~\ref{sec:no-training}.
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \caption{BFCL v4 \texttt{simple\_python} AST accuracy for Qwen~2.5 7B-Instruct:
          baseline (B) and constrained decoding (CD).}
@@ -85,7 +85,7 @@ Three few-shot examples are prepended to the argument extraction prompt,
 constructed to target the most frequent failure categories observed in
 CD: numeric precision (\texttt{9.81} rather than \texttt{9.8}), string
 format with a state qualifier (\texttt{"San Francisco, CA"}), and Python
-expression syntax (\texttt{x**2} rather than \texttt{x\^{}2}). The result is
+expression syntax (\texttt{x**2} rather than \texttt{x\textasciicircum{}2}). The result is
 70.25\% accuracy (281/400), a decrease of 2.5~pp relative to CD.
 
 The failure categories from CD persist at similar or higher rates
@@ -136,7 +136,7 @@ each case, CD+Q produces the value accepted by the benchmark, and the
 reasoning step overrides it with a linguistically natural alternative that the
 benchmark does not accept.
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \caption{Representative cases where chain-of-thought reasoning overrides a
 correct CD+Q prediction. Reasoning excerpts are taken verbatim from
@@ -379,7 +379,7 @@ Table~\ref{tab:full-ablation} presents all eleven configurations ordered
 by accuracy, and Fig.~\ref{fig:bfcl-ablation} shows the same data as
 a bar chart with frontier reference lines.
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \caption{BFCL v4 \texttt{simple\_python} AST accuracy across all eleven configurations.
          $\Delta$ is relative to Config~CD (72.75\%).}
@@ -418,7 +418,7 @@ CD+FT-aligned   & CD + format-aligned LoRA           & \textbf{76.75\%} & $\math
 
 Table~\ref{tab:frontier-comparison} compares the Qwen~2.5 7B-Instruct results against frontier models, using official scores from the BFCL~v4 leaderboard\footnote{\url{https://gorilla.cs.berkeley.edu/leaderboard.html}, accessed April 2026.} for the Non-Live Simple AST category.
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \caption{BFCL v4 \texttt{simple\_python} AST accuracy: Qwen~2.5 7B with constrained decoding vs.\ frontier models (official leaderboard scores).}
 \label{tab:frontier-comparison}
@@ -513,7 +513,7 @@ has no customer-facing value.
 Table~\ref{tab:bfcl-vs-tau} places the single-call and multi-step results
 side by side.
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \caption{Single-call accuracy (BFCL) vs.\ multi-step pass rate
          ($\tau$-bench) for CD on Qwen~2.5 7B-Instruct.}
@@ -762,7 +762,7 @@ distribution over number of calls per response (1--4) is nearly identical
 between the two. Output structure is not the bottleneck. The 8~pp gap comes
 from semantic errors in the CD+FT-aligned outputs: argument values copied
 from the first call to the second, notation normalised to match the training
-corpus (e.g.\ \texttt{x**2} substituted for \texttt{x\^{}2}), and the
+corpus (e.g.\ \texttt{x**2} substituted for \texttt{x\textasciicircum{}2}), and the
 occasional dropped call in three-call responses. These are biases from the
 xlam training distribution that reduce argument fidelity on tasks requiring
 several simultaneous calls. This is the only category where CD+FT-aligned
