@@ -38,21 +38,42 @@ from src.bfcl_adapter import (  # noqa: E402
 )
 
 
+def _safe_eval(n: ast.AST) -> object:
+    """Recursively evaluate the AST nodes repr() can produce, and nothing else."""
+    if isinstance(n, ast.Constant):
+        return n.value
+    if isinstance(n, ast.Name):
+        if n.id == "nan":
+            return float("nan")
+        if n.id == "inf":
+            return float("inf")
+        raise ValueError(f"unsupported name: {n.id}")
+    if isinstance(n, ast.UnaryOp) and isinstance(n.op, ast.USub):
+        return -_safe_eval(n.operand)
+    if isinstance(n, ast.List):
+        return [_safe_eval(elt) for elt in n.elts]
+    if isinstance(n, ast.Tuple):
+        return tuple(_safe_eval(elt) for elt in n.elts)
+    if isinstance(n, ast.Set):
+        return {_safe_eval(elt) for elt in n.elts}
+    if isinstance(n, ast.Dict):
+        return {_safe_eval(k): _safe_eval(v) for k, v in zip(n.keys, n.values)}
+    raise ValueError(f"unsupported AST node: {type(n).__name__}")
+
+
 def _eval_value(node: ast.expr):
     """Evaluate one keyword value from a stored repr().
 
     ast.literal_eval covers every repr() of the basic types except float
     nan/inf, which repr() writes as bare names that literal_eval rejects.
-    Fall back to evaluating the unparsed expression in a namespace that
-    defines only those names (no builtins), so e.g. nan, inf, -inf, and
-    containers holding them round-trip correctly.
+    Fall back to a restricted recursive AST evaluation so that nan, inf,
+    -inf, and containers holding them round-trip correctly, without
+    eval() on model-derived text.
     """
     try:
         return ast.literal_eval(node)
     except ValueError:
-        text = ast.unparse(node)
-        allowed = {"nan": float("nan"), "inf": float("inf")}
-        return eval(text, {"__builtins__": {}}, allowed)  # noqa: S307 - own data
+        return _safe_eval(node)
 
 
 def decode_python_str(python_str: str) -> list[dict]:
