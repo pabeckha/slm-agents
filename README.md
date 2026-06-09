@@ -47,7 +47,7 @@ lifts every size and scales with model size:
 | 7B   | 72.75% |
 
 A τ-bench size sweep and a multi-category BFCL sweep (multiple / parallel /
-parallel_multiple) were also run; see `docs/decisions/size-sweep-results.md`.
+parallel_multiple) were also run; see [docs/decisions/size-sweep-results.md](docs/decisions/size-sweep-results.md).
 
 ## Key Findings
 
