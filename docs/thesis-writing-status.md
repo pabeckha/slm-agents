@@ -1,8 +1,8 @@
 # Thesis Writing Status
 
-**Date**: 2026-05-25
-**Current page count**: 56 pages
-**Target**: 60--100 pages (DTU MSc standard)
+**Date**: 2026-06-09
+**Current page count**: 58 pages
+**Target**: 40--60 pages (excl. preface and appendix)
 
 ## Chapter Status
 
@@ -43,8 +43,11 @@ No pending HPC jobs.
 
 ## Remaining Work
 
-### Open (pre-submission polish)
-- [ ] **#56** — Full read-through: figures, cross-references, bibliography, config label consistency
+### Done (pre-submission polish)
+- [x] **#56** — Full read-through: figures, cross-references, bibliography, config label consistency (closed; merged in #134). Build is clean: 58 pages, no undefined references or citations, no float warnings.
+- [x] **#108–#128** — Thesis review issues (21) closed; merged in #130, #133.
+
+No open issues remain.
 
 ### Out of scope / dropped
 - #36 — Real-world MCP evaluation: not done, out of scope for this submission
