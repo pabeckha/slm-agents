@@ -26,11 +26,11 @@ Phi-4 Mini, Llama 3.2, Qwen3-0.6B dropped. Narrowed to the Qwen 2.5 family only.
 | Config | Accuracy | Notes |
 |--------|----------|-------|
 | B (no guided decoding) | 1.5% (6/400) | Raw model cannot produce valid JSON |
-| PE (few-shot + CD) | 70.25% (281/400) | −2.5 pp vs CD |
 | CD (constrained decoding) | 72.75% (291/400) | Guided decoding alone — the enabler |
+| PE (few-shot + CD) | 70.25% (281/400) | −2.5 pp vs CD |
 | CD+Q (CD + AWQ INT4) | 72.25% (289/400) | −0.5 pp vs CD; 63.5% less VRAM |
-| CD+Q+ITC (CD+Q + CoT) | 65.5% (262/400) | −7.25 pp — strongly negative |
-| CD+Q+RAG (CD+Q + RAG top-5) | 47.75% (191/400) | −24.5 pp — disambiguation failure |
+| CD+Q+ITC (CD+Q + CoT) | 65.5% (262/400) | −7.25 pp vs CD — strongly negative |
+| CD+Q+RAG (CD+Q + RAG top-5) | 47.75% (191/400) | −25 pp vs CD — disambiguation failure |
 | FT-only (LoRA, no CD/Q) | 13.75% (55/400) | LoRA alone insufficient without CD |
 | FT-aligned-ng (format-aligned, no CD) | 13.25% (53/400) | Aligned format breaks unguided eval |
 | CD+FT (CD + LoRA, misaligned) | 69.75% (279/400) | −3 pp vs CD — format mismatch |
@@ -46,7 +46,7 @@ BFCL sweep (multiple / parallel / parallel_multiple).
 
 ## Headline findings
 
-- **No-training ceiling confirmed at CD ~72.75%.** Three prompt-only techniques all regressed (PE −2.5 pp, CoT −7.25 pp, RAG −24.5 pp).
+- **No-training ceiling confirmed at CD ~72.75%.** Three prompt-only techniques all regressed vs CD (PE −2.5 pp, CoT −7.25 pp, RAG −25 pp).
 - **Constrained decoding is the essential enabler** (+71.25 pp over raw baseline). Without it the model is non-functional.
 - **AWQ quantization is essentially free** (−0.5 pp, 63.5% less VRAM; 5.2 GiB fits an RTX 4090).
 - **Format-aligned LoRA breaks the ceiling**: CD+FT-aligned at **76.75%** is +4.0 pp over CD and within 0.08 pp of Claude Opus 4.5 (76.83%).
@@ -71,11 +71,11 @@ BFCL v4 leaderboard (accessed 2026-06-04):
 |-------|--------------|
 | Gemini 3 Pro | 79.58% |
 | Claude Opus 4.5 | 76.83% |
+| **Qwen 2.5 7B + CD+FT-aligned** | **76.75%** |
+| **Qwen 2.5 7B + CD** | **72.75%** |
 | GPT-4.1 | 72.67% |
 | Claude Sonnet 4.5 | 72.58% |
 | Claude Haiku 4.5 | 71.00% |
-| **Qwen 2.5 7B + CD** | **72.75%** |
-| **Qwen 2.5 7B + CD+FT-aligned** | **76.75%** |
 
 With constrained decoding alone the 7B model matches GPT-4.1 and Sonnet; with
 format-aligned LoRA it reaches Opus-level accuracy on simple_python.
