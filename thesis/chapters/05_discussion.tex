@@ -31,10 +31,19 @@ the same class of errors; the gap of 6.83 percentage points to Gemini~3 Pro
 (79.58\%) reflects a higher frequency of correct value conventions in larger
 models, not a qualitatively different failure mode.
 
-The implication for RQ1 is that the raw unoptimized gap of approximately
-78 percentage points (7B Base at 1.5\% vs.\ Gemini~3 Pro at 79.58\%)
+The implication for RQ1 is that the raw gap of approximately
+78 percentage points between the model-agnostic baseline (7B Base at 1.5\%)
+and the best frontier model (Gemini~3 Pro at 79.58\%)
 collapses to approximately 7 percentage points with constrained decoding
-alone, on this benchmark category. Scale is not the bottleneck for format compliance. The residual
+alone, on this benchmark category. Two readings of this gap must be kept
+apart. The 1.5\% baseline characterises a generic integration without the
+model's native tool-calling template; under the official BFCL harness with
+model-specific prompting, the same model is reported far above this floor
+(Chapter~\ref{ch:introduction}), so the 78~pp figure measures the cost of
+naive integration, not a capability deficit of the model. What the
+constrained decoding result adds is that format compliance can be restored
+structurally, with guarantees independent of any model-specific template.
+Scale is not the bottleneck for format compliance. The residual
 gap is a semantic problem, attributable to the model's learned associations
 between function schema contexts and specific value forms.
 
@@ -62,11 +71,11 @@ semantic accuracy are separable and that the scaling relationship
 governs the latter.
 
 The AWQ quantization penalty is inversely related to model size.
-The accuracy loss relative to the FP16 baseline is 3.7~pp at 0.5B,
-1.8~pp at 1.5B, 0.3~pp at 3B, and 0.5~pp at 7B.
+The accuracy loss relative to the bfloat16 baseline is 3.75~pp at 0.5B,
+1.75~pp at 1.5B, 0.25~pp at 3B, and 0.50~pp at 7B.
 At 3B and above, the INT4 approximation falls within run-to-run
 variance.
-At 0.5B, the 3.7~pp loss reflects the reduced parameter redundancy
+At 0.5B, the 3.75~pp loss reflects the reduced parameter redundancy
 available to absorb quantization error, consistent with the
 sensitivity of AWQ calibration on small weight
 matrices~\cite{lin2024awq}.
@@ -90,9 +99,13 @@ sizes up to 3B.
 \section{Cost-Benefit Analysis of Each Method}
 
 Constrained decoding yields the highest return of any technique evaluated.
-A 71.25 percentage point accuracy gain is achieved with no additional
-inference cost beyond the guided decoding schema: no extra parameters, no
-additional tokens, and no training. The gain is entirely structural: logit
+A 71.25 percentage point accuracy gain is achieved with no training, no
+extra parameters, and no additional generated tokens. The per-step cost of
+guided decoding is not zero: schema compilation and logit masking add
+overhead that grows with schema complexity, although the finite-state
+machine approach keeps the per-token cost low when schemas are compiled
+ahead of time~\cite{willard2023efficient}; latency was not measured in this
+evaluation. The accuracy gain is entirely structural: logit
 masking at each decoding step eliminates the malformed output that accounts
 for 98.5\% of failures in Base~\cite{willard2023efficient, kwon2023vllm}.
 
@@ -126,7 +139,7 @@ on tasks where the bottleneck is value recall. Argument extraction is
 not a reasoning problem in that sense; an explicit reasoning step
 directs compute at the wrong subproblem~\cite{snell2024scaling}.
 
-Retrieval-augmented generation produces the largest accuracy drop: $-24$
+Retrieval-augmented generation produces the largest accuracy drop: $-24.5$
 percentage points relative to CD+Q, despite a retrieval recall@5 of
 97.2\%~\cite{lewis2020retrieval}. The bottleneck is not retrieval quality
 but candidate disambiguation. When multiple semantically similar functions
@@ -145,10 +158,9 @@ problem entirely, at the cost of coupling the model to a fixed API catalog.
 The configuration evaluated in this thesis uses semantic similarity retrieval
 at inference time with no training signal on candidate disambiguation, which
 may explain the low selection accuracy despite high retrieval recall@5
-(97.2\%). The 66\% of RAG failures that produce answers identical to
-non-RAG predictions (from the RAG failure breakdown in
-Fig.~\ref{fig:rag-breakdown}) confirms that retrieval adds overhead without
-changing the model's output for the majority of cases. A design that combined
+(97.2\%). The 66\% of all test cases whose output is identical to the non-RAG
+prediction (Fig.~\ref{fig:rag-breakdown}) confirms that retrieval adds
+overhead without changing the model's output for the majority of cases. A design that combined
 inference-time retrieval with a fine-tuning signal on tool selection from
 retrieved candidates would be a natural next step.
 
@@ -188,18 +200,26 @@ Generalisation to harder categories is partial: CD+FT-aligned reaches
 70.5\% on \texttt{multiple} at 7B, but \texttt{parallel} yields 0.0\%
 across all configurations and sizes. The \texttt{parallel} failure is
 not a soft accuracy limitation that more training or a larger model
-would gradually close. Inspection of the raw outputs shows that the
-model consistently produces exactly one call regardless of the prompt
-structure; the two-stage pipeline is architecturally constrained to
-emit one function name and one argument object per inference call.
-Parallel call emission requires either a structured output schema that
-allows a JSON array of calls, or a multi-step execution loop where
-each iteration emits one call. Neither is present in the pipeline
-evaluated here. This result establishes the boundary of the evaluated
-architecture: optimization techniques applied within the two-stage
-single-call design cannot address the \texttt{parallel} category,
-and the ceiling for this architecture is therefore 0\% on tasks that
-require simultaneous multi-call output.
+would gradually close; it follows from the structure of the parallel
+selection stage described in Chapter~\ref{ch:methodology}. That stage
+emits a set of distinct function names and runs one deterministic
+argument extraction per selected name, so the pipeline can produce at
+most one call per distinct function. In the \texttt{parallel} category,
+where every required call targets the same single candidate function,
+the pipeline emits exactly one call by construction; in
+\texttt{parallel\_multiple}, where the required calls target distinct
+functions, the same pipeline produces up to one call per function,
+which is why multi-call responses are observed there
+(Section~\ref{sec:bfcl-extended}). Supporting repeated calls to the
+same function requires either an output schema in which a JSON array
+holds complete call objects with their own argument bindings, or a
+multi-step execution loop where each iteration emits one call.
+Neither is present in the pipeline evaluated here. This result
+establishes the boundary of the evaluated architecture: optimization
+techniques applied within the per-function single-extraction design
+cannot address the \texttt{parallel} category, and the ceiling for
+this architecture is therefore 0\% on tasks that require repeated
+calls to one function.
 
 All experiments use a single model family (Qwen~2.5) across four sizes.
 Directional findings, such as the ordering of techniques by accuracy,
@@ -232,8 +252,33 @@ because the bottleneck identified is multi-turn planning rather than
 argument formatting.
 
 \subsection{Threats to Validity}
+\label{sec:threats-validity}
 
 Several factors limit the generalisability of the findings.
+
+\textbf{Baseline construction.}
+The Base configuration is a minimal model-agnostic integration that
+does not use Qwen~2.5's native tool-calling prompt template. The
+official BFCL harness, which applies model-specific templates and a
+tolerant multi-format parser, reports the same model far above the
+1.5\% measured here (Chapter~\ref{ch:introduction}). The headline gap
+to frontier models in RQ1 therefore quantifies the cost of naive
+integration rather than an intrinsic capability deficit, and the
+constrained decoding gain should be read as restoring format
+compliance without model-specific prompting, not as outperforming
+the model's best template-based configuration.
+
+\textbf{$\tau$-bench user simulator.}
+The user simulator is the agent model itself (Qwen~2.5 7B), whereas
+the reference $\tau$-bench setup uses a frontier-model simulator.
+Simulator errors (misstated or omitted task details) deflate pass
+rates independently of agent capability, so the absolute 4.35\% pass
+rate conflates agent and simulator failures, and comparisons to
+published pass rates under stronger simulators are not like-for-like.
+The qualitative conclusion (single-call gains do not transfer to
+multi-turn completion) is robust to this confound only insofar as the
+trajectory inspection attributes failures to agent-side planning
+errors; a re-run with a frontier simulator would bound the effect.
 
 \textbf{Single model family.}
 All experiments use the Qwen~2.5 Instruct family across four sizes.
@@ -352,6 +397,16 @@ semantic accuracy. The magnitude of the gain is unusually large here because
 the unguided failure rate of a 7B model on structured generation is
 correspondingly high; models that produce valid JSON more reliably without
 guidance would show a smaller benefit from constrained decoding.
+The negative chain-of-thought interaction observed in
+Section~\ref{sec:no-training} also connects to the study of Tam et
+al.~\cite{tam2024letmespeak}, which reports that format restrictions can
+degrade reasoning performance: the present results show the complementary
+direction, namely that adding explicit reasoning under a format constraint
+degrades value accuracy when the bottleneck is convention recall rather
+than reasoning. Newer structured generation engines such as
+XGrammar~\cite{dong2024xgrammar} reduce the per-step overhead of
+grammar-constrained decoding but do not change the accuracy trade-offs
+analysed here.
 
 \paragraph{Training-based tool adaptation.}
 Gorilla demonstrated that fine-tuning a LLaMA model on retrieved API
@@ -381,7 +436,7 @@ Lewis et al.\ showed that retrieval-augmented generation improves performance
 on knowledge-intensive tasks by supplying relevant context at inference
 time~\cite{lewis2020retrieval}. The RAG evaluation here reveals a limitation
 of this mechanism for tool selection: retrieval recall@5 of 97.2\% produces a
-$-25.00$~pp accuracy drop rather than an accuracy gain, because the bottleneck
+$-24.5$~pp accuracy drop relative to CD+Q rather than an accuracy gain, because the bottleneck
 shifts from retrieval quality to candidate disambiguation. Retrieved candidates
 are semantically similar by construction, and the model must distinguish
 between them on fine-grained semantic grounds that single-call training does

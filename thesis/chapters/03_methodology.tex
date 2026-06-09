@@ -21,14 +21,22 @@ constrained decoding at full precision. In Config~CD, constrained decoding is
 added, forcing the output to conform to a valid JSON schema. In Config~CD+Q,
 AWQ INT4 quantization is applied to reduce memory footprint while preserving
 accuracy as much as possible. In Config~CD+Q+FT-aligned, a format-aligned LoRA
-adapter is applied to the quantized model. Three inference-time parallel
-configurations are also evaluated from Config~CD+Q: Config~PE uses few-shot
-prompting, Config~CD+Q+ITC adds chain-of-thought inference-time compute, and
-Config~CD+Q+RAG adds retrieval-augmented generation. Fine-tuning branches from
+adapter is applied to the quantized model. Three inference-time
+configurations branch off the main chain: Config~PE adds few-shot prompting
+on top of Config~CD at full precision, so that the effect of the examples is
+isolated from any interaction with quantization, while Config~CD+Q+ITC adds
+chain-of-thought inference-time compute and Config~CD+Q+RAG adds
+retrieval-augmented generation, both on top of Config~CD+Q. Fine-tuning branches from
 Config~CD: Config~CD+FT applies a misaligned LoRA adapter and
 Config~CD+FT-aligned applies the format-aligned adapter. Two unguided variants
 are evaluated without constrained decoding: Config~FT-only (misaligned adapter)
 and Config~FT-aligned-ng (format-aligned adapter, ng: no guided decoding).
+To isolate the contribution of constrained decoding, the three inference-time
+techniques are additionally evaluated without guided decoding: Config~PE-ng
+(few-shot), Config~ITC-ng (chain-of-thought), and Config~RAG-ng (retrieval).
+These isolation variants are supplementary controls and are reported in
+Section~\ref{sec:technique-isolation}; they are not rungs on the eleven-config
+ladder and are omitted from Figure~\ref{fig:eval-ladder}.
 
 \begin{figure}[ht]
 \centering
@@ -61,10 +69,12 @@ and Config~FT-aligned-ng (format-aligned adapter, ng: no guided decoding).
 \node[ft, below=2.4cm of CD, xshift=-1.5cm] (CDFT)  {CD+FT};
 \node[ft, below=2.4cm of CD, xshift= 1.5cm] (CDFTa) {CD+FT-aligned};
 
+% Few-shot branch from CD (second row, full precision)
+\node[side, below=1.1cm of B, xshift=1.6cm] (PE) {PE};
+
 % Unguided standalone (bottom row, below B)
 \node[para, below=2.4cm of B, xshift=-1.8cm] (FTonly)  {FT-only};
 \node[para, below=2.4cm of B, xshift=  0cm]  (FTalng)  {FT-aligned-ng};
-\node[para, below=2.4cm of B, xshift= 1.8cm] (PE)      {PE};
 
 % Main chain arrows
 \draw[arr] (B)   -- node[above, font=\footnotesize]{$+$CD}           (CD);
@@ -79,16 +89,19 @@ and Config~FT-aligned-ng (format-aligned adapter, ng: no guided decoding).
 \draw[darr] (CD.south) -- node[left,  font=\footnotesize]{$+$FT}           (CDFT.north);
 \draw[darr] (CD.south) -- node[right, font=\footnotesize]{$+$FT\textsubscript{aligned}} (CDFTa.north);
 
+% Few-shot track from CD
+\draw[arr] (CD.south) -- node[left, font=\footnotesize]{$+$few-shot} (PE.north);
+
 % Unguided standalone tracks from B
 \draw[darr] (B.south) -- (FTonly.north);
 \draw[darr] (B.south) -- (FTalng.north);
-\draw[darr] (B.south) -- (PE.north);
 
 \end{tikzpicture}%
 }
 \caption{Incremental evaluation ladder showing all eleven configurations.
 The main chain (top row, solid arrows) adds one technique at a time.
-Orange nodes are inference-time branches from CD+Q\@.
+Orange nodes are inference-time branches: PE branches from CD at full
+precision; ITC and RAG branch from CD+Q\@.
 Green nodes are fine-tuning branches from CD\@.
 Gray nodes are unguided standalone configurations (no constrained decoding).}
 \label{fig:eval-ladder}
@@ -112,6 +125,10 @@ under the AWQ Marlin backend (4--5\,GB VRAM). The software
 environment uses uv~0.5.13, Python~3.12.11, and CUDA~12.6.3.
 Model weights are cached from the Hugging Face Hub on cluster
 storage.
+
+The evaluation pipeline, prompt templates, guided decoding schemas,
+HPC job scripts, and training scripts are available in the
+accompanying repository.\footnote{\url{https://github.com/pabeckha/slm-agents}}
 
 \section{Evaluation Framework}
 
@@ -176,7 +193,12 @@ introduced by the user simulator. The user simulator is Qwen~2.5
 running at temperature~0.3 to produce naturalistic user responses.
 The agent model runs at temperature~0.0 to ensure deterministic
 tool call generation. All runs are executed on a single NVIDIA L40S
-GPU (48~GiB) on the DTU HPC cluster.
+GPU (48~GiB) on the DTU HPC cluster. This simulator choice departs
+from the reference $\tau$-bench setup, which drives the user
+simulator with a frontier model; a 7B simulator may misstate or omit
+task details, which deflates pass rates independently of agent
+capability. The implications are discussed in the threats to
+validity (Section~\ref{sec:threats-validity}).
 
 Scoring is binary: a task receives reward~1.0 only if the final
 database state exactly matches the ground truth at the end of the
@@ -302,6 +324,15 @@ Base therefore is the lower bound for all subsequent
 comparisons; any improvement over 1.5\% is attributable to
 the technique added at that rung of the evaluation ladder.
 
+Base is deliberately model-agnostic: it does not use the
+tool-calling prompt template that Qwen~2.5 provides, and the
+official BFCL harness, which does, reports far higher scores for the
+same model (Chapter~\ref{ch:introduction}). The 1.5\% figure
+measures what a generic integration achieves without model-specific
+prompting, which is the relevant floor for the technique ladder
+evaluated here: every subsequent configuration changes exactly one
+component relative to this fixed pipeline.
+
 \section{Constrained Decoding}
 
 CD adds constrained decoding to Base; all other
@@ -320,6 +351,22 @@ restricts the output to a JSON object that conforms to a
 schema derived from the function definition, with parameter
 names, types, and required fields enforced, and
 \texttt{additionalProperties} set to false.
+
+For the \texttt{parallel} and \texttt{parallel\_multiple} categories,
+which require several simultaneous calls, the pipeline replaces the
+single-name selection stage with a parallel selection stage. The model
+generates a JSON object of the form \texttt{\{"calls": [\dots]\}} under
+\texttt{guided\_json}, where the array items are restricted to the set
+of candidate function names and the maximum array length equals the
+number of distinct candidates. Each selected name is then passed
+through the standard argument extraction stage. The pipeline therefore
+emits at most one argument object per distinct function name: because
+argument extraction is conditioned only on the user query and the
+selected function, and decoding is deterministic at temperature~0, two
+calls to the same function would receive identical argument objects.
+The consequences of this design for the \texttt{parallel} category are
+analysed in Section~\ref{sec:bfcl-extended} and
+Chapter~\ref{ch:discussion}.
 
 CD achieves 72.75\% AST accuracy (291/400), a gain of
 71.25~pp over Base. Function selection accuracy is 100\%:

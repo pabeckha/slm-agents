@@ -22,7 +22,7 @@ CD & Constrained decoding (guided)    & 291/400 & 72.75\% \\
 
 \noindent Without constrained decoding (Base), the model achieves only 1.5\% accuracy. The dominant failure mode is format non-compliance: 394 out of 400 outputs fail to parse as valid JSON, producing \texttt{Extra data} errors or empty results. The model is not incapable of understanding the queries: it simply cannot express its answers in the required structured format.
 
-Constrained decoding (CD) recovers 71.25 percentage points, achieving 72.75\% accuracy. Function selection reaches 100\% accuracy via \texttt{guided\_choice}, confirming that the format enforcement fully solves tool selection. The remaining 27.25\% failure rate is entirely in argument extraction: wrong numeric precision (e.g., 9.8 vs.\ 9.81), string format mismatches (e.g., ``kilometers/hour'' vs.\ ``km/h''), and incorrect optional parameter defaults.
+Constrained decoding (CD) recovers 71.25 percentage points, achieving 72.75\% accuracy. Function selection reaches 100\% accuracy via \texttt{guided\_choice}; in this category each test case provides a single candidate function, so guided selection cannot fail, and the meaningful evidence on tool selection comes from the \texttt{multiple} category (Section~\ref{sec:bfcl-extended}). The remaining 27.25\% failure rate is entirely in argument extraction: wrong numeric precision (e.g., 9.8 vs.\ 9.81), string format mismatches (e.g., ``kilometers/hour'' vs.\ ``km/h''), and incorrect optional parameter defaults.
 
 Few-shot prompting (PE) also uses constrained decoding and decreases accuracy by 2.5 percentage points relative to CD alone. The three few-shot examples, targeting known failure modes, did not transfer across function domains. This negative result indicates that the argument extraction errors reflect the model's learned associations rather than a formatting gap that in-context examples can bridge.
 
@@ -228,17 +228,110 @@ The result establishes that the bottleneck in a RAG-based tool-calling pipeline
 for a 7B model is not retrieval quality but candidate discrimination. A
 recall@5 of 97.2\% is sufficient for the retrieval component; the model lacks
 the capacity to reliably distinguish among semantically similar candidate
-functions once they are retrieved. Fig.~\ref{fig:rag-breakdown} summarises
-the failure distribution across the 209 incorrect predictions.
+functions once they are retrieved. The three outcome categories partition the
+400 test cases, so the 209 incorrect predictions decompose as follows: 128
+cases with a wrong function selected, 8 cases with the correct function but
+wrong argument values, and 73 cases whose output is identical to CD+Q and
+incorrect under both configurations (shared semantic failures that retrieval
+neither caused nor fixed). Fig.~\ref{fig:rag-breakdown} summarises the outcome
+distribution over all 400 test cases.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.55\textwidth]{pictures/figures/fig_rag_breakdown.pdf}
-\caption{Failure breakdown for CD+Q+RAG on the 7B model (209 incorrect predictions
-         out of 400 test cases). The dominant failure mode is wrong function
-         selection (32\%), not retrieval miss or argument extraction error.}
+\caption{Outcome breakdown for CD+Q+RAG on the 7B model over all 400 test
+         cases. The dominant RAG-specific failure mode is wrong function
+         selection (32\% of all cases), not retrieval miss or argument
+         extraction error; 66\% of outputs are identical to CD+Q.}
 \label{fig:rag-breakdown}
 \end{figure}
+
+\subsection{Technique Isolation Without Constrained Decoding}
+\label{sec:technique-isolation}
+
+The configurations above apply each inference-time technique on top of
+constrained decoding, which measures whether the technique improves on
+the constrained-decoding ceiling. To isolate the contribution of
+constrained decoding itself, the three inference-time techniques are
+additionally evaluated without guided decoding, denoted PE-ng
+(few-shot), ITC-ng (chain-of-thought), and RAG-ng (retrieval), where
+\textit{ng} indicates no guided decoding. These runs are supplementary
+controls rather than rungs on the eleven-configuration ladder, and are
+evaluated on the 7B model at full precision (bfloat16) on BFCL~v4
+\texttt{simple\_python}. Table~\ref{tab:isolation} reports the result.
+
+\begin{table}[ht]
+\centering
+\caption{BFCL~v4 \texttt{simple\_python} AST accuracy for the
+inference-time techniques evaluated without constrained decoding
+(Qwen~2.5 7B-Instruct, bfloat16, 400 test cases). Config~B and
+Config~CD are shown for reference.}
+\label{tab:isolation}
+\begin{tabular}{llrrr}
+\toprule
+Config & Description & Correct & Accuracy ($\uparrow$) & Delta vs B \\
+\midrule
+B      & No technique, no CD     & 6/400   & 1.50\%  & baseline    \\
+RAG-ng & Retrieval, no CD        & 10/400  & 2.50\%  & $+1.00$~pp  \\
+PE-ng  & Few-shot, no CD         & 18/400  & 4.50\%  & $+3.00$~pp  \\
+ITC-ng & Chain-of-thought, no CD & 105/400 & 26.25\% & $+24.75$~pp \\
+CD     & Constrained decoding    & 291/400 & 72.75\% & $+71.25$~pp \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Without constrained decoding, none of the three prompt-level techniques
+exceeds 27\% accuracy. Few-shot prompting (PE-ng) reaches 4.50\%
+(18/400), an improvement of 3.00~pp over Base, and retrieval (RAG-ng)
+reaches 2.50\% (10/400), an improvement of 1.00~pp. Both gains are
+marginal: surfacing in-context examples or candidate functions does not
+help a model that cannot reliably produce a single parseable JSON
+object. Chain-of-thought (ITC-ng) reaches 26.25\% (105/400), an
+improvement of 24.75~pp over Base and the highest accuracy of any
+unguided configuration that leaves model weights unchanged. The
+step-by-step reasoning trace acts as self-scaffolding: generating a
+derivation before the final answer raises the rate at which the output
+is well-formed JSON, even though no structural constraint is applied.
+
+The isolation measurements also quantify the marginal contribution of
+constrained decoding on top of each technique.
+Table~\ref{tab:cd-contribution} reports the accuracy of each technique
+with and without guided decoding, together with the resulting
+constrained-decoding contribution.
+
+\begin{table}[ht]
+\centering
+\caption{Marginal contribution of constrained decoding for each
+inference-time technique on the 7B model. The guided chain-of-thought
+and retrieval figures are measured with AWQ INT4 quantization
+(CD+Q+ITC and CD+Q+RAG); the 0.5~pp quantization effect at 7B is small
+relative to the constrained-decoding contribution.}
+\label{tab:cd-contribution}
+\begin{tabular}{lrrr}
+\toprule
+Technique & Without CD ($\uparrow$) & With CD ($\uparrow$) & CD contribution \\
+\midrule
+None (CD alone)  & 1.50\%  & 72.75\% & $+71.25$~pp \\
+Few-shot         & 4.50\%  & 70.25\% & $+65.75$~pp \\
+Chain-of-thought & 26.25\% & 65.50\% & $+39.25$~pp \\
+Retrieval        & 2.50\%  & 47.75\% & $+45.25$~pp \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Constrained decoding is the dominant contributor in every case. Its
+marginal contribution is largest for few-shot (+65.75~pp) and retrieval
+(+45.25~pp), where the unguided accuracy sits near the Base floor, and
+smallest for chain-of-thought (+39.25~pp), where the reasoning trace
+already supplies partial format scaffolding. The chain-of-thought result
+reverses direction with respect to constrained decoding: without guided
+decoding it is the strongest prompt-level technique (+24.75~pp over
+Base), whereas on top of constrained decoding it is the weakest (a
+decrease of 7.25~pp relative to CD). Once decoding is constrained, the
+format benefit of the reasoning trace is redundant, while the
+value-level errors it introduces remain. This confirms that the residual
+failures after constrained decoding are semantic rather than structural,
+consistent with the per-case flip analysis reported above for CD+Q+ITC.
 
 \section{Training-Based Methods}
 
@@ -333,9 +426,19 @@ not a training failure. The difference in BFCL accuracy (69.75\% vs.\
 \end{figure}
 
 CD+FT-aligned achieves 76.75\% accuracy (307/400), an improvement
-of 4.0~pp over CD and 7.0~pp over CD+FT. This is the highest
-accuracy observed across all configurations. Format-aligned fine-tuning
-breaks the no-training ceiling of 72.75\% established by CD.
+of 4.0~pp over CD (a net gain of 16 of the 400 shared test cases) and
+7.0~pp over CD+FT. This is the highest accuracy observed across all
+configurations, and the only configuration family to exceed the
+no-training level of 72.75\% established by CD. Because both
+configurations are evaluated on the same 400 test cases, attaching a
+significance level to this delta requires a paired comparison
+(McNemar's test) over the per-case predictions; the single-proportion
+confidence interval reported in
+Section~\ref{sec:frontier-comparison} applies to absolute accuracies,
+not to paired differences. The stronger evidence that format
+alignment improves accuracy is the consistency of the effect: the
+gain is positive at all four model sizes
+(Section~\ref{sec:model-size}).
 
 The 23.25\% failure rate that remains under CD+FT-aligned follows
 the same taxonomy as CD: optional parameter defaults, numeric
@@ -415,8 +518,9 @@ CD+FT-aligned   & CD + format-aligned LoRA           & \textbf{76.75\%} & $\math
 \end{figure}
 
 \section{Comparison with Frontier Models}
+\label{sec:frontier-comparison}
 
-Table~\ref{tab:frontier-comparison} compares the Qwen~2.5 7B-Instruct results against frontier models, using official scores from the BFCL~v4 leaderboard\footnote{\url{https://gorilla.cs.berkeley.edu/leaderboard.html}, accessed April 2026.} for the Non-Live Simple AST category.
+Table~\ref{tab:frontier-comparison} compares the Qwen~2.5 7B-Instruct results against frontier models, using official scores from the BFCL~v4 leaderboard\footnote{\url{https://gorilla.cs.berkeley.edu/leaderboard.html}, accessed 2026-06-04. The live leaderboard is updated over time, so these values represent a snapshot at that date.} for the Non-Live Simple AST category.
 
 \begin{table}[ht]
 \centering
@@ -447,7 +551,7 @@ Qwen 2.5 7B (raw)           & SLM (ours) & 1.50\%  \\
 \includegraphics[width=\textwidth]{pictures/figures/fig_frontier_comparison.pdf}
 \caption{BFCL v4 \texttt{simple\_python} AST accuracy for Qwen~2.5 7B configurations
          (this work) vs.\ frontier models from the official leaderboard
-         (accessed April 2026). CD+FT-aligned reaches 76.75\%,
+         (accessed 2026-06-04). CD+FT-aligned reaches 76.75\%,
          within 0.08~pp of Claude Opus~4.5 (76.83\%).}
 \label{fig:frontier-comparison}
 \end{figure}
@@ -465,8 +569,8 @@ is 2.83 percentage points.
 This suggests that for single-call function calling with a well-defined schema, constrained decoding on a 7B model closes the gap to frontier-level performance. The remaining gap is driven by argument value accuracy, not format compliance or function selection, which is the same bottleneck that limits the frontier models themselves.
 
 A note on statistical precision: with $n=400$ binary test cases, the 95\%
-Wilson confidence interval is approximately $\pm$4.1~pp for accuracy values
-near 72--77\%. The differences between CD (72.75\%) and GPT-4.1 (72.67\%),
+Wilson confidence interval is approximately $\pm$4.1--4.4~pp for accuracy
+values near 72--77\%. The differences between CD (72.75\%) and GPT-4.1 (72.67\%),
 and between CD+FT-aligned (76.75\%) and Claude Opus~4.5 (76.83\%), are
 therefore within the confidence interval of a single evaluation run.
 These comparisons are best interpreted as showing parity rather than a
@@ -509,6 +613,15 @@ matches the ground truth at the end of the interaction. Partial completion
 yields reward~0.0. This criterion reflects the operational requirement
 that retail service tasks must be resolved completely; partial execution
 has no customer-facing value.
+
+Both the agent and the user simulator are 7B models in this setup,
+whereas the reference $\tau$-bench configuration drives the simulator
+with a frontier model. A 7B simulator can misstate or omit task
+details, so part of the observed failure rate may originate in the
+simulator rather than the agent. The absolute pass rate should
+therefore be read as a conservative estimate, and comparisons to
+published $\tau$-bench pass rates obtained under stronger simulators
+are not like-for-like (Section~\ref{sec:threats-validity}).
 
 Table~\ref{tab:bfcl-vs-tau} places the single-call and multi-step results
 side by side.
@@ -590,12 +703,6 @@ within noise; at 7B the mean of 4.35\% for CD lies within the single-run
 standard error of the 3.48\% CD+FT-aligned result. Format-aligned fine-tuning,
 which increases BFCL \texttt{simple\_python} accuracy by up to 7.75~pp, does not
 transfer to multi-turn task completion.
-
-All conditions except 7B~CD are single runs. At $n=115$ binary tasks, one task
-corresponds to 0.87~pp and the standard error is approximately 1.9~pp.
-Differences of one or two tasks between conditions are within noise. These
-results establish a performance floor across the model sizes and configurations
-studied; they do not support a ranking between individual conditions.
 
 \section{Model-Size Scaling}
 \label{sec:model-size}
@@ -731,8 +838,13 @@ The \texttt{parallel} category requires generating two simultaneous calls
 to the same function. Under both CD and CD+FT-aligned, accuracy is 0.0\%
 at every model size from 0.5B to 7B. Inspection of the raw outputs shows
 the model consistently produces one call rather than two; the failure is in
-call count, not argument content. Scale and fine-tuning do not change this:
-the parallel format remains out of reach across all configurations tested.
+call count, not argument content. This outcome follows from the pipeline
+design described in Chapter~\ref{ch:methodology}: the parallel selection
+stage emits a set of distinct function names, and argument extraction
+produces exactly one argument object per selected name, so two calls to
+the same function cannot receive distinct argument bindings. Scale and
+fine-tuning do not change this: the parallel format remains out of reach
+for the evaluated pipeline at every size.
 
 \subsection{Parallel Multi-Function Calling}
 

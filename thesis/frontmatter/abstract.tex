@@ -14,14 +14,17 @@ An incremental ablation study is conducted on the Qwen~2.5 model family
 (0.5B--7B), with \texttt{Qwen2.5-7B-Instruct} as the primary configuration,
 evaluated on four BFCL v4 categories (\texttt{simple\_python},
 \texttt{multiple}, \texttt{parallel}, \texttt{parallel\_multiple}) and
-$\tau$-bench retail. The unoptimized baseline scores 1.5\%, approximately 70--78
-percentage points below frontier models (71.00\%--79.58\%). With constrained decoding alone,
-72.75\% is reached at no additional inference cost, matching GPT-4.1 (72.67\%)
-and Claude Sonnet~4.5 (72.58\%); AWQ INT4 quantization retains 72.25\% while
+$\tau$-bench retail. The baseline, a minimal model-agnostic integration that
+does not rely on the model's native tool-calling prompt template, scores 1.5\%,
+approximately 70--78 percentage points below frontier models
+(71.00\%--79.58\%). With constrained decoding alone, 72.75\% is reached without
+modifying model weights or generating additional tokens, on par with GPT-4.1
+(72.67\%) and Claude Sonnet~4.5 (72.58\%) within single-run uncertainty;
+AWQ INT4 quantization retains 72.25\% while
 reducing memory from 14.25~GiB to 5.20~GiB. Few-shot prompting,
 chain-of-thought reasoning, and retrieval-augmented generation each reduce
-accuracy relative to constrained decoding (72.75\%), by 2.5, 7.25, and 25 percentage
-points respectively.
+accuracy, by 2.5, 6.75, and 24.5 percentage points relative to the
+constrained-decoding configuration each of them extends.
 Format-aligned LoRA fine-tuning reaches 76.75\%, and 74.25\% after subsequent
 quantization at the same memory footprint. On $\tau$-bench retail (115 tasks)
 and \texttt{parallel} calls, accuracy falls to 4.3\% and 0\% respectively,
@@ -31,8 +34,10 @@ settings.
 The unoptimized performance gap is a format compliance gap, not a reasoning
 gap: 394 of 400 failures in the unoptimized configuration are malformed outputs,
 not wrong answers. This gap is resolved structurally by constrained decoding,
-and the quantized configuration (72.25\%, 5.20~GiB) is production-viable for
-single-call, schema-constrained tool calling on a consumer NVIDIA RTX~4090. Prompting interventions cannot close the residual 27\%
+and the quantized configuration (72.25\%, 5.20~GiB) meets the
+production-viability criterion adopted in this thesis (single-call accuracy
+within the range of deployed frontier models, on consumer hardware) for
+schema-constrained tool calling on a consumer NVIDIA RTX~4090. Prompting interventions cannot close the residual 27\%
 failure rate because those errors are in the model's learned value conventions,
 not in output format. The LoRA training signal is retained in attenuated form after AWQ INT4
 quantization; fine-tuned capability is thus confirmed to be obtainable on

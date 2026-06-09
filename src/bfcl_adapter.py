@@ -301,7 +301,14 @@ def write_run_manifest(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run BFCL evaluation")
     parser.add_argument(
-        "--backend", choices=["local", "vllm", "gpt", "claude"], default="vllm",
+        "--backend",
+        choices=["local", "vllm", "vllm-template", "gpt", "claude"],
+        default="vllm",
+        help=(
+            "vllm-template runs Config B-template: free generation through "
+            "the model's native tool-calling chat template, parsed from "
+            "<tool_call> blocks (single-call categories only)"
+        ),
     )
     parser.add_argument("--model", type=str, default="Qwen/Qwen2.5-7B-Instruct")
     parser.add_argument("--category", type=str, default="simple_python")
@@ -423,6 +430,20 @@ def main() -> None:
             few_shot=args.few_shot,
             cot=args.cot,
         )
+    elif args.backend == "vllm-template":
+        from .chat_template_backend import ChatTemplateBackend
+
+        if args.rag or args.few_shot or args.cot or not args.no_guided:
+            parser.error(
+                "--backend vllm-template requires --no-guided and is "
+                "incompatible with --rag, --few-shot, and --cot (it is a "
+                "standalone baseline control)"
+            )
+        backend = ChatTemplateBackend(
+            base_url=args.vllm_url,
+            api_key=args.vllm_key,
+            model_name=args.model,
+        )
     elif args.backend == "gpt":
         from .frontier_backend import GPTBackend
 
@@ -468,6 +489,13 @@ def main() -> None:
                 fcs = backend.process_parallel(entry["prompt"], functions)
                 decoded, python_str = format_parallel_results(fcs)
                 print(f"  -> [{', '.join(fc.fn_name for fc in fcs)}]")
+            elif hasattr(backend, "process_raw"):
+                fc = backend.process_raw(
+                    entry["prompt"], entry["functions"], entry["raw_functions"]
+                )
+                decoded = format_result_dict(fc)
+                python_str = format_result_python(fc)
+                print(f"  -> {fc.fn_name}({fc.args})")
             else:
                 fc = backend.process(entry["prompt"], functions)
                 decoded = format_result_dict(fc)
