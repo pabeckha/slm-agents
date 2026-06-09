@@ -14,7 +14,7 @@ without guidance.
 This distinction has a direct consequence for interpreting the frontier
 comparison. CD achieves 72.75\% on BFCL~v4 \texttt{simple\_python},
 matching GPT-4.1 (72.67\%) and Claude Sonnet~4.5 (72.58\%), and exceeding
-Claude Haiku~4.5 (71.00\%)~\cite{bfcl2024}. The primary mechanism is that
+Claude Haiku~4.5 (71.00\%)~\cite{bfcl2024}.\footnote{Frontier model scores are taken from the BFCL~v4 leaderboard, accessed 2026-06-04. The live leaderboard is updated over time, so these values represent a snapshot at that date.} The primary mechanism is that
 constrained decoding enforces valid JSON and valid function names by
 construction, which is precisely what frontier models' native tool-calling
 APIs also do. Once format compliance is equalized, a 7B model and a frontier
@@ -237,9 +237,9 @@ Several factors limit the generalisability of the findings.
 
 \textbf{Single model family.}
 All experiments use the Qwen~2.5 Instruct family across four sizes.
-Directional findings---the ordering of techniques by accuracy, the
+Directional findings (the ordering of techniques by accuracy, the
 size-dependence of the few-shot effect, and the quantization penalty
-profile---are observed consistently within this family but may not
+profile) are observed consistently within this family but may not
 transfer to other SLM families with different pre-training regimes or
 instruction-tuning data (e.g.\ Llama~3.2, Phi-4).
 
@@ -279,7 +279,7 @@ specific value conventions (e.g.\ \texttt{"gas"} not
 production API schema would not impose. The residual failures
 represent convention mismatches, not functional errors, in many cases.
 
-\section{Practical Implications}
+\section{Practical Implications} \label{sec:practical-implications}
 
 The cascade architecture motivating this work posits that an SLM handles
 the majority of tool-calling requests locally, escalating only those it
