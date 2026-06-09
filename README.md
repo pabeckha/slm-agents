@@ -24,10 +24,12 @@ evaluated on BFCL v4 (simple_python, 400 tasks) and τ-bench (retail, 115 tasks)
 | CD+Q+ITC | + Chain-of-thought | 65.5% |
 | CD+Q+RAG | + RAG top-5 retrieval | 47.75% |
 | FT-only | LoRA alone, no CD | 13.75% |
+| FT-aligned-ng | Format-aligned LoRA, no CD | 13.25% |
 | CD+FT | + LoRA (misaligned format) | 69.75% |
 | CD+FT-aligned | + LoRA (format-aligned) | **76.75%** |
+| CD+Q+FT-aligned | + LoRA (format-aligned) + AWQ INT4 | 74.25% |
 
-τ-bench retail (Config CD): **4.3% pass rate** (5/115 tasks) — multi-step agentic baseline.
+τ-bench retail (Config CD): **4.35% pass rate** (mean of 3 runs × 115 tasks) — multi-step agentic baseline.
 
 ## Key Findings
 
@@ -54,16 +56,20 @@ project_plan/         # Formal project plan and bibliography
 
 ## Thesis Progress
 
+All chapters complete; all experiments done.
+
 | Chapter | Status |
 |---------|--------|
-| Introduction | Draft |
-| Background | Draft (agents section stub remaining) |
-| Methodology | In progress — PE, RAG, LoRA, τ-bench sections stubs |
-| Results | Empty — all data in hand, ready to write |
-| Discussion | Empty |
-| Conclusion | Empty |
+| Introduction | Complete |
+| Background | Complete |
+| Methodology | Complete |
+| Results | Complete — all 11 configs, size sweep, τ-bench, multi-category BFCL |
+| Discussion | Complete |
+| Conclusion | Complete |
+| Appendices | Complete — AI disclosure, hyperparameters, full results |
 
-Current: ~28 pages. Target: 50–60 pages. Deadline: 2026-07-05.
+Current: 58 pages (target 40–60, excl. preface and appendix). Deadline: 2026-07-05.
+Build verified clean: no undefined references or citations.
 
 ## Running Experiments
 
