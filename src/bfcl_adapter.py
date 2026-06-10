@@ -35,11 +35,17 @@ _PARALLEL_CATEGORIES = frozenset({"parallel", "parallel_multiple", "java_paralle
 def bfcl_function_to_function_def(bfcl_func: dict) -> FunctionDef:
     """Convert a BFCL function schema to our FunctionDef."""
     params: dict[str, FunctionParameter] = {}
-    bfcl_params = bfcl_func.get("parameters", {})
-    properties = bfcl_params.get("properties", {})
+    bfcl_params = bfcl_func.get("parameters") or {}
+    properties = bfcl_params.get("properties") or {}
 
     for name, spec in properties.items():
-        params[name] = FunctionParameter(type=spec.get("type", "string"))
+        params[name] = FunctionParameter(
+            type=spec.get("type", "string"),
+            description=spec.get("description"),
+            enum=spec.get("enum"),
+            default=spec.get("default"),
+            has_default="default" in spec,
+        )
 
     required = bfcl_params.get("required", list(params.keys()))
 
@@ -242,6 +248,7 @@ def write_run_manifest(
     guided: bool,
     few_shot: bool = False,
     cot: bool = False,
+    schema_rich: bool = False,
     rag: bool = False,
     rag_top_k: int | None = None,
     rag_recall: float | None = None,
@@ -259,6 +266,8 @@ def write_run_manifest(
         config_tag += "_few_shot"
     if cot:
         config_tag += "_cot"
+    if schema_rich:
+        config_tag += "_schema_rich"
     if rag:
         config_tag += f"_rag_top{rag_top_k}"
     if lora_base_model:
@@ -274,6 +283,7 @@ def write_run_manifest(
         "guided": guided,
         "few_shot": few_shot,
         "cot": cot,
+        "schema_rich": schema_rich,
         "rag": rag,
         "parallel": parallel,
     }
@@ -338,6 +348,14 @@ def main() -> None:
         help="Enable chain-of-thought reasoning before argument extraction (Config CD+Q+ITC)",
     )
     parser.add_argument(
+        "--schema-rich", action="store_true",
+        help=(
+            "Carry full parameter descriptions, defaults, and enumerations "
+            "into the argument extraction prompt (Config CD+schema). "
+            "Prompt-only: the guided_json constraint is unchanged."
+        ),
+    )
+    parser.add_argument(
         "--limit", type=int, default=None,
         help="Only process first N test cases",
     )
@@ -361,6 +379,13 @@ def main() -> None:
 
     if args.cot and args.few_shot:
         parser.error("--cot and --few-shot are mutually exclusive")
+    if args.schema_rich and args.few_shot:
+        parser.error(
+            "--schema-rich and --few-shot are mutually exclusive: the "
+            "few-shot examples use the compact parameter format"
+        )
+    if args.schema_rich and args.backend != "vllm":
+        parser.error("--schema-rich is only supported with --backend vllm")
 
     data_dir = Path(args.bfcl_dir)
     output_dir = Path(args.output_dir)
@@ -434,6 +459,7 @@ def main() -> None:
             guided=not args.no_guided,
             few_shot=args.few_shot,
             cot=args.cot,
+            schema_rich=args.schema_rich,
         )
     elif args.backend == "vllm-template":
         from .chat_template_backend import ChatTemplateBackend
@@ -586,6 +612,7 @@ def main() -> None:
         guided=guided,
         few_shot=args.few_shot,
         cot=args.cot,
+        schema_rich=args.schema_rich,
         rag=args.rag,
         rag_top_k=args.rag_top_k if args.rag else None,
         rag_recall=rag_hits / len(test_data) if rag_index is not None else None,

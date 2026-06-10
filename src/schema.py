@@ -11,9 +11,21 @@ class FunctionParameter(BaseModel):
     Attributes:
         type: The type string as declared in the function definition JSON
               (e.g. ``"number"``, ``"string"``, ``"boolean"``).
+        description: Human-readable description of the parameter, when the
+            source schema provides one.
+        enum: Allowed values, when the source schema restricts the parameter
+            to an enumeration.
+        default: Declared default value. Only meaningful when ``has_default``
+            is True; ``None`` may itself be a declared default.
+        has_default: True when the source schema declares a default for this
+            parameter, distinguishing "default is null" from "no default".
     """
 
     type: str
+    description: str | None = None
+    enum: list[Any] | None = None
+    default: Any = None
+    has_default: bool = False
 
 
 class FunctionDef(BaseModel):

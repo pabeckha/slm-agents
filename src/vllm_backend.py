@@ -62,12 +62,14 @@ class VLLMBackend:
         guided: bool = True,
         few_shot: bool = False,
         cot: bool = False,
+        schema_rich: bool = False,
     ) -> None:
         self._client = OpenAI(base_url=base_url, api_key=api_key)
         self._model = model_name
         self._guided = guided
         self._few_shot = few_shot
         self._cot = cot
+        self._schema_rich = schema_rich
 
     def process(self, prompt: str, functions: list[FunctionDef]) -> FunctionCall:
         fn_name = self._select_function(prompt, functions)
@@ -176,7 +178,13 @@ class VLLMBackend:
         """Extract arguments, optionally using guided_json."""
         schema = _build_args_json_schema(func)
         reasoning = self._reason_about_args(prompt, func) if self._cot else None
-        ext_prompt = build_args_extraction_prompt(func, prompt, few_shot=self._few_shot, reasoning=reasoning)
+        ext_prompt = build_args_extraction_prompt(
+            func,
+            prompt,
+            few_shot=self._few_shot,
+            reasoning=reasoning,
+            schema_rich=self._schema_rich,
+        )
 
         kwargs: dict = {}
         if self._guided:
