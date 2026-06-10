@@ -113,9 +113,9 @@ All experiments are conducted on the DTU HPC cluster
 (gbar.dtu.dk), running AlmaLinux~9.7 under the LSF job
 scheduler. Each job is allocated one NVIDIA L40S 48\,GB
 GPU in exclusive process mode; inference jobs use four CPU
-cores and 32\,GB of RAM, LoRA training jobs eight cores and
-64\,GB. Inference jobs use a two-hour wall-time limit and
-training jobs an eight-hour limit.
+cores and 32\,GB of RAM, while LoRA training jobs use eight
+cores and 64\,GB. Inference jobs have a two-hour wall-time
+limit and training jobs an eight-hour limit.
 
 Model inference is served via vLLM~0.8.5, which exposes a
 REST API on localhost that the evaluation client connects to,

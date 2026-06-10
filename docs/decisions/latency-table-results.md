@@ -24,7 +24,7 @@ decoding cost or save time, and what does AWQ quantization add on top?
 |---|---|---|---|---|---|
 | B (no CD) | 6.995 | 6.929 | 11.922 | 699.5 | 1% |
 | CD | 0.878 | 0.847 | 1.375 | 87.8 | 65% |
-| CD+Q (AWQ) | 0.661 | 0.623 | 1.006 | 66.1 | 66.1 → 63% |
+| CD+Q (AWQ) | 0.661 | 0.623 | 1.006 | 66.1 | 63% |
 
 - **CD is ~8× faster than the unconstrained baseline** (0.878s vs 6.995s
   mean). Constrained decoding terminates generation at the closing brace of a
