@@ -68,11 +68,11 @@ fig, ax = plt.subplots(figsize=(8.5, 3.6))
 
 bars = ax.bar(range(len(CONFIGS)), accs, color=colours, width=0.65, zorder=3)
 
-# Frontier reference lines
+# Frontier reference lines (Python Simple AST sub-category)
 FRONTIERS = [
-    ("Gemini 3 Pro",    79.58, "--", C_RED),
-    ("Claude Opus 4.5", 76.83, "-.", C_ORANGE),
-    ("GPT-4.1",         72.67, ":",  C_GREY),
+    ("Claude Sonnet 4.5", 97.75, "--", C_RED),
+    ("GPT-4.1",           91.00, "-.", C_ORANGE),
+    ("GPT-5-mini",        78.75, ":",  C_GREY),
 ]
 for name, val, ls, col in FRONTIERS:
     ax.axhline(val, linestyle=ls, color=col, linewidth=1.2, zorder=2, label=name)
@@ -90,7 +90,7 @@ for i, (bar, val) in enumerate(zip(bars, accs)):
 ax.set_xticks(range(len(CONFIGS)))
 ax.set_xticklabels(labels, fontsize=TICK_FONTSIZE)
 ax.set_ylabel("AST Accuracy (↑) [%]")
-ax.set_ylim(0, 95)
+ax.set_ylim(0, 107)
 ax.yaxis.grid(True, linestyle="--", linewidth=0.5, alpha=0.7, zorder=0)
 ax.set_axisbelow(True)
 ax.legend(loc="upper left", framealpha=0.9, fontsize=LABEL_FONTSIZE)
@@ -108,15 +108,16 @@ print(f"Saved {out}")
 # Figure 2 — Frontier comparison (SLM configs vs frontier models)
 # ---------------------------------------------------------------------------
 
-SLM_NAMES  = ["CD\n(Qwen 7B)", "CD+Q\n(Qwen 7B)", "CD+FT-aligned\n(Qwen 7B)"]
-SLM_ACCS   = [72.75, 72.25, 76.75]
-SLM_COLS   = [C_GREEN, C_GREEN, C_PURPLE]
+SLM_NAMES  = ["CD\n(Qwen 7B)", "CD+Q\n(Qwen 7B)", "CD+FT-aligned\n(Qwen 7B)", "B-template\n(Qwen 7B)"]
+SLM_ACCS   = [72.75, 72.25, 76.75, 96.00]
+SLM_COLS   = [C_GREEN, C_GREEN, C_PURPLE, C_BLUE]
 
+# Python Simple AST sub-category of the BFCL v4 leaderboard
 FRONTIER_NAMES = [
-    "GPT-5-mini", "Claude\nHaiku 4.5", "Claude\nSonnet 4.5",
-    "GPT-4.1", "GPT-4.1\nmini", "Claude\nOpus 4.5", "Gemini\n3 Pro",
+    "GPT-5-mini", "GPT-4.1", "GPT-4.1\nmini",
+    "Gemini\n3 Pro", "Claude\nHaiku 4.5", "Claude\nOpus 4.5", "Claude\nSonnet 4.5",
 ]
-FRONTIER_ACCS = [59.92, 71.00, 72.58, 72.67, 73.33, 76.83, 79.58]
+FRONTIER_ACCS = [78.75, 91.00, 91.00, 94.75, 95.00, 96.50, 97.75]
 
 all_names = SLM_NAMES + FRONTIER_NAMES
 all_accs  = SLM_ACCS  + FRONTIER_ACCS
@@ -138,12 +139,13 @@ for bar, val in zip(bars, all_accs):
 ax.set_xticks(range(len(all_names)))
 ax.set_xticklabels(all_names, fontsize=TICK_FONTSIZE)
 ax.set_ylabel("AST Accuracy (↑) [%]")
-ax.set_ylim(50, 88)
+ax.set_ylim(50, 104)
 
 slm_patch      = mpatches.Patch(color=C_GREEN,  label="Qwen 2.5 7B + CD (this work)")
 slm_ft_patch   = mpatches.Patch(color=C_PURPLE, label="Qwen 2.5 7B + CD+FT-aligned (this work)")
-frontier_patch = mpatches.Patch(color=C_GREY,   label="Frontier models (leaderboard)")
-ax.legend(handles=[slm_patch, slm_ft_patch, frontier_patch], loc="lower right",
+slm_bt_patch   = mpatches.Patch(color=C_BLUE,   label="Qwen 2.5 7B B-template control (this work)")
+frontier_patch = mpatches.Patch(color=C_GREY,   label="Frontier models (leaderboard, Python Simple AST)")
+ax.legend(handles=[slm_patch, slm_ft_patch, slm_bt_patch, frontier_patch], loc="lower right",
           framealpha=0.9, fontsize=LABEL_FONTSIZE)
 
 ax.yaxis.grid(True, linestyle="--", linewidth=0.5, alpha=0.7, zorder=0)
@@ -152,7 +154,7 @@ ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 
 # Divider between SLM and frontier groups
-ax.axvline(2.5, color="black", linewidth=0.8, linestyle=":", alpha=0.5)
+ax.axvline(3.5, color="black", linewidth=0.8, linestyle=":", alpha=0.5)
 
 fig.tight_layout()
 out = OUT_DIR / "fig_frontier_comparison.pdf"
@@ -275,7 +277,7 @@ ax.set_ylabel("AST Accuracy (↑) [%]")
 ax.set_xlim(3, 17)
 ax.set_ylim(-5, 85)
 
-ax.axhline(72.67, linestyle=":", color=C_GREY, linewidth=1.0, label="GPT-4.1 (72.67%)")
+ax.axhline(78.75, linestyle=":", color=C_GREY, linewidth=1.0, label="GPT-5-mini (78.75%)")
 ax.legend(fontsize=LABEL_FONTSIZE, loc="lower right")
 
 ax.yaxis.grid(True, linestyle="--", linewidth=0.5, alpha=0.7, zorder=0)

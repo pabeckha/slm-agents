@@ -79,8 +79,8 @@ against accuracy for the main configurations.
 \includegraphics[width=0.65\textwidth]{pictures/figures/fig_memory_vs_accuracy.pdf}
 \caption{GPU memory footprint vs.\ BFCL \texttt{simple\_python} AST accuracy for
          selected configurations. CD+Q achieves equivalent accuracy
-         to CD at 63.5\% lower memory. The GPT-4.1 reference line
-         (72.67\%) is shown for comparison.}
+         to CD at 63.5\% lower memory. The reference line marks the
+         weakest frontier entry on this category (GPT-5-mini, 78.75\%).}
 \label{fig:memory-accuracy}
 \end{figure}
 
@@ -525,8 +525,9 @@ CD+FT-aligned   & CD + format-aligned LoRA           & \textbf{76.75\%} & $\math
 \centering
 \includegraphics[width=\textwidth]{pictures/figures/fig_bfcl_ablation.pdf}
 \caption{BFCL v4 \texttt{simple\_python} AST accuracy for all eleven configurations.
-         Dashed reference lines show Gemini~3 Pro (79.58\%),
-         Claude Opus~4.5 (76.83\%), and GPT-4.1 (72.67\%).
+         Dashed reference lines show Claude Sonnet~4.5 (97.75\%),
+         GPT-4.1 (91.00\%), and GPT-5-mini (78.75\%) on the same
+         category (Python Simple AST).
          CD+FT-aligned and CD+Q+FT-aligned are the only configurations to
          exceed the no-training ceiling established by Config~CD.}
 \label{fig:bfcl-ablation}
@@ -535,24 +536,25 @@ CD+FT-aligned   & CD + format-aligned LoRA           & \textbf{76.75\%} & $\math
 \section{Comparison with Frontier Models}
 \label{sec:frontier-comparison}
 
-Table~\ref{tab:frontier-comparison} compares the Qwen~2.5 7B-Instruct results against frontier models, using official scores from the BFCL~v4 leaderboard\footnote{\url{https://gorilla.cs.berkeley.edu/leaderboard.html}, accessed 2026-06-04. The live leaderboard is updated over time, so these values represent a snapshot at that date.} for the Non-Live Simple AST category.
+Table~\ref{tab:frontier-comparison} compares the Qwen~2.5 7B-Instruct results against frontier models, using official scores from the BFCL~v4 leaderboard\footnote{\url{https://gorilla.cs.berkeley.edu/leaderboard.html}, accessed 2026-06-04 and re-verified 2026-06-10 (the page reports its data as last updated 2026-04-12). The quoted scores are the Python sub-category of the Non-Live Simple AST group (400 test cases, identical in composition to the \texttt{simple\_python} category evaluated here), taken from the leaderboard's published data file. The ``Simple'' column displayed on the leaderboard page is the unweighted mean over the Python (400 cases), Java (100 cases), and JavaScript (50 cases) sub-categories and is therefore not comparable to a Python-only evaluation.} for the Python Simple AST category.
 
 \begin{table}[ht]
 \centering
-\caption{BFCL v4 \texttt{simple\_python} AST accuracy: Qwen~2.5 7B with constrained decoding vs.\ frontier models (official leaderboard scores).}
+\caption{BFCL v4 \texttt{simple\_python} AST accuracy: Qwen~2.5 7B configurations vs.\ frontier models (official leaderboard scores, Python Simple AST category).}
 \label{tab:frontier-comparison}
 \begin{tabular}{llr}
 \toprule
 Model & Type & Accuracy (↑) \\
 \midrule
-Gemini 3 Pro          & Frontier & 79.58\% \\
-Claude Opus 4.5       & Frontier & 76.83\% \\
-GPT-4.1-mini          & Frontier & 73.33\% \\
-GPT-4.1               & Frontier & 72.67\% \\
-Claude Sonnet 4.5     & Frontier & 72.58\% \\
-Claude Haiku 4.5      & Frontier & 71.00\% \\
-GPT-5-mini            & Frontier & 59.92\% \\
+Claude Sonnet 4.5     & Frontier & 97.75\% \\
+Claude Opus 4.5       & Frontier & 96.50\% \\
+Claude Haiku 4.5      & Frontier & 95.00\% \\
+Gemini 3 Pro          & Frontier & 94.75\% \\
+GPT-4.1               & Frontier & 91.00\% \\
+GPT-4.1-mini          & Frontier & 91.00\% \\
+GPT-5-mini            & Frontier & 78.75\% \\
 \midrule
+Qwen 2.5 7B B-template (control) & SLM (ours) & 96.00\% \\
 Qwen 2.5 7B + CD+FT-aligned & SLM (ours) & \textbf{76.75\%} \\
 Qwen 2.5 7B + CD            & SLM (ours) & 72.75\% \\
 Qwen 2.5 7B + PE            & SLM (ours) & 70.25\% \\
@@ -566,42 +568,55 @@ Qwen 2.5 7B (raw)           & SLM (ours) & 1.50\%  \\
 \includegraphics[width=\textwidth]{pictures/figures/fig_frontier_comparison.pdf}
 \caption{BFCL v4 \texttt{simple\_python} AST accuracy for Qwen~2.5 7B configurations
          (this work) vs.\ frontier models from the official leaderboard
-         (accessed 2026-06-04). CD+FT-aligned reaches 76.75\%,
-         within 0.08~pp of Claude Opus~4.5 (76.83\%).}
+         (Python Simple AST category). The native-template control
+         (B-template, 96.00\%) lies within the flagship frontier band;
+         the best constrained configuration (CD+FT-aligned, 76.75\%)
+         is within single-run uncertainty of GPT-5-mini (78.75\%).}
 \label{fig:frontier-comparison}
 \end{figure}
 
 \noindent Fig.~\ref{fig:frontier-comparison} and
 Table~\ref{tab:frontier-comparison} compare the Qwen~2.5 7B results against
-the leaderboard. Qwen~2.5 7B-Instruct with constrained decoding alone
-(72.75\%) matches or exceeds several frontier models on \texttt{simple\_python}
-accuracy, including GPT-4.1 (72.67\%), Claude Sonnet~4.5 (72.58\%), and
-Claude Haiku~4.5 (71.00\%). With format-aligned fine-tuning,
-CD+FT-aligned reaches 76.75\%, within 0.08~pp of Claude Opus~4.5
-(76.83\%). The gap to the best frontier model (Gemini~3 Pro at 79.58\%)
-is 2.83 percentage points.
+the leaderboard. The native-template control (B-template, 96.00\%) lies
+within the band spanned by flagship frontier models on this category
+(94.75\%--97.75\%), consistent with the 94.50\% reported for the same
+model under the official harness on an earlier benchmark
+revision~\cite{chen2025toleap}: the model itself performs at frontier
+level when prompted through its native template. The constrained
+configurations sit below the frontier range. CD (72.75\%) is 6.00~pp
+below the weakest frontier entry (GPT-5-mini, 78.75\%) and 18.25~pp
+below the weakest flagship model (GPT-4.1, 91.00\%); CD+FT-aligned
+(76.75\%) narrows these gaps to 2.00~pp and 14.25~pp respectively. The
+gap to the best frontier model (Claude Sonnet~4.5 at 97.75\%) is
+21.00 percentage points.
 
-This suggests that for single-call function calling with a well-defined schema, constrained decoding on a 7B model closes the gap to frontier-level performance. The remaining gap is driven by argument value accuracy, not format compliance or function selection, which is the same bottleneck that limits the frontier models themselves.
+Constrained decoding therefore closes the integration gap, not the
+frontier gap: it converts a 1.5\% floor into 72.75\% with structural
+guarantees, while the comparison with B-template locates the remaining
+deficit in the model-agnostic pipeline rather than in the model. The
+residual gap is driven by argument value accuracy, on a pipeline whose
+prompts omit the schema detail that both the native template and the
+frontier APIs receive.
 
 A note on statistical precision: with $n=400$ binary test cases, the 95\%
 Wilson confidence interval is approximately $\pm$4.1--4.4~pp for accuracy
-values near 72--77\%. The differences between CD (72.75\%) and GPT-4.1 (72.67\%),
-and between CD+FT-aligned (76.75\%) and Claude Opus~4.5 (76.83\%), are
-therefore within the confidence interval of a single evaluation run.
-These comparisons are best interpreted as showing parity rather than a
-definitive ranking. Frontier model scores are taken from the official
+values near 72--77\%. The difference between CD+FT-aligned (76.75\%) and
+GPT-5-mini (78.75\%) is therefore within the confidence interval of a
+single evaluation run, and that comparison is best interpreted as
+parity with the weakest frontier entry rather than a definitive
+ranking; the 14~pp or larger gaps to the flagship models are well
+outside it. Frontier model scores are taken from the official
 BFCL leaderboard and are not re-evaluated under the same harness, so
-methodology differences may further affect comparability. The
-B-template control underlines this caveat: 96.00\% under the local
-harness exceeds every frontier leaderboard score in
-Table~\ref{tab:frontier-comparison}, which is more plausibly explained
-by differences between the local evaluation and the leaderboard's
-category composition and scoring than by the 7B model outperforming
-frontier models. Cross-harness comparisons in this section are
-therefore indicative only; the internally consistent comparisons are
-those between configurations evaluated under the same local harness.
+methodology differences may affect comparability at the margin. The
+B-template control bounds this concern: 96.00\% under the local
+harness falls inside the 94.75\%--97.75\% flagship band on the same
+category, indicating that the local evaluation and the leaderboard
+are commensurable at the category level. Cross-harness comparisons in
+this section remain indicative; the internally consistent comparisons
+are those between configurations evaluated under the same local
+harness.
 
-However, this result requires careful interpretation. The \texttt{simple\_python} category is the least demanding BFCL scenario: single-turn, single-function calls with no selection ambiguity (one candidate function per test case). Both constrained decoding and frontier models' native tool-calling APIs guarantee valid JSON and valid function names, levelling the playing field on format compliance. The only differentiator is argument value accuracy, where a 7B model can be competitive on straightforward lookups.
+The frontier comparison also requires scope interpretation. The \texttt{simple\_python} category is the least demanding BFCL scenario: single-turn, single-function calls with no selection ambiguity (one candidate function per test case). Both constrained decoding and frontier models' native tool-calling APIs guarantee valid JSON and valid function names, levelling the playing field on format compliance. The differentiator is argument value accuracy, where flagship frontier models hold a 14--21~pp advantage over the best constrained configuration, while the same 7B model under its native template is competitive with them.
 
 Frontier models distinguish themselves on harder tasks. Their BFCL overall
 scores, which weight multi-turn (30\%) and agentic tasks (40\%), remain
@@ -769,9 +784,10 @@ CD accuracy scales consistently with model size. The 0.5B model achieves
 achieves 72.75\%. The CD gain over Base also increases with model size, from
 48.0~pp at 0.5B to 71.25~pp at 7B. Larger models produce fewer argument value
 errors once format compliance is enforced, and a larger fraction of their
-latent capability is unlocked by the constraint mechanism. The 0.5B model
-already reaches 51.50\% under CD, approaching GPT-5-mini (59.92\%), while
-the 7B model exceeds GPT-4.1 (72.67\%).
+latent capability is unlocked by the constraint mechanism. No size reaches
+the frontier range on this category (78.75\%--97.75\%); the 7B model under
+CD comes within 6.00~pp of the weakest frontier entry (GPT-5-mini,
+78.75\%).
 
 AWQ INT4 quantization applied to CD produces a size-dependent accuracy cost.
 At 0.5B the penalty is 3.75~pp (51.50\% $\to$ 47.75\%); at 1.5B it falls to
