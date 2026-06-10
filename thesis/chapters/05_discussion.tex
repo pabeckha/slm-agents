@@ -13,13 +13,16 @@ without guidance.
 
 This distinction has a direct consequence for interpreting the frontier
 comparison. CD achieves 72.75\% on BFCL~v4 \texttt{simple\_python},
-matching GPT-4.1 (72.67\%) and Claude Sonnet~4.5 (72.58\%), and exceeding
-Claude Haiku~4.5 (71.00\%)~\cite{bfcl2024}.\footnote{Frontier model scores are taken from the BFCL~v4 leaderboard, accessed 2026-06-04. The live leaderboard is updated over time, so these values represent a snapshot at that date.} The primary mechanism is that
-constrained decoding enforces valid JSON and valid function names by
-construction, which is precisely what frontier models' native tool-calling
-APIs also do. Once format compliance is equalized, a 7B model and a frontier
-model are distinguished only by argument value accuracy, where a smaller
-model can remain competitive on straightforward single-function queries.
+6.00~pp below the weakest frontier entry on the same category (GPT-5-mini,
+78.75\%) and 18.25--25.00~pp below flagship frontier models
+(91.00\%--97.75\%)~\cite{bfcl2024}.\footnote{Frontier model scores are the Python Simple AST sub-category of the BFCL~v4 leaderboard, accessed 2026-06-04 and re-verified 2026-06-10; see the comparability note in Section~\ref{sec:frontier-comparison}.} Constrained decoding enforces valid JSON and valid function
+names by construction, which is precisely what frontier models' native
+tool-calling APIs also do. Once format compliance is equalized, a 7B model
+and a frontier model are distinguished only by argument value accuracy.
+There the constrained pipeline trails the flagship models by 14~pp or
+more, while the same model under its native template (B-template, 96.00\%)
+is competitive with them: the deficit belongs to the model-agnostic
+pipeline, not to the model.
 
 The comparison is specific to the \texttt{simple\_python} category. Each test
 case provides exactly one candidate function, eliminating function selection
@@ -27,19 +30,20 @@ as a source of error. With one candidate and \texttt{guided\_choice},
 selection accuracy is 100\% regardless of model size. The remaining 27.25\%
 failure rate is entirely in argument values: wrong optional parameter defaults,
 numeric precision errors, and string format mismatches. Frontier models make
-the same class of errors; the gap of 6.83 percentage points to Gemini~3 Pro
-(79.58\%) reflects a higher frequency of correct value conventions in larger
-models, not a qualitatively different failure mode.
+the same class of errors at a lower rate; the gap of 25.00 percentage points
+to the best frontier model (Claude Sonnet~4.5, 97.75\%) reflects a higher
+frequency of correct value conventions under prompts that carry the full
+schema detail, not a qualitatively different failure mode.
 
 The implication for RQ1 is that the raw gap of approximately
-78 percentage points between the model-agnostic baseline (7B Base at 1.5\%)
-and the best frontier model (Gemini~3 Pro at 79.58\%)
-collapses to approximately 7 percentage points with constrained decoding
+96 percentage points between the model-agnostic baseline (7B Base at 1.5\%)
+and the best frontier model (Claude Sonnet~4.5 at 97.75\%)
+collapses to approximately 25 percentage points with constrained decoding
 alone, on this benchmark category. Two readings of this gap must be kept
 apart. The 1.5\% baseline characterises a generic integration without the
 model's native tool-calling template; the B-template control measures the
 same model at 96.00\% with native prompting and free generation
-(Chapter~\ref{ch:methodology}), so the 78~pp figure measures the cost of
+(Chapter~\ref{ch:methodology}), so the 96~pp figure measures the cost of
 naive integration, not a capability deficit of the model. What the
 constrained decoding result adds is that format compliance can be restored
 structurally, with guarantees independent of any model-specific template.
@@ -365,6 +369,10 @@ SLM correctly handles a fraction $p$ of requests saves $p \cdot c$ per
 query relative to routing all traffic to the frontier model.
 CD+Q achieves $p \approx 0.72$, CD+Q+FT-aligned achieves $p \approx 0.74$,
 and CD+FT-aligned achieves $p \approx 0.77$, all on a single consumer GPU\@.
+The cascade criterion of RQ3 (Chapter~\ref{ch:introduction}) adopts
+$p \geq 0.70$ as its reference point: at that fraction the local tier
+eliminates at least 70\% of per-query API costs, which all four
+constrained configurations at 7B exceed.
 These values are upper-bound estimates: after constrained decoding is
 applied, every SLM output is structurally valid, removing structural
 routing signals. Achieving $p$ close to the measured accuracy requires a
@@ -381,7 +389,7 @@ quickly enough to recover the fine-tuning compute cost; the no-training
 CD+Q configuration is preferable. At high throughput, the per-query
 saving compounds and the break-even point moves earlier in the
 deployment lifecycle. The exact break-even is deployment-specific, but
-the 2.0--5.0~pp accuracy range separating the three production-viable
+the 2.0--5.0~pp accuracy range separating the cascade-viable
 configurations represents a concrete trade-off space.
 
 The residual failure classes common to all configurations (wrong optional

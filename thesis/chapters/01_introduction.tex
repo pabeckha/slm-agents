@@ -52,15 +52,16 @@ across eleven configurations on BFCL~v4 \texttt{simple\_python}.
 Constrained decoding alone eliminates format compliance failures
 at every model size, raising accuracy from 1.5--4.75\% (unoptimized)
 to 51.50--72.75\% depending on size, without modifying model weights.
-The 0.5B model reaches 51.50\% under constrained decoding, within
-8.42~pp of GPT-5-mini (59.92\%) without any training.
+The 0.5B model reaches 51.50\% under constrained decoding without
+any training.
 AWQ INT4 quantization reduces memory by 63.5\% at the 7B size
 (from 14.25~GiB to 5.20~GiB) at a cost of at most 0.5~pp above
 1.5B, within run-to-run variance.
 Format-aligned LoRA fine-tuning improves accuracy at every size.
-At 7B, the CD+FT-aligned configuration achieves 76.75\%, within
-0.08~pp of Claude Opus~4.5 (76.83\%) on the same benchmark on a
-single consumer GPU.
+At 7B, the CD+FT-aligned configuration achieves 76.75\% on a single
+consumer GPU, within single-run uncertainty of the weakest frontier
+entry on the same category (GPT-5-mini, 78.75\%) and 14--21~pp below
+flagship frontier models (91.00\%--97.75\%).
 The quantized fine-tuned variant (Config~CD+Q+FT-aligned) achieves
 74.25\% on the same 5.20~GiB footprint.
 The failures that persist across all configurations and sizes are
@@ -149,15 +150,19 @@ This thesis addresses three research questions:
 
 \noindent RQ1 establishes the baseline gap that motivates the work. RQ2 is the core empirical contribution: an incremental ablation study that isolates the marginal impact of each technique. RQ3 addresses the practical question of whether the optimized configuration is viable for real-world deployment.
 
-For RQ3, production-viable is defined explicitly as meeting two
-conditions: single-call accuracy within the range spanned by deployed
-frontier models on the same benchmark category (at least 71.00\%, the
-lowest frontier score in the comparison set of
-Chapter~\ref{ch:results}), and a memory footprint that fits a single
-consumer GPU (24~GiB). The criterion is scoped to single-call,
-schema-constrained tool calling. It does not cover multi-turn task
-completion, and it presumes that residual failures are handled by
-escalation to a frontier model in a cascade deployment.
+For RQ3, production viability is assessed against two explicit
+criteria. The first is frontier parity: single-call accuracy within
+the range spanned by deployed frontier models on the same benchmark
+category (78.75\%--97.75\% on the Python simple-AST category; the
+comparison set is given in Chapter~\ref{ch:results}). The second is
+cascade viability: a memory footprint that fits a single consumer GPU
+(24~GiB), combined with single-call accuracy high enough that the
+local tier handles a substantial fraction of traffic ($p \geq 0.70$
+is used as the reference point in the cost model of
+Chapter~\ref{ch:discussion}). Both criteria are scoped to single-call,
+schema-constrained tool calling. Neither covers multi-turn task
+completion, and the cascade criterion presumes that residual failures
+are handled by escalation to a frontier model in a cascade deployment.
 
 To answer these questions, the thesis evaluates an incremental pipeline of methods, ordered by implementation cost. No-training methods are evaluated first (constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}, quantization~\cite{lin2024awq}), followed by training-based methods (LoRA fine-tuning~\cite{hu2022lora}). Each method is assessed both individually and in combination, measuring its marginal contribution to tool-calling accuracy and reasoning quality.
 
@@ -176,9 +181,10 @@ The main contributions of this thesis are:
     marginal contribution of constrained decoding, prompt engineering,
     inference-time chain-of-thought, retrieval-augmented generation,
     quantization, and LoRA fine-tuning to BFCL \texttt{simple\_python}
-    accuracy. The best configuration (CD+FT-aligned, 76.75\%) is on par
-    with Claude Opus 4.5 (76.83\%) on the same benchmark within
-    single-run uncertainty.
+    accuracy. The best configuration (CD+FT-aligned, 76.75\%) lies
+    within single-run uncertainty of the weakest frontier entry on the
+    same category (GPT-5-mini, 78.75\%) while remaining 14--21~pp below
+    flagship frontier models.
     \item A scaling analysis across Qwen~2.5 0.5B, 1.5B, 3B, and 7B
     showing that constrained decoding gains scale with model size
     (48~pp at 0.5B to 71.25~pp at 7B), that quantization cost is

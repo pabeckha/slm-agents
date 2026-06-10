@@ -23,17 +23,20 @@ than an intrinsic capability deficit: the B-template control, which
 prompts the same model through its native tool-calling template with
 free generation and full schemas, reaches 96.00\% (384/400) on the
 same test cases.
-Frontier models range from 71.00\% (Claude Haiku~4.5) to 79.58\%
-(Gemini~3 Pro)~\cite{bfcl2024}.
-Constrained decoding closes the gap at every size without modifying
-model weights, raising accuracy to 51.50\% (0.5B), 62.25\% (1.5B),
-64.75\% (3B), and 72.75\% (7B).
+Frontier models range from 78.75\% (GPT-5-mini) to 97.75\%
+(Claude Sonnet~4.5) on the same category, with flagship models at
+91.00\% or above~\cite{bfcl2024}; the B-template control falls inside
+that flagship band.
+Constrained decoding closes most of the integration gap at every size
+without modifying model weights, raising accuracy to 51.50\% (0.5B),
+62.25\% (1.5B), 64.75\% (3B), and 72.75\% (7B).
 At 7B, the residual gap to the best frontier model is approximately
-7~pp, with performance matching GPT-4.1 (72.67\%) and Claude
-Sonnet~4.5 (72.58\%).
+25~pp, and 6.00~pp to the weakest frontier entry (GPT-5-mini,
+78.75\%).
 The residual gap is in argument value accuracy, where frontier models
-have a moderate advantage attributable to stronger learned associations
-for specific numeric, string, and format conventions.
+and the native-template configuration share an advantage attributable
+to prompts that carry the full schema detail and to stronger learned
+associations for specific numeric, string, and format conventions.
 
 \paragraph{RQ2.} \textit{What is the marginal contribution of each optimization
 technique (constrained decoding, prompt engineering, retrieval-augmented
@@ -71,8 +74,8 @@ The format mismatch hypothesis is confirmed by CD+FT-aligned, which
 reformats training outputs to match the inference pipeline exactly.
 CD+FT-aligned improves accuracy at every size: $+7.75$~pp at 0.5B,
 $+3.75$~pp at 1.5B, $+2.00$~pp at 3B, and $+4.00$~pp at 7B
-(76.75\%, on par with Claude Opus~4.5 at 76.83\% within single-run
-uncertainty).
+(76.75\%, within single-run uncertainty of the weakest frontier
+entry, GPT-5-mini at 78.75\%).
 CD+Q+FT-aligned applies AWQ INT4 quantization to the format-aligned
 LoRA-merged model and achieves 74.25\% (297/400) at 7B on the same
 5.20~GiB footprint.
@@ -97,25 +100,37 @@ carry, alongside the model's learned value priors.
 \paragraph{RQ3.} \textit{Can a fully optimized small language model configuration
 achieve production-viable tool-calling accuracy on consumer hardware?}
 
-Against the viability criterion defined in
-Chapter~\ref{ch:introduction} (single-call accuracy within the range
-spanned by deployed frontier models on the same category, on a single
-consumer GPU), three configurations qualify. CD+Q achieves 72.25\% on
-5.20~GiB of GPU memory
-with no training required, fitting on a consumer NVIDIA RTX~4090 (24~GiB)
-with substantial remaining capacity for the key-value cache.
-CD+Q+FT-aligned achieves 74.25\% on the same 5.20~GiB footprint, adding
-a format-aligned LoRA adapter merged and quantized to INT4 before
-deployment. CD+FT-aligned achieves 76.75\% with the merged adapter at
-full bfloat16 precision. The criterion is deliberately scoped: it
-covers single-call, schema-constrained tool calling, and it presumes
-that the residual semantic failures (23--28\% of requests, which are
-structurally valid and therefore not detectable by output validation)
-are absorbed by escalation in a cascade deployment. Under that
-scoping, a fully optimized SLM configuration is production-viable on
-consumer hardware, with training data alignment as the binding
-constraint on the achievable accuracy ceiling; multi-turn agentic
-workloads remain outside the viable region (Section~\ref{sec:future-work}).
+Production viability is assessed against the two criteria defined in
+Chapter~\ref{ch:introduction}. Against frontier parity, no constrained
+configuration qualifies: the frontier range on the same category is
+78.75\%--97.75\%, and the best constrained configuration
+(CD+FT-aligned, 76.75\%) falls 2.00~pp short of the weakest frontier
+entry, within single-run uncertainty, and 14--21~pp short of flagship
+models. The B-template control (96.00\%) shows that the model itself
+reaches the flagship band; the deficit is attributable to the
+model-agnostic pipeline, and carrying the full schema detail into its
+prompts (Section~\ref{sec:future-work}) is the open experiment that
+would test whether parity is reachable with the structural guarantees
+intact. Against the cascade criterion (a single consumer GPU and a
+local tier handling $p \geq 0.70$ of single-call traffic), four
+configurations qualify. CD+Q achieves 72.25\% on 5.20~GiB of GPU
+memory with no training required, fitting on a consumer NVIDIA
+RTX~4090 (24~GiB) with substantial remaining capacity for the
+key-value cache. CD+Q+FT-aligned achieves 74.25\% on the same
+5.20~GiB footprint, adding a format-aligned LoRA adapter merged and
+quantized to INT4 before deployment. CD+FT-aligned achieves 76.75\%
+and CD 72.75\% with the merged or base model at full bfloat16
+precision (14.25~GiB). The criteria are deliberately scoped: they
+cover single-call, schema-constrained tool calling, and the cascade
+criterion presumes that the residual semantic failures (23--28\% of
+requests, which are structurally valid and therefore not detectable
+by output validation) are absorbed by escalation in a cascade
+deployment. Under that scoping, an optimized SLM configuration is
+cascade-viable on consumer hardware while frontier parity remains
+open, with training data alignment and the pipeline's schema
+information loss as the binding constraints on the achievable
+accuracy ceiling; multi-turn agentic workloads remain outside the
+viable region (Section~\ref{sec:future-work}).
 
 \section{Practical Deployment Guidelines}
 
@@ -165,8 +180,8 @@ by additional structure in the prompt.
 ceiling.}
 Format-aligned LoRA fine-tuning is the only configuration that improves
 on constrained decoding alone. Config~CD+FT-aligned achieves 76.75\%,
-on par with Claude Opus~4.5 (76.83\%) on the same benchmark within
-single-run uncertainty. The binding
+within single-run uncertainty of the weakest frontier entry on the same
+category (GPT-5-mini, 78.75\%). The binding
 constraint is training data alignment: the training distribution must
 match the inference pipeline's output format exactly. Applying the
 merged adapter to the quantized model (Config~CD+Q+FT-aligned) yields

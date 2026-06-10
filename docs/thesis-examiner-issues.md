@@ -105,8 +105,19 @@ Status legend: [ ] open · [~] partially fixed (needs HPC data or author decisio
 - [x] McNemar discordant counts from HPC result files (issue 4) — done
   2026-06-09; the original per-case files behind the exact 291/289 figures were
   overwritten, so the tests use the surviving paired files (CD at 289/400).
-- [ ] Optional: BFCL v4 leaderboard entry for Qwen 2.5 7B-Instruct (issue 1) —
-  tracked as GitHub issue #142.
+- [x] BFCL v4 leaderboard check (issue 1, GitHub issue #142) — done 2026-06-10
+  with a major finding: no Qwen2.5-7B-Instruct entry exists, but the frontier
+  scores previously quoted in Table 4.6 were the leaderboard's "Simple AST"
+  column, an unweighted mean over Python (400), Java (100), and JavaScript (50)
+  sub-categories. The correct same-category comparator is "Python Simple AST"
+  (present only in `data_non_live.csv`, not in the page UI): Sonnet 4.5 97.75%,
+  Opus 4.5 96.50%, Haiku 4.5 95.00%, Gemini 3 Pro 94.75%, GPT-4.1 91.00%,
+  GPT-4.1-mini 91.00%, GPT-5-mini 78.75%. All frontier-parity claims were
+  corrected (abstract, §1.1, §1.3, §1.4, Table 4.6, Figs 4.1/4.5/4.6, §4.5,
+  §4.7, §5.1, §5.4, §6.1, §6.2); RQ3 now uses a split criterion (frontier
+  parity: not met; cascade viability at p >= 0.70: met by four configurations).
+  The B-template control (96.00%) falls inside the flagship band
+  (94.75–97.75%), resolving the earlier cross-harness anomaly.
 - [ ] Optional: guided decoding latency measurements (issue 7) — Task 3,
   tracked as GitHub issue #141.
 - [ ] Follow-up experiment: schema-enriched constrained decoding (carry full
@@ -115,5 +126,5 @@ Status legend: [ ] open · [~] partially fixed (needs HPC data or author decisio
 
 ## Build status
 
-`latexmk -pdf main.tex` compiles cleanly (62 PDF pages); no undefined references
+`latexmk -pdf main.tex` compiles cleanly (64 PDF pages); no undefined references
 or citations; figures regenerated via `scripts/figures/plot_bfcl_results.py`.
