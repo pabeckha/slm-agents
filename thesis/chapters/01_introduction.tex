@@ -48,7 +48,7 @@ B-template, is analysed in Chapter~\ref{ch:discussion}.
 
 This thesis investigates that assumption directly.
 Four Qwen~2.5 Instruct sizes (0.5B, 1.5B, 3B, and 7B) are evaluated
-across eleven configurations on BFCL~v4 \texttt{simple\_python}.
+across twelve configurations on BFCL~v4 \texttt{simple\_python}.
 Constrained decoding alone eliminates format compliance failures
 at every model size, raising accuracy from 1.5--4.75\% (unoptimized)
 to 51.50--72.75\% depending on size, without modifying model weights.
@@ -60,10 +60,13 @@ AWQ INT4 quantization reduces memory by 63.5\% at the 7B size
 Format-aligned LoRA fine-tuning improves accuracy at every size.
 At 7B, the CD+FT-aligned configuration achieves 76.75\% on a single
 consumer GPU, within single-run uncertainty of the weakest frontier
-entry on the same category (GPT-5-mini, 78.75\%) and 14--21~pp below
-flagship frontier models (91.00\%--97.75\%).
-The quantized fine-tuned variant (Config~CD+Q+FT-aligned) achieves
-74.25\% on the same 5.20~GiB footprint.
+entry on the same category (GPT-5-mini, 78.75\%).
+Schema-enriched constrained decoding (Config~CD+schema), which adds
+parameter descriptions, enumeration values, and defaults to the
+argument extraction prompt while keeping the FSM mask unchanged,
+raises 7B accuracy to 89.0\% ($+$16.25~pp over plain CD,
+McNemar $p < 0.00001$), entering the frontier range above GPT-5-mini
+without modifying model weights.
 The failures that persist across all configurations and sizes are
 semantic rather than structural: wrong optional parameter defaults,
 numeric precision mismatches, and string format conventions that the
@@ -177,14 +180,15 @@ The main contributions of this thesis are:
     to 51.50--72.75\%, by eliminating format failures without any
     modification to model weights and without relying on
     model-specific prompt templates.
-    \item An incremental ablation study across eleven configurations that isolates the
+    \item An incremental ablation study across twelve configurations that isolates the
     marginal contribution of constrained decoding, prompt engineering,
     inference-time chain-of-thought, retrieval-augmented generation,
-    quantization, and LoRA fine-tuning to BFCL \texttt{simple\_python}
-    accuracy. The best configuration (CD+FT-aligned, 76.75\%) lies
-    within single-run uncertainty of the weakest frontier entry on the
-    same category (GPT-5-mini, 78.75\%) while remaining 14--21~pp below
-    flagship frontier models.
+    quantization, LoRA fine-tuning, and schema-enriched prompting to
+    BFCL \texttt{simple\_python} accuracy. Schema-enriched constrained
+    decoding (CD+schema, 89.0\%) is the strongest no-training
+    configuration and the first to enter the frontier range
+    (10.25~pp above GPT-5-mini, 78.75\%); CD+FT-aligned (76.75\%)
+    is within single-run uncertainty of GPT-5-mini.
     \item A scaling analysis across Qwen~2.5 0.5B, 1.5B, 3B, and 7B
     showing that constrained decoding gains scale with model size
     (48~pp at 0.5B to 71.25~pp at 7B), that quantization cost is
