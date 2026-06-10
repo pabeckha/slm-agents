@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from .schema import FunctionDef
 
 
@@ -148,6 +150,34 @@ def build_argument_extraction_prompt(
     return "\n".join(lines)
 
 
+def _format_parameter_lines(func: FunctionDef) -> str:
+    """Render one line per parameter with full schema detail.
+
+    Used by the schema-rich argument extraction prompt (Config CD+schema) to
+    carry the parameter descriptions, allowed values, and defaults that the
+    compact ``name (type)`` listing omits. Values are JSON-encoded so string
+    defaults keep their quoting (e.g. ``"all"`` rather than ``all``).
+    """
+    required = set(func.required) if func.required is not None else set(func.parameters)
+    lines = ["Parameters:"]
+    for name, param in func.parameters.items():
+        requirement = "required" if name in required else "optional"
+        line = f"- {name} ({param.type}, {requirement})"
+        details = []
+        if param.description:
+            details.append(param.description.strip().rstrip("."))
+        if param.enum:
+            details.append(
+                "Allowed values: " + ", ".join(json.dumps(v) for v in param.enum)
+            )
+        if param.has_default:
+            details.append("Default: " + json.dumps(param.default))
+        if details:
+            line += ": " + ". ".join(details) + "."
+        lines.append(line)
+    return "\n".join(lines)
+
+
 def build_reasoning_prompt(func: FunctionDef, query: str) -> str:
     """Build a chain-of-thought prompt for the ITC reasoning step.
 
@@ -175,6 +205,7 @@ def build_args_extraction_prompt(
     *,
     few_shot: bool = False,
     reasoning: str | None = None,
+    schema_rich: bool = False,
 ) -> str:
     """Build a prompt for extracting all arguments as a single JSON object.
 
@@ -184,12 +215,24 @@ def build_args_extraction_prompt(
     Args:
         func: The function being called.
         query: The natural-language user request.
-        few_shot: If True, prepend few-shot examples to the prompt.
+        few_shot: If True, prepend few-shot examples to the prompt. The
+            examples use the compact parameter format, so this option must
+            not be combined with ``schema_rich``.
         reasoning: Optional CoT reasoning text to inject before the JSON anchor.
+        schema_rich: If True, insert a per-parameter block carrying the
+            descriptions, allowed values, and defaults from the source schema
+            (Config CD+schema). The structural constraint is unchanged; only
+            the prompt gains information.
 
     Returns:
         A formatted prompt string ending with ``JSON: ``.
     """
+    if few_shot and schema_rich:
+        raise ValueError(
+            "few_shot and schema_rich are mutually exclusive: the few-shot "
+            "examples use the compact parameter format"
+        )
+
     arg_desc = ", ".join(
         f"{name} ({param.type})" for name, param in func.parameters.items()
     )
@@ -202,8 +245,10 @@ def build_args_extraction_prompt(
     body = (
         f"Function: {_signature(func)}\n"
         f"Description: {func.description}\n"
-        f"User request: {query}\n"
     )
+    if schema_rich:
+        body += f"{_format_parameter_lines(func)}\n"
+    body += f"User request: {query}\n"
     if reasoning:
         body += f"Reasoning: {reasoning.strip()}\n"
     body += (
