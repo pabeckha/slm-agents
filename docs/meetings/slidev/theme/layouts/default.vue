@@ -48,6 +48,18 @@
   margin-bottom: 1rem;
 }
 
+.default-body :deep(ul) {
+  list-style: disc;
+  padding-left: 1.4em;
+  margin-bottom: 0.5rem;
+}
+
+.default-body :deep(ol) {
+  list-style: decimal;
+  padding-left: 1.4em;
+  margin-bottom: 0.5rem;
+}
+
 .default-body :deep(li) {
   font-size: 0.88rem;
   line-height: 1.5;

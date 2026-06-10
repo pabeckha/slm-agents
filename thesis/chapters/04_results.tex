@@ -110,6 +110,64 @@ examples~\cite{brown2020language}. The model's internal representation
 associates ``acceleration due to gravity'' with 9.8 and ``fuel type'' with
 ``gasoline''; these priors are not shifted by example presentation alone.
 
+\subsection{Schema-Enriched Constrained Decoding}
+\label{sec:cd-schema}
+
+Config~CD+schema enriches the Stage~2 argument extraction prompt with
+the full parameter schema detail: descriptions, default values, and
+enumeration constraints from the BFCL function definitions.
+All preceding configurations expose only parameter names and types.
+
+CD+schema achieves 356/400 = 89.0\% AST accuracy on
+\texttt{simple\_python}, an increase of 16.5~pp over the paired CD
+baseline (290/400, 72.5\%). A paired McNemar test on stored per-case
+predictions yields Table~\ref{tab:mcnemar-schema}.
+
+\begin{table}[ht]
+\centering
+\caption{Paired McNemar contingency for CD+schema vs.\ CD (7B,
+         \texttt{simple\_python}, 400 cases).
+         $b$ = CD wrong, CD+schema correct;
+         $c$ = CD+schema wrong, CD correct.}
+\label{tab:mcnemar-schema}
+\begin{tabular}{lr}
+\toprule
+Outcome & Count \\
+\midrule
+Both correct              & 283 \\
+Both wrong                & 37  \\
+CD wrong, CD+schema correct ($b$) & 73  \\
+CD+schema wrong, CD correct ($c$) & 7   \\
+\midrule
+\multicolumn{2}{l}{$p < 0.00001$ (exact two-sided McNemar)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent The result is unambiguous: 73 vs.\ 7 discordant pairs
+cannot be produced by the $\pm$0.5~pp run-to-run spread documented
+elsewhere in this chapter. The schema enrichment corrects cases whose
+failure after plain CD was attributable to missing value vocabulary:
+\texttt{fuel\_type} parameters with an enum (\texttt{"gas"},
+\texttt{"electric"}, \texttt{"hybrid"}) visible in the prompt, or
+\texttt{discount\_rate} parameters whose description specifies a
+decimal fraction rather than a percentage.
+
+The 44 remaining failures (11.0\%) are predominantly
+value-strictness artifacts in the benchmark ground truth:
+\texttt{"Los Angeles"} where the scorer expects
+\texttt{"Los Angeles, CA"}, \texttt{1e-05} where it expects
+\texttt{0.0001}, or unit synonyms both valid in a real API.
+The model selects from the correct vocabulary; the AST equality
+check penalises the literal mismatch. These residual cases are not
+addressable by further schema enrichment.
+
+Inference latency is not increased by schema enrichment.
+The mean per-call latency for CD+schema is 0.704~s (median
+0.650~s, p95 1.086~s) across the full 400 sequential cases.
+Section~\ref{sec:latency} reports the full latency comparison
+across configurations.
+
 \subsection{Inference-Time Compute}
 
 A chain-of-thought reasoning step is inserted between function selection and
@@ -250,6 +308,49 @@ distribution over all 400 test cases.
          extraction error; 66\% of outputs are identical to CD+Q.}
 \label{fig:rag-breakdown}
 \end{figure}
+
+\subsection{Per-Call Inference Latency}
+\label{sec:latency}
+
+Table~\ref{tab:latency} reports per-call inference latency for three
+configurations measured on the first 100 sequential \texttt{simple\_python}
+test cases.
+
+\begin{table}[ht]
+\centering
+\caption{Per-call inference latency for Qwen~2.5 7B-Instruct on BFCL~v4
+\texttt{simple\_python} (first 100 cases, sequential dispatch, single
+L40S GPU, vLLM backend). AST accuracy is shown for context.}
+\label{tab:latency}
+\begin{tabular}{lrrrr}
+\toprule
+Config & Mean (s) & Median (s) & p95 (s) & Accuracy \\
+\midrule
+B (no CD)  & 6.995 & 6.929 & 11.922 & 1\%  \\
+CD         & 0.878 & 0.847 &  1.375 & 65\% \\
+CD+Q (AWQ) & 0.661 & 0.623 &  1.006 & 63\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent Constrained decoding is 8$\times$ faster than the unconstrained
+baseline (0.878~s vs.\ 6.995~s mean). The unconstrained model appends
+explanations, markdown formatting, or additional JSON objects after the
+function call, generating far more tokens per request; the \texttt{Extra data}
+parse errors observed in Base are direct evidence of this behaviour.
+Constrained decoding terminates generation at the closing brace of a
+valid call, eliminating the surplus tokens. The per-step overhead of the
+logit mask does not reverse this advantage.
+
+AWQ INT4 quantization reduces latency by a further 25\% (0.661~s vs.\
+0.878~s mean; p95 1.006~s vs.\ 1.375~s). The two-case accuracy difference
+between CD (65/100) and CD+Q (63/100) in this subset is within the expected
+run-to-run variance; the first 100 cases contain a higher proportion of
+numeric-precision and enum-style cases than the full 400-case set.
+
+Schema-enriched constrained decoding (Section~\ref{sec:cd-schema})
+introduces no additional latency: the per-call mean across the full
+sequential 400-case run is 0.704~s, within the range observed for plain CD.
 
 \subsection{Technique Isolation Without Constrained Decoding}
 \label{sec:technique-isolation}
@@ -482,13 +583,14 @@ changes.
 Despite the larger quantization penalty, the full stack retains a positive
 return on fine-tuning: CD+Q+FT-aligned (74.25\%) outperforms both the
 no-training ceiling Config~CD (72.75\%) and the quantized baseline
-Config~CD+Q (72.25\%). McNemar's exact test on the stored paired
-predictions (46 cases corrected, 37 broken, $p = 0.38$) shows that this
-residual gain does not reach significance on its own: unlike the
-full-precision comparison, the quantized stack's advantage over CD+Q is
-within discordant-pair noise, so the retention of the training signal
-after quantization should be read as directional rather than
-statistically established. From a deployment perspective, CD+Q+FT-aligned occupies
+Config~CD+Q (72.25\%). McNemar's exact test on the stored paired predictions (the CD+Q run
+scores 288/400 in the stored file, within the documented 288--289
+run-to-run spread; CD+Q+FT-aligned scores 297/400; 46 cases corrected,
+37 broken, $p = 0.38$) shows that this residual gain does not reach
+significance on its own: unlike the full-precision comparison, the
+quantized stack's advantage over CD+Q is within discordant-pair noise,
+so the retention of the training signal after quantization should be
+read as directional rather than statistically established. From a deployment perspective, CD+Q+FT-aligned occupies
 the same memory footprint as Config~CD+Q (approximately 5.2~GiB of GPU
 memory), making fine-tuned capability available on consumer hardware at
 INT4 size.
@@ -516,7 +618,8 @@ PE              & CD + few-shot                      & 70.25\% & $-2.50$~pp  \\
 CD+Q            & CD + AWQ INT4                      & 72.25\% & $-0.50$~pp  \\
 CD              & Constrained decoding               & 72.75\% & --          \\
 CD+Q+FT-aligned & CD + AWQ INT4 + format-aligned LoRA & 74.25\% & $+1.50$~pp  \\
-CD+FT-aligned   & CD + format-aligned LoRA           & \textbf{76.75\%} & $\mathbf{+4.00}$~pp \\
+CD+FT-aligned   & CD + format-aligned LoRA           & 76.75\% & $+4.00$~pp  \\
+\textbf{CD+schema} & \textbf{CD + full schema detail (7B only)} & \textbf{89.0\%} & $\mathbf{+16.25}$~pp \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -555,7 +658,8 @@ GPT-4.1-mini          & Frontier & 91.00\% \\
 GPT-5-mini            & Frontier & 78.75\% \\
 \midrule
 Qwen 2.5 7B B-template (control) & SLM (ours) & 96.00\% \\
-Qwen 2.5 7B + CD+FT-aligned & SLM (ours) & \textbf{76.75\%} \\
+\textbf{Qwen 2.5 7B + CD+schema}     & \textbf{SLM (ours)} & \textbf{89.0\%}  \\
+Qwen 2.5 7B + CD+FT-aligned & SLM (ours) & 76.75\% \\
 Qwen 2.5 7B + CD            & SLM (ours) & 72.75\% \\
 Qwen 2.5 7B + PE            & SLM (ours) & 70.25\% \\
 Qwen 2.5 7B (raw)           & SLM (ours) & 1.50\%  \\
@@ -570,8 +674,7 @@ Qwen 2.5 7B (raw)           & SLM (ours) & 1.50\%  \\
          (this work) vs.\ frontier models from the official leaderboard
          (Python Simple AST category). The native-template control
          (B-template, 96.00\%) lies within the flagship frontier band;
-         the best constrained configuration (CD+FT-aligned, 76.75\%)
-         is within single-run uncertainty of GPT-5-mini (78.75\%).}
+         CD+schema (89.0\%) enters the frontier range above GPT-5-mini.}
 \label{fig:frontier-comparison}
 \end{figure}
 
@@ -582,21 +685,19 @@ within the band spanned by flagship frontier models on this category
 (94.75\%--97.75\%), consistent with the 94.50\% reported for the same
 model under the official harness on an earlier benchmark
 revision~\cite{chen2025toleap}: the model itself performs at frontier
-level when prompted through its native template. The constrained
-configurations sit below the frontier range. CD (72.75\%) is 6.00~pp
-below the weakest frontier entry (GPT-5-mini, 78.75\%) and 18.25~pp
-below the weakest flagship model (GPT-4.1, 91.00\%); CD+FT-aligned
-(76.75\%) narrows these gaps to 2.00~pp and 14.25~pp respectively. The
-gap to the best frontier model (Claude Sonnet~4.5 at 97.75\%) is
-21.00 percentage points.
+level when prompted through its native template. Plain CD (72.75\%) and
+CD+FT-aligned (76.75\%) sit below the frontier range; CD+schema (89.0\%),
+which adds full parameter schema detail to the constrained prompt, enters
+the frontier range, sitting 5.75~pp above GPT-5-mini and 2.00~pp below GPT-4.1.
+The gap to the best frontier model (Claude Sonnet~4.5 at 97.75\%) is 8.75~pp.
 
-Constrained decoding therefore closes the integration gap, not the
-frontier gap: it converts a 1.5\% floor into 72.75\% with structural
-guarantees, while the comparison with B-template locates the remaining
-deficit in the model-agnostic pipeline rather than in the model. The
-residual gap is driven by argument value accuracy, on a pipeline whose
-prompts omit the schema detail that both the native template and the
-frontier APIs receive.
+Constrained decoding closes the integration gap, not the frontier gap, for
+a prompt that omits schema detail. Restoring that detail---parameter
+descriptions, enumeration values, and defaults, which the native template and
+frontier APIs provide---closes most of the residual gap without training.
+The comparison with B-template bounds the information loss at 7.00~pp above
+CD+schema, a gap attributable to the remaining value-convention artifacts and
+the native template's prompt-format advantage.
 
 A note on statistical precision: with $n=400$ binary test cases, the 95\%
 Wilson confidence interval is approximately $\pm$4.1--4.4~pp for accuracy
