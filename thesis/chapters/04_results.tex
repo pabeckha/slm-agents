@@ -595,13 +595,13 @@ the same memory footprint as Config~CD+Q (approximately 5.2~GiB of GPU
 memory), making fine-tuned capability available on consumer hardware at
 INT4 size.
 
-Table~\ref{tab:full-ablation} presents all eleven configurations ordered
+Table~\ref{tab:full-ablation} presents all twelve configurations ordered
 by accuracy, and Fig.~\ref{fig:bfcl-ablation} shows the same data as
 a bar chart with frontier reference lines.
 
 \begin{table}[ht]
 \centering
-\caption{BFCL v4 \texttt{simple\_python} AST accuracy across all eleven configurations.
+\caption{BFCL v4 \texttt{simple\_python} AST accuracy across all twelve configurations.
          $\Delta$ is relative to Config~CD (72.75\%).}
 \label{tab:full-ablation}
 \begin{tabular}{llrr}
@@ -619,7 +619,7 @@ CD+Q            & CD + AWQ INT4                      & 72.25\% & $-0.50$~pp  \\
 CD              & Constrained decoding               & 72.75\% & --          \\
 CD+Q+FT-aligned & CD + AWQ INT4 + format-aligned LoRA & 74.25\% & $+1.50$~pp  \\
 CD+FT-aligned   & CD + format-aligned LoRA           & 76.75\% & $+4.00$~pp  \\
-\textbf{CD+schema} & \textbf{CD + full schema detail (7B only)} & \textbf{89.0\%} & $\mathbf{+16.25}$~pp \\
+\textbf{CD+schema} & \textbf{CD + schema enrichment (7B)} & \textbf{89.0\%} & $\mathbf{+16.25}$~pp \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -627,7 +627,7 @@ CD+FT-aligned   & CD + format-aligned LoRA           & 76.75\% & $+4.00$~pp  \\
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{pictures/figures/fig_bfcl_ablation.pdf}
-\caption{BFCL v4 \texttt{simple\_python} AST accuracy for all eleven configurations.
+\caption{BFCL v4 \texttt{simple\_python} AST accuracy for all twelve configurations.
          Dashed reference lines show Claude Sonnet~4.5 (97.75\%),
          GPT-4.1 (91.00\%), and GPT-5-mini (78.75\%) on the same
          category (Python Simple AST).
