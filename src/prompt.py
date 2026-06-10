@@ -165,7 +165,7 @@ def _format_parameter_lines(func: FunctionDef) -> str:
         line = f"- {name} ({param.type}, {requirement})"
         details = []
         if param.description:
-            details.append(param.description.strip().rstrip("."))
+            details.append(param.description.strip())
         if param.enum:
             details.append(
                 "Allowed values: " + ", ".join(json.dumps(v) for v in param.enum)
@@ -173,7 +173,10 @@ def _format_parameter_lines(func: FunctionDef) -> str:
         if param.has_default:
             details.append("Default: " + json.dumps(param.default))
         if details:
-            line += ": " + ". ".join(details) + "."
+            # Each detail keeps or gains its own terminal punctuation, so a
+            # description ending in "?" or "!" never produces "?." sequences.
+            details = [d if d.endswith((".", "?", "!")) else d + "." for d in details]
+            line += ": " + " ".join(details)
         lines.append(line)
     return "\n".join(lines)
 

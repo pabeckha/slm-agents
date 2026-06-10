@@ -35,8 +35,8 @@ _PARALLEL_CATEGORIES = frozenset({"parallel", "parallel_multiple", "java_paralle
 def bfcl_function_to_function_def(bfcl_func: dict) -> FunctionDef:
     """Convert a BFCL function schema to our FunctionDef."""
     params: dict[str, FunctionParameter] = {}
-    bfcl_params = bfcl_func.get("parameters", {})
-    properties = bfcl_params.get("properties", {})
+    bfcl_params = bfcl_func.get("parameters") or {}
+    properties = bfcl_params.get("properties") or {}
 
     for name, spec in properties.items():
         params[name] = FunctionParameter(
