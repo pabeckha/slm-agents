@@ -1,16 +1,14 @@
 #!/bin/sh
 ### -- Job name --
 #BSUB -J slm_bfcl_latency
-### -- GPU queue --
-#BSUB -q gpua100
-### -- 80GB A100 to match the thesis hardware claim --
-#BSUB -R "select[gpu80gb]"
+### -- GPU queue: L40S, same hardware as the thesis accuracy runs --
+#BSUB -q gpul40s
 ### -- 1 GPU --
 #BSUB -gpu "num=1:mode=exclusive_process"
-### -- 8 CPU cores --
-#BSUB -n 8
+### -- 4 CPU cores --
+#BSUB -n 4
 #BSUB -R "span[hosts=1]"
-### -- 8GB per core (64GB total) --
+### -- 8GB per core (32GB total) --
 #BSUB -R "rusage[mem=8GB]"
 #BSUB -M 8GB
 ### -- Wall time --

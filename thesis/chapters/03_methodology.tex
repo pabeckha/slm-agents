@@ -111,11 +111,11 @@ Gray nodes are unguided standalone configurations (no constrained decoding).}
 
 All experiments are conducted on the DTU HPC cluster
 (gbar.dtu.dk), running AlmaLinux~9.7 under the LSF job
-scheduler. Each job is allocated one NVIDIA A100 80\,GB PCIe
-GPU in exclusive process mode, eight CPU cores, and 64\,GB
-of RAM. Inference jobs use a two-hour wall-time limit; LoRA
-training jobs use three hours for models up to 1.5B parameters
-and eight hours for the 7B model.
+scheduler. Each job is allocated one NVIDIA L40S 48\,GB
+GPU in exclusive process mode; inference jobs use four CPU
+cores and 32\,GB of RAM, LoRA training jobs eight cores and
+64\,GB. Inference jobs use a two-hour wall-time limit and
+training jobs an eight-hour limit.
 
 Model inference is served via vLLM~0.8.5, which exposes a
 REST API on localhost that the evaluation client connects to,
