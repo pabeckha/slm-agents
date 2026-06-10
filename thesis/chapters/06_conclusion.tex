@@ -89,48 +89,58 @@ significance ($p = 0.044$, borderline against the observed
 run-to-run spread) and the quantized-stack gain within noise
 ($p = 0.38$); the consistent positive direction across all four
 model sizes is the primary evidence for the format-alignment effect.
+Config~CD+schema, which enriches the Stage~2 prompt with parameter
+descriptions, enumeration values, and defaults while keeping the
+FSM structural constraint unchanged, raises 7B accuracy from
+72.75\% to 89.0\% ($+$16.25~pp, McNemar $p < 0.00001$, $b{=}73$,
+$c{=}7$; Section~\ref{sec:cd-schema}).
+This is the strongest no-training gain observed in this evaluation
+and confirms that the dominant component of the residual after plain
+CD is schema information loss rather than the model's learned value
+priors.
 The finding for RQ2 is that the residual failure rate after
-constrained decoding is not addressed by prompt-level additions
-within the pipeline at any model size; format-aligned training
-reduces it, and the B-template control (96.00\% under native
-prompting with full schemas) indicates that much of the remainder
-reflects schema information the model-agnostic prompt does not
-carry, alongside the model's learned value priors.
+constrained decoding is not addressed by generic prompt-level
+additions at any model size; format-aligned training reduces it
+modestly, and schema-enriched prompting reduces it substantially by
+restoring the parameter context that the model-agnostic prompt
+discards.
 
 \paragraph{RQ3.} \textit{Can a fully optimized small language model configuration
 achieve production-viable tool-calling accuracy on consumer hardware?}
 
 Production viability is assessed against the two criteria defined in
-Chapter~\ref{ch:introduction}. Against frontier parity, no constrained
-configuration qualifies: the frontier range on the same category is
-78.75\%--97.75\%, and the best constrained configuration
-(CD+FT-aligned, 76.75\%) falls 2.00~pp short of the weakest frontier
-entry, within single-run uncertainty, and 14--21~pp short of flagship
-models. The B-template control (96.00\%) shows that the model itself
-reaches the flagship band; the deficit is attributable to the
-model-agnostic pipeline, and carrying the full schema detail into its
-prompts (Section~\ref{sec:future-work}) is the open experiment that
-would test whether parity is reachable with the structural guarantees
-intact. Against the cascade criterion (a single consumer GPU and a
-local tier handling $p \geq 0.70$ of single-call traffic), four
-configurations qualify. CD+Q achieves 72.25\% on 5.20~GiB of GPU
-memory with no training required, fitting on a consumer NVIDIA
-RTX~4090 (24~GiB) with substantial remaining capacity for the
-key-value cache. CD+Q+FT-aligned achieves 74.25\% on the same
-5.20~GiB footprint, adding a format-aligned LoRA adapter merged and
-quantized to INT4 before deployment. CD+FT-aligned achieves 76.75\%
-and CD 72.75\% with the merged or base model at full bfloat16
-precision (14.25~GiB). The criteria are deliberately scoped: they
-cover single-call, schema-constrained tool calling, and the cascade
-criterion presumes that the residual semantic failures (23--28\% of
-requests, which are structurally valid and therefore not detectable
-by output validation) are absorbed by escalation in a cascade
-deployment. Under that scoping, an optimized SLM configuration is
-cascade-viable on consumer hardware while frontier parity remains
-open, with training data alignment and the pipeline's schema
-information loss as the binding constraints on the achievable
-accuracy ceiling; multi-turn agentic workloads remain outside the
-viable region (Section~\ref{sec:future-work}).
+Chapter~\ref{ch:introduction}. Against frontier parity,
+Config~CD+schema achieves 89.0\% at 7B (Section~\ref{sec:cd-schema}),
+which is 10.25~pp above GPT-5-mini (78.75\%) and 2.00~pp below
+GPT-4.1 (91.00\%), while falling 8.75~pp short of the best frontier
+model (97.75\%) (cross-harness comparison against BFCL leaderboard
+scores, indicative only; Section~\ref{sec:frontier-comparison}).
+CD+schema is the first constrained configuration in this evaluation
+to enter the frontier range, demonstrating that lower-tier frontier
+parity is reachable with structural validity guarantees intact and
+without modifying model weights.
+CD+FT-aligned (76.75\%) is within single-run uncertainty of
+GPT-5-mini, and the B-template control (96.00\%) shows that the
+model itself reaches the flagship band; the remaining flagship gap
+reflects the native template's prompt-format advantage and residual
+value-convention scorer artifacts.
+Against the cascade criterion (a single consumer GPU and a local
+tier handling $p \geq 0.70$ of single-call traffic), five
+configurations qualify. CD+schema achieves 89.0\% at full bfloat16
+precision (14.25~GiB), fitting on a consumer NVIDIA RTX~4090
+(24~GiB) alongside substantial key-value cache capacity.
+CD+Q achieves 72.25\% on 5.20~GiB with no training required.
+CD+Q+FT-aligned achieves 74.25\% on the same 5.20~GiB footprint,
+adding a format-aligned LoRA adapter merged and quantized to INT4.
+CD+FT-aligned achieves 76.75\% and CD 72.75\% at full bfloat16
+precision (14.25~GiB). The criteria are deliberately scoped to
+single-call, schema-constrained tool calling; the cascade criterion
+presumes that residual semantic failures are absorbed by escalation.
+Under that scoping, an optimized SLM configuration is cascade-viable
+on consumer hardware, with the highest constrained configuration
+(CD+schema, 89.0\%) exceeding the lower tier of frontier models;
+multi-turn agentic workloads remain outside the viable region
+(Section~\ref{sec:future-work}).
 
 \section{Practical Deployment Guidelines}
 
@@ -187,6 +197,18 @@ match the inference pipeline's output format exactly. Applying the
 merged adapter to the quantized model (Config~CD+Q+FT-aligned) yields
 74.25\% on the same 5.20~GiB footprint, with a 2.5~pp quantization
 penalty relative to the full-precision adapter.
+
+\textbf{Step~5: Enrich the prompt with full schema detail.}
+Config~CD+schema demonstrates that carrying parameter descriptions,
+enumeration values, and default values into the argument extraction
+prompt raises 7B accuracy from 72.75\% to 89.0\% ($+$16.25~pp,
+$p < 0.00001$) with no model weight modification and at per-call
+latency lower than unconstrained generation (Section~\ref{sec:latency}).
+Schema enrichment is the highest-return single step for teams whose
+tool schemas include rich parameter metadata and who cannot or do not
+wish to fine-tune. The benefit scales with schema richness: for
+sparse schemas with minimal descriptions, the gain will be
+proportionally smaller.
 
 \textbf{Deployment boundary.}
 These guidelines apply to single-call, single-function scenarios
@@ -251,16 +273,6 @@ failure is in call count, not argument content.
 Extending the architecture to support parallel call emission is the
 prerequisite for applying the optimization techniques investigated here
 to the \texttt{parallel} and \texttt{parallel\_multiple} categories.
-
-The most direct unexplored improvement to the constrained pipeline is
-carrying the full schema detail (parameter descriptions, default values,
-and enumerations) into its prompts. The B-template control (96.00\%)
-indicates that much of the 23.25~pp residual under CD+FT-aligned
-reflects this missing information rather than model capability;
-enriching the argument extraction prompt while retaining
-\texttt{guided\_json} would test whether near-native accuracy is
-achievable with structural guarantees intact, and is a one-configuration
-experiment within the existing harness.
 
 Training data alignment is the binding constraint on LoRA fine-tuning for
 this task. Generating training examples from the target deployment's own

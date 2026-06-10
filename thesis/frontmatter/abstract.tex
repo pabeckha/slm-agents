@@ -20,34 +20,39 @@ approximately 77--96 percentage points below frontier models on the same
 category (78.75\%--97.75\%); a control configuration that prompts the same model
 through its native template with free generation reaches 96.00\%, inside the
 frontier band, so the unoptimized gap measures integration quality, not model
-capability. With constrained decoding alone, 72.75\% is reached without
-modifying model weights or generating additional tokens, 6.00~pp below the
-weakest frontier entry (GPT-5-mini, 78.75\%) and 18--25~pp below flagship
-frontier models (91.00\%--97.75\%); AWQ INT4 quantization retains 72.25\% while
-reducing memory from 14.25~GiB to 5.20~GiB. Few-shot prompting,
-chain-of-thought reasoning, and retrieval-augmented generation each reduce
-accuracy, by 2.5, 6.75, and 24.5 percentage points relative to the
-constrained-decoding configuration each of them extends.
-Format-aligned LoRA fine-tuning reaches 76.75\%, and 74.25\% after subsequent
-quantization at the same memory footprint. On $\tau$-bench retail (115 tasks)
-and \texttt{parallel} calls, accuracy falls to 4.3\% and 0\% respectively,
+capability. With constrained decoding alone, 72.75\% is reached without modifying model
+weights or generating additional tokens; per-call latency under constrained
+decoding is 0.878~s, compared with 6.995~s for unconstrained generation
+(8$\times$ reduction). AWQ INT4 quantization retains 72.25\% while reducing
+memory from 14.25~GiB to 5.20~GiB. Few-shot prompting, chain-of-thought
+reasoning, and retrieval-augmented generation each reduce accuracy by 2.5,
+6.75, and 24.5 percentage points relative to the constrained-decoding
+configuration each of them extends. Format-aligned LoRA fine-tuning reaches
+76.75\%, and 74.25\% after subsequent quantization at the same memory
+footprint. Schema-enriched constrained decoding (CD+schema), which extends
+the argument extraction prompt with parameter descriptions, enumeration
+values, and default values while the FSM structural constraint is unchanged,
+reaches 89.0\% ($+$16.25~pp over plain CD, McNemar $p < 0.00001$, $b{=}73$,
+$c{=}7$) and places the 7B model inside the frontier range without
+modifying model weights. On $\tau$-bench retail (115 tasks) and
+\texttt{parallel} calls, accuracy falls to 4.3\% and 0\% respectively,
 showing that single-call gains do not transfer to multi-turn or multi-call
 settings.
 
 The unoptimized performance gap is a format compliance gap, not a reasoning
 gap: 394 of 400 failures in the unoptimized configuration are malformed outputs,
 not wrong answers. This gap is resolved structurally by constrained decoding.
-Production viability is assessed against two criteria: frontier parity on the
-same category is not reached, as the best constrained configuration (76.75\%)
-lies 14--21~pp below flagship frontier models and within single-run
-uncertainty of the weakest frontier entry (78.75\%); the cascade criterion
-(a consumer GPU and a substantial fraction of single-call traffic handled
-locally) is met by the quantized configuration (72.25\%, 5.20~GiB) on a
-consumer NVIDIA RTX~4090. Prompting interventions inside the pipeline cannot close the residual 27\%
-failure rate; the native-template control indicates that much of this residual
-reflects schema information (parameter descriptions, defaults, enumerations)
-that the model-agnostic prompt does not carry, together with the pipeline's
-prompt format, rather than missing model capability. The LoRA training signal is retained in attenuated form
-after AWQ INT4 quantization, although the residual gain over the quantized
-base does not reach significance in a paired test; fine-tuned capability
-thus remains obtainable on consumer hardware at INT4 precision.
+Production viability is assessed against two criteria. Frontier parity with lower-tier entries is reached by CD+schema:
+89.0\% enters the frontier range, 10.25~pp above GPT-5-mini (78.75\%)
+and 8.75~pp below the best frontier model (97.75\%) (cross-harness
+comparison against BFCL leaderboard scores, indicative only). The cascade criterion (a consumer GPU and a substantial
+fraction of single-call traffic handled locally) is met by five
+configurations, including CD+schema (89.0\%, 14.25~GiB) on a consumer NVIDIA
+RTX~4090. Generic prompting interventions inside the pipeline cannot close the
+residual failure rate after plain CD; CD+schema directly isolates schema
+information loss as the dominant component, closing 16.25~pp of the residual
+by restoring parameter descriptions, defaults, and enumerations that the
+model-agnostic prompt discards. The LoRA training signal is retained in
+attenuated form after AWQ INT4 quantization, although the residual gain over
+the quantized base does not reach significance in a paired test; fine-tuned
+capability thus remains obtainable on consumer hardware at INT4 precision.

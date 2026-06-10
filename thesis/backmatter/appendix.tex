@@ -75,7 +75,8 @@ configurations evaluated in this thesis.}
 \toprule
 Config & Description & Correct & Accuracy ($\uparrow$) & Delta vs CD \\
 \midrule
-B       & No constrained decoding           & 6/400   & 1.50\%  & $-71.25$~pp \\
+B           & No constrained decoding           & 6/400   & 1.50\%  & $-71.25$~pp \\
+B-template  & Native template, free generation  & 384/400 & 96.00\% & $+23.25$~pp \\
 PE      & CD + few-shot (3 examples)        & 281/400 & 70.25\% & $-2.50$~pp  \\
 CD      & Constrained decoding              & 291/400 & 72.75\% & baseline    \\
 CD+Q    & CD + AWQ INT4                     & 289/400 & 72.25\% & $-0.50$~pp  \\
@@ -89,6 +90,7 @@ CD+FT   & CD + LoRA merged (v1)            & 279/400 & 69.75\% & $-3.00$~pp  \\
 FT-aligned-ng & Format-aligned LoRA, no CD   & 53/400  & 13.25\% & $-59.50$~pp \\
 CD+FT-aligned   & CD + format-aligned LoRA             & 307/400 & 76.75\% & $+4.00$~pp  \\
 CD+Q+FT-aligned & CD + AWQ INT4 + format-aligned LoRA  & 297/400 & 74.25\% & $+1.50$~pp  \\
+\textbf{CD+schema} & \textbf{CD + schema-enriched prompt} & \textbf{356/400} & \textbf{89.00\%} & $\mathbf{+16.25}$~\textbf{pp} \\
 \bottomrule
 \end{tabular}%
 }

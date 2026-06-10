@@ -3,9 +3,9 @@
 The experimental design follows a cumulative evaluation ladder: a baseline configuration
 is established first, and one technique is added at each subsequent step to isolate its
 marginal contribution. The Qwen~2.5 model family is evaluated across four sizes from
-0.5B to 7B. Five techniques are covered: constrained decoding, quantization, few-shot
-prompting, retrieval-augmented generation, and LoRA fine-tuning. All configurations are
-evaluated on the Berkeley Function Calling Leaderboard.
+0.5B to 7B. Six techniques are covered: constrained decoding, schema enrichment,
+quantization, few-shot prompting, retrieval-augmented generation, and LoRA fine-tuning.
+All configurations are evaluated on the Berkeley Function Calling Leaderboard.
 
 \section{Experimental Design}
 The experimental design is based on controlled comparisons. A baseline configuration
@@ -180,17 +180,25 @@ stored per-case prediction files. Function selection accuracy
 and argument extraction accuracy are reported separately to
 identify where failures occur along the prediction pipeline.
 
+To measure per-call inference latency, a sequential latency run
+(parallel dispatch disabled) is conducted on the first 100
+\texttt{simple\_python} test cases for three configurations: B,
+CD, and CD+Q. Sequential dispatch ensures that each measurement
+is a clean per-call latency without parallelism overlap. The same
+vLLM server and hardware are used as for the accuracy runs.
+Mean, median, and 95th-percentile latency are reported.
+
 \subsection{$\tau$-bench}
 
 The $\tau$-bench retail benchmark~\cite{taubench2024} evaluates
 end-to-end multi-step task completion. Each task is a simulated
 customer service interaction in which the model must reason across
 5--15 tool calls, observe intermediate results, and reach a final
-database state that matches a ground truth resolution. CD is
-evaluated on the retail domain test split (115 tasks) to establish
-the agentic baseline; the remaining configurations are not evaluated
-on $\tau$-bench because the primary bottleneck identified is
-multi-turn planning rather than single-call argument accuracy.
+database state that matches a ground truth resolution. CD and
+CD+FT-aligned are evaluated on the retail domain test split (115 tasks);
+the remaining configurations are not evaluated on $\tau$-bench because
+the primary bottleneck identified is multi-turn planning rather than
+single-call argument accuracy.
 
 Three full evaluation runs are completed to account for variance
 introduced by the user simulator. The user simulator is Qwen~2.5
@@ -510,3 +518,27 @@ interpolation, producing a single merged checkpoint in bfloat16. The merged
 model is used for all evaluation runs, removing adapter inference overhead and
 ensuring that the evaluation infrastructure is identical to that used for
 Base and CD.
+
+\section{Schema-Enriched Constrained Decoding}
+
+Config~CD+schema extends CD by enriching the argument extraction prompt
+with the full parameter schema detail available in the BFCL function
+definitions. In all preceding configurations, the Stage~2
+\texttt{guided\_json} prompt carries only parameter names and types.
+Config~CD+schema additionally injects, for each parameter, its natural-language
+description, default value (if any), and enumeration constraints (if any),
+drawn directly from the BFCL function schema.
+
+The structural constraint is unchanged. \texttt{guided\_json} continues
+to enforce JSON object validity and type compliance at each generation
+step via the same finite-state machine as CD. The schema enrichment
+acts on the prompt only: it provides the model with richer semantic
+context for value selection without altering the token-level mask.
+The two mechanisms are composable and independent.
+
+Config~CD+schema is evaluated at 7B only, on the full 400-case
+\texttt{simple\_python} test set, to isolate the contribution of
+schema information to the residual failure rate after constrained
+decoding. A paired McNemar test on stored per-case predictions
+compares CD+schema against the stored CD run (290/400) used as the
+paired baseline.

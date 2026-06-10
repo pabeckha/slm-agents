@@ -50,13 +50,16 @@ structurally, with guarantees independent of any model-specific template.
 Scale is not the bottleneck for format compliance. The residual gap is a
 semantic problem, but the B-template control constrains its
 interpretation: given its native template and the full schemas, the model
-resolves most of these cases, so the residual failures of the constrained
-pipeline are attributable partly to the model's learned value conventions
-and substantially to schema detail (parameter descriptions, defaults,
-enumerations) that the model-agnostic prompt does not carry. The 19.25~pp
-gap between B-template (96.00\%) and the best constrained configuration
-(CD+FT-aligned, 76.75\%) bounds the cost of that information loss
-combined with the pipeline's prompt format.
+resolves most of these cases. Config~CD+schema isolates the information-loss
+component directly: enriching the constrained prompt with parameter
+descriptions, enumeration values, and defaults raises accuracy from
+72.75\% to 89.0\% ($+$16.25~pp, McNemar $p < 0.00001$, $b{=}73$, $c{=}7$;
+Section~\ref{sec:cd-schema}), confirming that the majority of the residual
+gap after plain CD is attributable to missing schema detail rather than to
+the model's learned value priors. The remaining 7.00~pp gap between
+CD+schema (89.0\%) and B-template (96.00\%) reflects the prompt-format
+advantage of the native template and residual value-convention scorer
+artifacts; it is not dominated by information loss.
 
 \subsection{Effect of Model Scale on CD Performance}
 
@@ -71,8 +74,8 @@ malformed or conversational output rather than a single valid JSON
 object, is present at every scale.
 
 With constrained decoding applied, the accuracy curve follows a
-consistent scaling relationship~\cite{kaplan2020scaling}: 51.5\%
-at 0.5B, 62.3\% at 1.5B, 64.8\% at 3B, and 72.75\% at 7B.
+consistent scaling trend: 51.5\% at 0.5B, 62.3\% at 1.5B, 64.8\%
+at 3B, and 72.75\% at 7B.
 The steepest gain occurs between 0.5B and 1.5B (+10.8~pp); the
 1.5B-to-3B step is flatter (+2.5~pp); the 3B-to-7B step recovers
 to +8.0~pp.
@@ -115,8 +118,13 @@ extra parameters, and no additional generated tokens. The per-step cost of
 guided decoding is not zero: schema compilation and logit masking add
 overhead that grows with schema complexity, although the finite-state
 machine approach keeps the per-token cost low when schemas are compiled
-ahead of time~\cite{willard2023efficient}; latency was not measured in this
-evaluation. The accuracy gain is entirely structural: logit
+ahead of time~\cite{willard2023efficient}. Measured on 100 sequential
+\texttt{simple\_python} cases (Section~\ref{sec:latency}), constrained
+decoding (0.878~s mean per call) is 8$\times$ faster than the unconstrained
+baseline (6.995~s mean): the unconstrained model appends prose, markdown,
+and additional JSON objects, generating far more tokens; the constraint
+terminates generation at the closing brace. Constrained decoding is therefore
+not a latency tax but a latency gain at 7B. The accuracy gain is entirely structural: logit
 masking at each decoding step eliminates the malformed output that accounts
 for 98.5\% of failures in Base~\cite{willard2023efficient, kwon2023vllm}.
 
@@ -280,20 +288,16 @@ B-template control measures the same model at 96.00\% (384/400) under
 native prompting with free generation
 (Table~\ref{tab:baseline-results}), so the headline gap to
 frontier models in RQ1 quantifies the cost of naive integration
-rather than an intrinsic capability deficit, and the constrained
-decoding gain should be read as restoring format compliance without
-model-specific prompting, not as outperforming the model's best
-template-based configuration. More consequentially, the
-model-agnostic pipeline carries only parameter names and types into
-its prompts: the parameter descriptions, default values, and
-enumerations present in the BFCL schemas are not shown to the model
-in any configuration except B-template. Part of the residual
-semantic failure rate previously attributed to the model's learned
-value priors is therefore attributable to this information loss; the
-19.25~pp gap between B-template and CD+FT-aligned bounds its
-magnitude, and carrying the full schema detail into the constrained
-pipeline is the most direct unexplored improvement
-(Section~\ref{sec:future-work}).
+rather than an intrinsic capability deficit. The information-loss
+component of this gap is now quantified directly by Config~CD+schema
+(Section~\ref{sec:cd-schema}): enriching the constrained prompt
+with the full schema detail raises accuracy from 72.75\% to 89.0\%
+($+$16.25~pp, McNemar $p < 0.00001$), demonstrating that most of the
+residual after plain CD is attributable to the absent descriptions,
+enumerations, and defaults rather than to the model's learned value
+priors. The remaining 7.00~pp gap between CD+schema and B-template
+is attributable to the native template's prompt-format advantage and
+residual value-convention scorer artifacts.
 
 \textbf{$\tau$-bench user simulator.}
 The user simulator is the agent model itself (Qwen~2.5 7B), whereas
@@ -498,5 +502,5 @@ compliance, which constrained decoding ensures, but multi-turn planning:
 tracking which database fields have been retrieved, interpreting tool return
 values, and selecting the correct next action across five to fifteen steps.
 These capabilities scale with model size more slowly than single-call argument
-extraction~\cite{kaplan2020scaling} and are not addressed by any of the
-post-training or inference-time techniques evaluated in this thesis.
+extraction and are not addressed by any of the post-training or
+inference-time techniques evaluated in this thesis.
