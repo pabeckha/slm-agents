@@ -408,7 +408,7 @@ Residual failure characterisation: 44 remaining failures are scorer strictness, 
 | CD + LoRA (aligned) | 59.25% | 66.0% | 66.75% | 76.75% |
 | **CD + Schema** | — | — | — | **89.0%** |
 
-CD dominates at every size. Quantization is near-free above 1.5B. Prompting and RAG mostly hurt. Format-aligned LoRA beats CD across sizes. **Schema enrichment adds +16.5 pp at 7B with no training cost and no latency overhead.**
+CD dominates at every size. Quantization is near-free above 1.5B. Prompting and RAG mostly hurt. Format-aligned LoRA beats CD across sizes. **Schema enrichment adds +16.25 pp at 7B with no training cost and no latency overhead.**
 
 <small class="opacity-50">This matrix is the size sweep, so every row above Base includes CD. CD+schema was evaluated at 7B only. Each technique was *also* run alone, without CD, at 7B to isolate its own contribution. Those numbers are on the next slide.</small>
 
@@ -485,27 +485,28 @@ The practical payoff: the deployment narrative is not "CD trades latency for acc
 
 | Model | Accuracy |
 |-------|----------|
+| Claude Sonnet 4.5 | 97.75% |
+| **Qwen 2.5 7B B-template (control)** | **96.00%** |
+| Gemini 3 Pro | 94.75% |
+| GPT-4.1 | 91.00% |
 | **Qwen 2.5 7B + CD + Schema** | **89.0%** |
-| Gemini 3 Pro (Prompt) | 79.58% |
-| Claude Opus 4.5 (FC) | 76.83% |
+| GPT-5-mini | 78.75% |
 | **Qwen 2.5 7B + CD + LoRA** | **76.75%** |
 | **Qwen 2.5 7B + CD** | **72.75%** |
-| GPT-4.1 (FC) | 72.67% |
 | **Qwen 2.5 3B + CD** | **64.75%** |
 | **Qwen 2.5 1.5B + CD** | **62.25%** |
-| GPT-5-mini (FC) | 59.92% |
 | **Qwen 2.5 0.5B + CD** | **51.5%** |
 
-With schema enrichment the 7B reaches **89.0%, 9.4 pp above Gemini 3 Pro**. Without training, CD+LoRA (76.75%) is on par with Claude Opus 4.5. The **0.5B, at a fraction of a gigabyte, sits within 8.4 pp of GPT-5-mini** with zero training.
+With schema enrichment the 7B reaches **89.0%, 10.25 pp above GPT-5-mini and 2 pp below GPT-4.1**. Without training, CD+LoRA (76.75%) is just below GPT-5-mini. The **B-template control (96.00%) sits inside the flagship band**, showing the gap is integration quality, not model capability.
 
-<small>BFCL v4 leaderboard, Single Turn → Non-live (AST), snapshot 2026-06-04. Cross-harness comparisons are indicative only: under the local harness the native-template control scores 96.00%, above every leaderboard entry, so category composition and scoring differ. **Answers RQ1 and RQ3.**</small>
+<small>BFCL v4 leaderboard, Python Simple AST category (same 400 test cases as this evaluation), snapshot 2026-06-04. Cross-harness comparisons are indicative only: B-template (96.00%) locally matches the flagship frontier band, confirming the category is commensurable. **Answers RQ1 and RQ3.**</small>
 
 <!--
-This is the answer to RQ1 and RQ3, and the size axis makes it far more interesting than a single 7B number. I am placing every SLM size in the frontier ranking, so the audience sees the whole spectrum: 0.5B near GPT-5-mini, 7B above Gemini 3 Pro with schema enrichment.
+This is the answer to RQ1 and RQ3, and the size axis makes it far more interesting than a single 7B number. I am placing every SLM size in the frontier ranking, so the audience sees the whole spectrum: 0.5B far below frontier, 7B with CD+schema entering the frontier range above GPT-5-mini and just below GPT-4.1.
 
-Honest framing: frontier models use native function-calling APIs that enforce structure the same way CD does, so the fair comparison is at the CD level. The raw 78 pp unoptimized gap at 7B collapses to about 7 pp with CD, to near-parity with LoRA, and to above Gemini with CD+schema.
+Honest framing: frontier models use native function-calling APIs that enforce structure the same way CD does, so the fair comparison is at the CD level. The raw 78 pp unoptimized gap at 7B collapses to about 6 pp with CD, to near-parity with GPT-5-mini after LoRA, and to above GPT-5-mini with CD+schema.
 
-The comparability caveat is load-bearing now: my own B-template control scores 96% locally, above Gemini 3 Pro's leaderboard number. That cannot mean a 7B beats Gemini in a general sense; it means the leaderboard category and my local 400-case evaluation are not scored identically. So I present these as indicative placement, not a ranking. The internally valid comparisons are between my own configurations under one harness.
+The comparability caveat is load-bearing now: my own B-template control scores 96.00% locally, inside the flagship band (Gemini 3 Pro 94.75%, Claude Sonnet 4.5 97.75%). That confirms the local evaluation and leaderboard are commensurable on this category. I present these as indicative placement; the internally valid comparisons are between my own configurations under one harness.
 
 Threats to validity if pressed: frontier scores are from the public leaderboard, not re-run under my harness, so I claim indicative placement, not a definitive ranking.
 -->
@@ -614,9 +615,9 @@ The parallel 0% is the cleanest limitation: structurally impossible in this arch
 
 **RQ1.** The unoptimized gap is enormous (1.5 to 4.75% vs ~79%) but it measures the **generic integration, not the model**: the native-template control reaches 96%. The gap is almost entirely **format**, and **flat across size**. CD closes it at every scale with structural guarantees.
 
-**RQ2.** CD dominates (+48 to +71 pp, growing with size). Quantization is near-free above 1.5B. Few-shot reverses with scale; CoT and RAG hurt at every size; format-aligned LoRA beats CD across all sizes; **schema enrichment adds +16.5 pp at 7B (p < 0.00001) with no training and no latency cost.**
+**RQ2.** CD dominates (+48 to +71 pp, growing with size). Quantization is near-free above 1.5B. Few-shot reverses with scale; CoT and RAG hurt at every size; format-aligned LoRA beats CD across all sizes; **schema enrichment adds +16.25 pp at 7B (p < 0.00001) with no training and no latency cost.**
 
-**RQ3.** Yes. The 7B with CD+schema reaches **89.0%, 9.4 pp above Gemini 3 Pro**. Without training, CD+LoRA (76.75%) matches Claude Opus 4.5. At 0.5B, CD alone reaches 51.5%, within 8.4 pp of GPT-5-mini with zero training.
+**RQ3.** Yes. The 7B with CD+schema reaches **89.0%, 10.25 pp above GPT-5-mini and 2 pp below GPT-4.1**. Without training, CD+LoRA (76.75%) is just below GPT-5-mini (78.75%). Schema enrichment enters the frontier range without modifying model weights.
 
 <div class="mt-6 font-semibold">
 

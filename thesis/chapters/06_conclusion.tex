@@ -92,7 +92,7 @@ model sizes is the primary evidence for the format-alignment effect.
 Config~CD+schema, which enriches the Stage~2 prompt with parameter
 descriptions, enumeration values, and defaults while keeping the
 FSM structural constraint unchanged, raises 7B accuracy from
-72.75\% to 89.0\% ($+$16.5~pp, McNemar $p < 0.00001$, $b{=}73$,
+72.75\% to 89.0\% ($+$16.25~pp, McNemar $p < 0.00001$, $b{=}73$,
 $c{=}7$; Section~\ref{sec:cd-schema}).
 This is the strongest no-training gain observed in this evaluation
 and confirms that the dominant component of the residual after plain
@@ -111,10 +111,10 @@ achieve production-viable tool-calling accuracy on consumer hardware?}
 Production viability is assessed against the two criteria defined in
 Chapter~\ref{ch:introduction}. Against frontier parity,
 Config~CD+schema achieves 89.0\% at 7B (Section~\ref{sec:cd-schema}),
-which is 9.4~pp above Gemini~3 Pro (79.58\%) and 2.00~pp above
-GPT-5-mini (78.75\%), while falling 9~pp short of flagship models
-(97.75\%) (cross-harness comparison against BFCL leaderboard scores,
-indicative only; Section~\ref{sec:frontier-comparison}).
+which is 10.25~pp above GPT-5-mini (78.75\%) and 2.00~pp below
+GPT-4.1 (91.00\%), while falling 8.75~pp short of the best frontier
+model (97.75\%) (cross-harness comparison against BFCL leaderboard
+scores, indicative only; Section~\ref{sec:frontier-comparison}).
 CD+schema is the first constrained configuration in this evaluation
 to enter the frontier range, demonstrating that lower-tier frontier
 parity is reachable with structural validity guarantees intact and
@@ -201,7 +201,7 @@ penalty relative to the full-precision adapter.
 \textbf{Step~5: Enrich the prompt with full schema detail.}
 Config~CD+schema demonstrates that carrying parameter descriptions,
 enumeration values, and default values into the argument extraction
-prompt raises 7B accuracy from 72.75\% to 89.0\% ($+$16.5~pp,
+prompt raises 7B accuracy from 72.75\% to 89.0\% ($+$16.25~pp,
 $p < 0.00001$) with no model weight modification and at per-call
 latency lower than unconstrained generation (Section~\ref{sec:latency}).
 Schema enrichment is the highest-return single step for teams whose

@@ -53,7 +53,7 @@ interpretation: given its native template and the full schemas, the model
 resolves most of these cases. Config~CD+schema isolates the information-loss
 component directly: enriching the constrained prompt with parameter
 descriptions, enumeration values, and defaults raises accuracy from
-72.75\% to 89.0\% ($+$16.5~pp, McNemar $p < 0.00001$, $b{=}73$, $c{=}7$;
+72.75\% to 89.0\% ($+$16.25~pp, McNemar $p < 0.00001$, $b{=}73$, $c{=}7$;
 Section~\ref{sec:cd-schema}), confirming that the majority of the residual
 gap after plain CD is attributable to missing schema detail rather than to
 the model's learned value priors. The remaining 7.00~pp gap between
@@ -292,7 +292,7 @@ rather than an intrinsic capability deficit. The information-loss
 component of this gap is now quantified directly by Config~CD+schema
 (Section~\ref{sec:cd-schema}): enriching the constrained prompt
 with the full schema detail raises accuracy from 72.75\% to 89.0\%
-($+$16.5~pp, McNemar $p < 0.00001$), demonstrating that most of the
+($+$16.25~pp, McNemar $p < 0.00001$), demonstrating that most of the
 residual after plain CD is attributable to the absent descriptions,
 enumerations, and defaults rather than to the model's learned value
 priors. The remaining 7.00~pp gap between CD+schema and B-template
