@@ -1,6 +1,14 @@
 """
 Generate thesis figures for BFCL v4 simple_python results.
 Outputs PDF files to thesis/pictures/figures/.
+
+Design principles applied (Knaflic, Storytelling with Data, 2015):
+- Single highlight colour (C_HIGHLIGHT) for the primary finding (CD+schema);
+  all other SLM configurations recede to muted grey.
+- Direct annotations on reference lines instead of a separate legend.
+- Reduced gridline opacity (alpha=0.25) so data stands out.
+- Semantic colours for gain/loss charts (red = negative, blue = positive).
+- Single marker shape in scatter plots (redundant shape encoding removed).
 """
 
 import json
@@ -14,88 +22,116 @@ from pathlib import Path
 OUT_DIR = Path(__file__).parent.parent.parent / "thesis" / "pictures" / "figures"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# --- Shared style -----------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Shared style
+# ---------------------------------------------------------------------------
 
-BODY_FONTSIZE = 10
+BODY_FONTSIZE  = 10
 LABEL_FONTSIZE = 9
-TICK_FONTSIZE = 9
+TICK_FONTSIZE  = 9
 
 plt.rcParams.update({
-    "font.family": "serif",
-    "font.size": BODY_FONTSIZE,
-    "axes.titlesize": BODY_FONTSIZE,
-    "axes.labelsize": BODY_FONTSIZE,
-    "xtick.labelsize": TICK_FONTSIZE,
-    "ytick.labelsize": TICK_FONTSIZE,
-    "legend.fontsize": LABEL_FONTSIZE,
-    "figure.dpi": 150,
-    "savefig.bbox": "tight",
+    "font.family":        "serif",
+    "font.size":          BODY_FONTSIZE,
+    "axes.titlesize":     BODY_FONTSIZE,
+    "axes.labelsize":     BODY_FONTSIZE,
+    "xtick.labelsize":    TICK_FONTSIZE,
+    "ytick.labelsize":    TICK_FONTSIZE,
+    "legend.fontsize":    LABEL_FONTSIZE,
+    "figure.dpi":         150,
+    "savefig.bbox":       "tight",
     "savefig.pad_inches": 0.05,
 })
 
-# DTU-friendly colour palette (distinguishable in greyscale)
-C_BLUE   = "#1f77b4"
-C_ORANGE = "#ff7f0e"
-C_GREEN  = "#2ca02c"
-C_RED    = "#d62728"
-C_GREY   = "#7f7f7f"
-C_LIGHT  = "#aec7e8"
-C_PURPLE = "#9467bd"
+# Primary palette
+C_HIGHLIGHT      = "#1a6faf"   # Strong blue  — CD+schema (the key result)
+C_SECONDARY      = "#5b9bd5"   # Medium blue  — B-template control
+C_MUTED          = "#cccccc"   # Light grey   — other SLM configurations
+C_FRONTIER       = "#999999"   # Medium grey  — frontier model bars
+C_REF_LINE       = "#666666"   # Dark grey    — reference/annotation lines
+
+# Semantic colours for gain / loss charts
+C_LOSS           = "#d62728"   # Red   — negative result
+C_GAIN           = "#1f77b4"   # Blue  — positive result
+C_NEUTRAL_DARK   = "#aaaaaa"   # Medium grey — supporting / neutral
+C_NEUTRAL_LIGHT  = "#dddddd"   # Light grey  — background / stable
+
+
+def _add_value_labels(ax, bars, values, highlight_key=None, fmt=".2f"):
+    """Add value labels above each bar; bold the highlighted bar."""
+    for bar, val in zip(bars, values):
+        is_hl = (highlight_key is not None) and (val == highlight_key)
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            val + 1.2,
+            f"{val:{fmt}}%",
+            ha="center", va="bottom",
+            fontsize=7.5,
+            fontweight="bold" if is_hl else "normal",
+            color=C_HIGHLIGHT if is_hl else "#333333",
+        )
+
+
+def _clean_axes(ax):
+    """Remove top/right spines, reduce gridline noise."""
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.yaxis.grid(True, linestyle="--", linewidth=0.4, alpha=0.25, zorder=0)
+    ax.set_axisbelow(True)
+
 
 # ---------------------------------------------------------------------------
-# Figure 1 — BFCL ablation bar chart (all 11 configurations)
+# Figure 1 — BFCL ablation bar chart (all 12 configurations)
 # ---------------------------------------------------------------------------
+# Story: CD+schema (89.0%) enters the frontier range — the single highlighted bar.
 
 CONFIGS = [
-    ("B",               "B\n(raw)",              1.50,  C_RED),
-    ("FT-aligned-ng",   "FT-aligned\n(no CD)",  13.25, C_ORANGE),
-    ("FT-only",         "FT-only\n(no CD)",     13.75, C_ORANGE),
-    ("CD+Q+RAG",        "CD+Q\n+RAG",           47.75, C_GREY),
-    ("CD+Q+ITC",        "CD+Q\n+CoT",           65.50, C_GREY),
-    ("CD+FT",           "CD+FT\n(misaligned)",  69.75, C_BLUE),
-    ("PE",              "PE\n(few-shot)",        70.25, C_BLUE),
-    ("CD+Q",            "CD+Q\n(INT4)",         72.25, C_GREEN),
-    ("CD",              "CD",                   72.75, C_GREEN),
-    ("CD+Q+FT-aligned", "CD+Q+FT\n(aligned)",   74.25, C_PURPLE),
-    ("CD+FT-aligned",   "CD+FT\n(aligned)",     76.75, C_PURPLE),
+    ("B",               "B\n(raw)",             1.50),
+    ("FT-aligned-ng",   "FT-aligned\n(no CD)", 13.25),
+    ("FT-only",         "FT-only\n(no CD)",    13.75),
+    ("CD+Q+RAG",        "CD+Q\n+RAG",          47.75),
+    ("CD+Q+ITC",        "CD+Q\n+CoT",          65.50),
+    ("CD+FT",           "CD+FT\n(misaligned)", 69.75),
+    ("PE",              "PE\n(few-shot)",       70.25),
+    ("CD+Q",            "CD+Q\n(INT4)",        72.25),
+    ("CD",              "CD",                  72.75),
+    ("CD+Q+FT-aligned", "CD+Q+FT\n(aligned)",  74.25),
+    ("CD+FT-aligned",   "CD+FT\n(aligned)",    76.75),
+    ("CD+schema",       "CD+schema",           89.00),
 ]
 
-labels   = [c[1] for c in CONFIGS]
-accs     = [c[2] for c in CONFIGS]
-colours  = [c[3] for c in CONFIGS]
+labels  = [c[1] for c in CONFIGS]
+accs    = [c[2] for c in CONFIGS]
+colours = [C_HIGHLIGHT if c[0] == "CD+schema" else C_MUTED for c in CONFIGS]
 
 fig, ax = plt.subplots(figsize=(8.5, 3.6))
 
 bars = ax.bar(range(len(CONFIGS)), accs, color=colours, width=0.65, zorder=3)
+_add_value_labels(ax, bars, accs, highlight_key=89.00)
 
-# Frontier reference lines (Python Simple AST sub-category)
+# Frontier reference lines — annotated directly (no legend)
 FRONTIERS = [
-    ("Claude Sonnet 4.5", 97.75, "--", C_RED),
-    ("GPT-4.1",           91.00, "-.", C_ORANGE),
-    ("GPT-5-mini",        78.75, ":",  C_GREY),
+    ("GPT-5-mini (78.75%)",        78.75, ":"),
+    ("GPT-4.1 (91.00%)",           91.00, "-."),
+    ("Claude Sonnet 4.5 (97.75%)", 97.75, "--"),
 ]
-for name, val, ls, col in FRONTIERS:
-    ax.axhline(val, linestyle=ls, color=col, linewidth=1.2, zorder=2, label=name)
-
-# Value labels above bars
-for i, (bar, val) in enumerate(zip(bars, accs)):
+n = len(CONFIGS)
+for name, val, ls in FRONTIERS:
+    ax.axhline(val, linestyle=ls, color=C_REF_LINE, linewidth=1.0, zorder=2, alpha=0.8)
+    # Place label to the right of the last bar, right-aligned
     ax.text(
-        bar.get_x() + bar.get_width() / 2,
-        val + 1.5,
-        f"{val:.1f}%",
-        ha="center", va="bottom",
-        fontsize=7.5, color="black",
+        n - 0.35, val + 0.9,
+        name,
+        ha="right", va="bottom",
+        fontsize=7.5, color=C_REF_LINE,
+        style="italic",
     )
 
-ax.set_xticks(range(len(CONFIGS)))
+ax.set_xticks(range(n))
 ax.set_xticklabels(labels, fontsize=TICK_FONTSIZE)
 ax.set_ylabel("AST Accuracy (↑) [%]")
 ax.set_ylim(0, 107)
-ax.yaxis.grid(True, linestyle="--", linewidth=0.5, alpha=0.7, zorder=0)
-ax.set_axisbelow(True)
-ax.legend(loc="upper left", framealpha=0.9, fontsize=LABEL_FONTSIZE)
-ax.spines["top"].set_visible(False)
-ax.spines["right"].set_visible(False)
+_clean_axes(ax)
 
 fig.tight_layout()
 out = OUT_DIR / "fig_bfcl_ablation.pdf"
@@ -107,55 +143,68 @@ print(f"Saved {out}")
 # ---------------------------------------------------------------------------
 # Figure 2 — Frontier comparison (SLM configs vs frontier models)
 # ---------------------------------------------------------------------------
+# Story: CD+schema (highlighted) crosses into the frontier band; other SLM
+# configs are shown for context in muted grey.
 
-SLM_NAMES  = ["CD\n(Qwen 7B)", "CD+Q\n(Qwen 7B)", "CD+FT-aligned\n(Qwen 7B)", "B-template\n(Qwen 7B)"]
-SLM_ACCS   = [72.75, 72.25, 76.75, 96.00]
-SLM_COLS   = [C_GREEN, C_GREEN, C_PURPLE, C_BLUE]
-
-# Python Simple AST sub-category of the BFCL v4 leaderboard
-FRONTIER_NAMES = [
-    "GPT-5-mini", "GPT-4.1", "GPT-4.1\nmini",
-    "Gemini\n3 Pro", "Claude\nHaiku 4.5", "Claude\nOpus 4.5", "Claude\nSonnet 4.5",
+SLM_CONFIGS = [
+    ("CD+Q",          72.25, C_MUTED),
+    ("CD",            72.75, C_MUTED),
+    ("CD+FT-aligned", 76.75, C_MUTED),
+    ("CD+schema",     89.00, C_HIGHLIGHT),
+    ("B-template",    96.00, C_SECONDARY),
 ]
-FRONTIER_ACCS = [78.75, 91.00, 91.00, 94.75, 95.00, 96.50, 97.75]
 
-all_names = SLM_NAMES + FRONTIER_NAMES
-all_accs  = SLM_ACCS  + FRONTIER_ACCS
-all_cols  = SLM_COLS + [C_GREY] * len(FRONTIER_NAMES)
+FRONTIER_CONFIGS = [
+    ("GPT-5-mini",         78.75),
+    ("GPT-4.1\nmini",      91.00),
+    ("GPT-4.1",            91.00),
+    ("Gemini\n3 Pro",      94.75),
+    ("Claude\nHaiku 4.5",  95.00),
+    ("Claude\nOpus 4.5",   96.50),
+    ("Claude\nSonnet 4.5", 97.75),
+]
 
-fig, ax = plt.subplots(figsize=(7.0, 3.6))
+all_names = [c[0] for c in SLM_CONFIGS] + [c[0] for c in FRONTIER_CONFIGS]
+all_accs  = [c[1] for c in SLM_CONFIGS] + [c[1] for c in FRONTIER_CONFIGS]
+all_cols  = [c[2] for c in SLM_CONFIGS] + [C_FRONTIER] * len(FRONTIER_CONFIGS)
+
+fig, ax = plt.subplots(figsize=(8.5, 3.6))
 
 bars = ax.bar(range(len(all_names)), all_accs, color=all_cols, width=0.65, zorder=3)
 
-for bar, val in zip(bars, all_accs):
-    ax.text(
-        bar.get_x() + bar.get_width() / 2,
-        val + 0.8,
-        f"{val:.1f}%",
-        ha="center", va="bottom",
-        fontsize=7.5,
-    )
+# Label only the CD+schema bar and the frontier endpoints to reduce clutter
+LABEL_THESE = {"CD+schema", "GPT-5-mini", "Claude\nSonnet 4.5"}
+for bar, name, val in zip(bars, all_names, all_accs):
+    if name in LABEL_THESE:
+        is_hl = (name == "CD+schema")
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            val + 0.8,
+            f"{val:.2f}%",
+            ha="center", va="bottom",
+            fontsize=7.5,
+            fontweight="bold" if is_hl else "normal",
+            color=C_HIGHLIGHT if is_hl else "#333333",
+        )
 
 ax.set_xticks(range(len(all_names)))
 ax.set_xticklabels(all_names, fontsize=TICK_FONTSIZE)
 ax.set_ylabel("AST Accuracy (↑) [%]")
-ax.set_ylim(50, 104)
+ax.set_ylim(50, 107)
 
-slm_patch      = mpatches.Patch(color=C_GREEN,  label="Qwen 2.5 7B + CD (this work)")
-slm_ft_patch   = mpatches.Patch(color=C_PURPLE, label="Qwen 2.5 7B + CD+FT-aligned (this work)")
-slm_bt_patch   = mpatches.Patch(color=C_BLUE,   label="Qwen 2.5 7B B-template control (this work)")
-frontier_patch = mpatches.Patch(color=C_GREY,   label="Frontier models (leaderboard, Python Simple AST)")
-ax.legend(handles=[slm_patch, slm_ft_patch, slm_bt_patch, frontier_patch], loc="lower right",
-          framealpha=0.9, fontsize=LABEL_FONTSIZE)
+# Compact 4-item legend (colour groups only)
+legend_handles = [
+    mpatches.Patch(color=C_HIGHLIGHT, label="CD+schema — Qwen 2.5 7B (this work)"),
+    mpatches.Patch(color=C_MUTED,     label="Other constrained configs — Qwen 2.5 7B (this work)"),
+    mpatches.Patch(color=C_SECONDARY, label="B-template control — Qwen 2.5 7B (this work)"),
+    mpatches.Patch(color=C_FRONTIER,  label="Frontier models (BFCL leaderboard, Python Simple AST)"),
+]
+ax.legend(handles=legend_handles, loc="lower right", framealpha=0.9, fontsize=LABEL_FONTSIZE)
 
-ax.yaxis.grid(True, linestyle="--", linewidth=0.5, alpha=0.7, zorder=0)
-ax.set_axisbelow(True)
-ax.spines["top"].set_visible(False)
-ax.spines["right"].set_visible(False)
+# Divider between SLM and frontier groups (Gestalt enclosure)
+ax.axvline(4.5, color=C_REF_LINE, linewidth=0.8, linestyle=":", alpha=0.6)
 
-# Divider between SLM and frontier groups
-ax.axvline(3.5, color="black", linewidth=0.8, linestyle=":", alpha=0.5)
-
+_clean_axes(ax)
 fig.tight_layout()
 out = OUT_DIR / "fig_frontier_comparison.pdf"
 fig.savefig(out)
@@ -164,16 +213,14 @@ print(f"Saved {out}")
 
 
 # ---------------------------------------------------------------------------
-# Figure 3 — CoT flip analysis (gains vs losses per question type)
+# Figure 3 — CoT flip analysis
 # ---------------------------------------------------------------------------
-# 400 test cases: CoT active on CD+Q+ITC (65.5%) vs CD+Q (72.25%)
-# Net: 262 correct (ITC) vs 289 correct (CD+Q) => net -27 correct
-# Flip details: 24 gains (wrong->right), 51 losses (right->wrong)
-# Remaining: 238 stable-correct, 87 stable-wrong
+# Story: CoT causes more losses (51) than gains (24); net −27 at 7B.
+# Stable counts recede to grey; the loss bar is the visual anchor.
 
-FLIP_LABELS = ["Stable\ncorrect\n(238)", "CoT gain\n(24)", "CoT loss\n(51)", "Stable\nwrong\n(87)"]
+FLIP_LABELS = ["Stable\ncorrect", "CoT\ngain", "CoT\nloss", "Stable\nwrong"]
 FLIP_COUNTS = [238, 24, 51, 87]
-FLIP_COLS   = [C_GREEN, C_BLUE, C_RED, C_GREY]
+FLIP_COLS   = [C_NEUTRAL_LIGHT, C_GAIN, C_LOSS, C_NEUTRAL_DARK]
 
 fig, ax = plt.subplots(figsize=(4.5, 3.2))
 
@@ -188,12 +235,21 @@ for bar, val in zip(bars, FLIP_COUNTS):
         fontsize=BODY_FONTSIZE,
     )
 
+# Annotation stating the net result
+ax.text(
+    0.97, 0.95,
+    "Net: −27 correct\n(CoT hurts at 7B)",
+    transform=ax.transAxes,
+    ha="right", va="top",
+    fontsize=LABEL_FONTSIZE,
+    color=C_LOSS,
+    bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
+              edgecolor=C_LOSS, linewidth=0.8),
+)
+
 ax.set_ylabel("Number of test cases")
 ax.set_ylim(0, 280)
-ax.yaxis.grid(True, linestyle="--", linewidth=0.5, alpha=0.7, zorder=0)
-ax.set_axisbelow(True)
-ax.spines["top"].set_visible(False)
-ax.spines["right"].set_visible(False)
+_clean_axes(ax)
 
 fig.tight_layout()
 out = OUT_DIR / "fig_cot_flip.pdf"
@@ -205,17 +261,15 @@ print(f"Saved {out}")
 # ---------------------------------------------------------------------------
 # Figure 4 — RAG outcome breakdown (horizontal bars)
 # ---------------------------------------------------------------------------
-# The three categories partition all 400 test cases:
-# 264 identical to CD+Q (66.0%), 128 wrong function (32.0%),
-# 8 correct function but wrong arguments (2.0%).
+# Story: wrong function selection (32 %) is the dominant failure mode.
 
 RAG_LABELS = [
     "Correct function,\nwrong arguments (8/400)",
     "Wrong function selected (128/400)",
     "Output identical to CD+Q (264/400)",
 ]
-RAG_SIZES  = [2, 32, 66]
-RAG_COLS   = [C_ORANGE, C_RED, C_GREEN]
+RAG_SIZES = [2, 32, 66]
+RAG_COLS  = [C_NEUTRAL_DARK, C_LOSS, C_NEUTRAL_LIGHT]
 
 fig, ax = plt.subplots(figsize=(4.8, 2.4))
 
@@ -232,7 +286,9 @@ for bar, val in zip(bars, RAG_SIZES):
 
 ax.set_xlim(0, 80)
 ax.set_xlabel("Share of all 400 test cases (%)", fontsize=LABEL_FONTSIZE)
-ax.set_title("CD+Q+RAG outcome breakdown (7B, 400 test cases)", fontsize=BODY_FONTSIZE)
+# Title states the finding, not just a description of the data
+ax.set_title("Wrong function selection causes most RAG failures",
+             fontsize=BODY_FONTSIZE)
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 ax.tick_params(axis="y", labelsize=LABEL_FONTSIZE)
@@ -247,44 +303,52 @@ print(f"Saved {out}")
 # ---------------------------------------------------------------------------
 # Figure 5 — Memory vs accuracy scatter
 # ---------------------------------------------------------------------------
+# Story: CD+schema achieves 89 % above the GPT-5-mini line at the same
+# 14.25 GiB footprint as CD.
+# Design: single marker shape (o) — shape encoding removed; colour +
+# direct labels carry all differentiation.
 
 MEM_POINTS = [
-    ("B",             14.25,  1.50,  C_RED,    "o"),
-    ("FT-only",       14.25, 13.75,  C_ORANGE, "D"),
-    ("CD+FT",         14.25, 69.75,  C_BLUE,   "s"),
-    ("CD",            14.25, 72.75,  C_GREEN,  "o"),
-    ("CD+FT-aligned", 14.25, 76.75,  C_PURPLE, "*"),
-    ("CD+Q",           5.20, 72.25,  C_GREEN,  "^"),
+    # (label, mem_gib, acc, text_x_offset, text_y_offset)
+    ("B",             14.25,  1.50,  0.3,   1.5),
+    ("FT-only",       14.25, 13.75,  0.3,   1.5),
+    ("CD+FT",         14.25, 69.75, -5.5,  -1.0),   # left of cluster
+    ("CD",            14.25, 72.75, -4.5,   1.5),   # left of cluster
+    ("CD+FT-aligned", 14.25, 76.75,  0.3,   1.5),
+    ("CD+Q",           5.20, 72.25,  0.3,   1.5),
+    ("CD+schema",     14.25, 89.00,  0.3,   1.5),
 ]
 
-fig, ax = plt.subplots(figsize=(5.0, 3.4))
+fig, ax = plt.subplots(figsize=(5.0, 3.6))
 
-for name, mem, acc, col, marker in MEM_POINTS:
-    ax.scatter(mem, acc, color=col, marker=marker, s=80, zorder=5)
-    offset_x = 0.3
-    offset_y = 1.5 if name not in ("CD", "CD+FT") else -3.5
+for name, mem, acc, dx, dy in MEM_POINTS:
+    is_hl = (name == "CD+schema")
+    col = C_HIGHLIGHT if is_hl else C_NEUTRAL_DARK
+    ax.scatter(mem, acc, color=col, marker="o", s=80 if is_hl else 60, zorder=5)
     ax.annotate(
         name,
-        (mem, acc),
-        xytext=(mem + offset_x, acc + offset_y),
+        xy=(mem, acc),
+        xytext=(mem + dx, acc + dy),
         fontsize=LABEL_FONTSIZE,
-        arrowprops=dict(arrowstyle="-", color="grey", lw=0.6),
+        fontweight="bold" if is_hl else "normal",
+        color=C_HIGHLIGHT if is_hl else "black",
+        arrowprops=dict(arrowstyle="-", color=C_NEUTRAL_DARK, lw=0.6),
         va="center",
     )
 
 ax.set_xlabel("GPU Memory (↓) [GiB]")
 ax.set_ylabel("AST Accuracy (↑) [%]")
-ax.set_xlim(3, 17)
-ax.set_ylim(-5, 85)
+ax.set_xlim(3, 18)
+ax.set_ylim(-5, 97)
 
-ax.axhline(78.75, linestyle=":", color=C_GREY, linewidth=1.0, label="GPT-5-mini (78.75%)")
-ax.legend(fontsize=LABEL_FONTSIZE, loc="lower right")
+# GPT-5-mini reference line — direct label, no legend
+ax.axhline(78.75, linestyle=":", color=C_REF_LINE, linewidth=1.0, zorder=2)
+ax.text(17.7, 79.5, "GPT-5-mini (78.75%)",
+        ha="right", va="bottom",
+        fontsize=7.5, color=C_REF_LINE, style="italic")
 
-ax.yaxis.grid(True, linestyle="--", linewidth=0.5, alpha=0.7, zorder=0)
-ax.xaxis.grid(True, linestyle="--", linewidth=0.5, alpha=0.7, zorder=0)
-ax.set_axisbelow(True)
-ax.spines["top"].set_visible(False)
-ax.spines["right"].set_visible(False)
+_clean_axes(ax)
+ax.xaxis.grid(True, linestyle="--", linewidth=0.4, alpha=0.25, zorder=0)
 
 fig.tight_layout()
 out = OUT_DIR / "fig_memory_vs_accuracy.pdf"
@@ -292,44 +356,47 @@ fig.savefig(out)
 plt.close(fig)
 print(f"Saved {out}")
 
+
 # ---------------------------------------------------------------------------
 # Figure 6 — LoRA training loss curves (v1 misaligned vs v2 aligned)
 # ---------------------------------------------------------------------------
+# Story: aligned-format training (C_HIGHLIGHT) converges to a lower loss
+# and produces the better evaluation result.
 
 LORA_ROOT = Path(__file__).parent.parent.parent / "models" / "lora"
 
-_v1_path = LORA_ROOT / "Qwen_Qwen2.5-7B-Instruct" / "checkpoint-6750" / "trainer_state.json"
+_v1_path = LORA_ROOT / "Qwen_Qwen2.5-7B-Instruct"         / "checkpoint-6750" / "trainer_state.json"
 _v2_path = LORA_ROOT / "Qwen_Qwen2.5-7B-Instruct-aligned" / "checkpoint-6750" / "trainer_state.json"
 
 if _v1_path.exists() and _v2_path.exists():
     def _load_loss(path):
-        logs = json.loads(path.read_text())["log_history"]
+        logs    = json.loads(path.read_text())["log_history"]
         entries = [l for l in logs if "loss" in l and "eval_loss" not in l]
         return [l["step"] for l in entries], [l["loss"] for l in entries]
 
     v1_steps, v1_loss = _load_loss(_v1_path)
     v2_steps, v2_loss = _load_loss(_v2_path)
 
-    EPOCH_BOUNDARY = 3375  # step at end of epoch 1 (6750 total / 2 epochs)
+    EPOCH_BOUNDARY = 3375  # step at end of epoch 1
 
     fig, ax = plt.subplots(figsize=(5.5, 3.4))
 
-    ax.plot(v1_steps, v1_loss, color=C_BLUE,   linewidth=1.5, label="v1 — misaligned format (CD+FT: 69.75%)")
-    ax.plot(v2_steps, v2_loss, color=C_PURPLE, linewidth=1.5, label="v2 — aligned format (CD+FT-aligned: 76.75%)")
+    ax.plot(v1_steps, v1_loss, color=C_NEUTRAL_DARK, linewidth=1.5,
+            label="v1 — misaligned format (CD+FT: 69.75%)")
+    ax.plot(v2_steps, v2_loss, color=C_HIGHLIGHT, linewidth=1.5,
+            label="v2 — aligned format (CD+FT-aligned: 76.75%)")
 
-    ax.axvline(EPOCH_BOUNDARY, color=C_GREY, linestyle="--", linewidth=0.9, alpha=0.7)
+    ax.axvline(EPOCH_BOUNDARY, color=C_NEUTRAL_DARK, linestyle="--",
+               linewidth=0.9, alpha=0.7)
     ax.text(EPOCH_BOUNDARY + 80, max(v1_loss[0], v2_loss[0]) * 0.72,
-            "epoch 2", fontsize=LABEL_FONTSIZE, color=C_GREY, va="top")
+            "epoch 2", fontsize=LABEL_FONTSIZE, color=C_NEUTRAL_DARK, va="top")
 
     ax.set_xlabel("Training step")
     ax.set_ylabel("Training loss")
     ax.set_xlim(0, 6750)
     ax.set_ylim(0, max(v1_loss[0], v2_loss[0]) * 1.05)
-    ax.yaxis.grid(True, linestyle="--", linewidth=0.5, alpha=0.7, zorder=0)
-    ax.set_axisbelow(True)
     ax.legend(fontsize=LABEL_FONTSIZE, loc="upper right", framealpha=0.9)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
+    _clean_axes(ax)
 
     fig.tight_layout()
     out = OUT_DIR / "fig_lora_training_loss.pdf"
