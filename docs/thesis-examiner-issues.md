@@ -105,9 +105,13 @@ Status legend: [ ] open · [~] partially fixed (needs HPC data or author decisio
 - [x] McNemar discordant counts from HPC result files (issue 4) — done
   2026-06-09; the original per-case files behind the exact 291/289 figures were
   overwritten, so the tests use the surviving paired files (CD at 289/400).
-- [ ] Optional: BFCL v4 leaderboard entry for Qwen 2.5 7B-Instruct (issue 1);
-  the public CSV endpoint was not reachable from this machine.
-- [ ] Optional: guided decoding latency measurements (issue 7) — Task 3.
+- [ ] Optional: BFCL v4 leaderboard entry for Qwen 2.5 7B-Instruct (issue 1) —
+  tracked as GitHub issue #142.
+- [ ] Optional: guided decoding latency measurements (issue 7) — Task 3,
+  tracked as GitHub issue #141.
+- [ ] Follow-up experiment: schema-enriched constrained decoding (carry full
+  parameter descriptions/defaults/enums into the guided prompt) — tracked as
+  GitHub issue #140; highest-value remaining experiment.
 
 ## Build status
 
