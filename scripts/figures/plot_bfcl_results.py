@@ -118,11 +118,11 @@ FRONTIERS = [
 n = len(CONFIGS)
 for name, val, ls in FRONTIERS:
     ax.axhline(val, linestyle=ls, color=C_REF_LINE, linewidth=1.0, zorder=2, alpha=0.8)
-    # Place label to the right of the last bar, right-aligned
     ax.text(
-        n - 0.35, val + 0.9,
+        0.02, val + 0.9,
         name,
-        ha="right", va="bottom",
+        transform=ax.get_yaxis_transform(),
+        ha="left", va="bottom",
         fontsize=7.5, color=C_REF_LINE,
         style="italic",
     )
