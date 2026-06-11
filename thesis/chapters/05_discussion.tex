@@ -131,7 +131,7 @@ for 98.5\% of failures in Base~\cite{willard2023efficient, kwon2023vllm}.
 Schema-enriched constrained decoding extends the plain CD result by supplying
 the parameter descriptions, type constraints, and enumerated values that the
 standard pipeline omits from its prompts. Config~CD+schema achieves 89.0\%
-($+$16.25~pp over plain CD, McNemar $p < 0.00001$, $b{=}73$, $c{=}7$;
+($+$16.5~pp over the paired CD baseline, McNemar $p < 0.00001$, $b{=}73$, $c{=}7$;
 Section~\ref{sec:cd-schema}), the highest accuracy of any configuration in
 the evaluation and the only result to enter the frontier range without
 modifying model weights. No training, no additional generated tokens, and no
@@ -334,7 +334,7 @@ single-call BFCL gains do not transfer to multi-step agentic
 completion---is robust to this effect: even at the upper bound (5.22\%)
 the gap to the 72.75\% BFCL CD result exceeds 67~pp, and the
 conclusion holds across all evaluated model sizes
-(Table~\ref{tab:tau-bench-results}).
+(Table~\ref{tab:tau-bench-size}).
 
 \textbf{Single model family.}
 All experiments use the Qwen~2.5 Instruct family across four sizes.
