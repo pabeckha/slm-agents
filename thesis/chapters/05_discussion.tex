@@ -417,8 +417,17 @@ volume. At low throughput, the API cost reduction does not accumulate
 quickly enough to recover the fine-tuning compute cost; the no-training
 CD+Q configuration is preferable. At high throughput, the per-query
 saving compounds and the break-even point moves earlier in the
-deployment lifecycle. The exact break-even is deployment-specific, but
-the 2.0--5.0~pp accuracy range separating the cascade-viable
+deployment lifecycle. The break-even query volume is given by
+$N = C_{\text{train}} / (\Delta p \cdot c_{\text{frontier}})$,
+where $C_{\text{train}}$ is the one-time training cost, $\Delta p$ is
+the accuracy gain, and $c_{\text{frontier}}$ is the frontier API cost
+per call. For CD+Q+FT-aligned versus CD+Q, $\Delta p \approx 0.02$; at
+a representative frontier cost of \$0.01 per call and a training cost
+of \$3 (approximately 4~GPU-hours), break-even is reached at
+$N \approx 15{,}000$ queries. At lower frontier costs or smaller query
+volumes the no-training configuration remains preferable; at higher
+volumes the investment recovers quickly. The
+2.0--5.0~pp accuracy range separating the cascade-viable
 configurations represents a concrete trade-off space.
 
 The residual failure classes common to all configurations (wrong optional
