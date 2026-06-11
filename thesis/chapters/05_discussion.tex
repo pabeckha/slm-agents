@@ -128,6 +128,22 @@ not a latency tax but a latency gain at 7B. The accuracy gain is entirely struct
 masking at each decoding step eliminates the malformed output that accounts
 for 98.5\% of failures in Base~\cite{willard2023efficient, kwon2023vllm}.
 
+Schema-enriched constrained decoding extends the plain CD result by supplying
+the parameter descriptions, type constraints, and enumerated values that the
+standard pipeline omits from its prompts. Config~CD+schema achieves 89.0\%
+($+$16.25~pp over plain CD, McNemar $p < 0.00001$, $b{=}73$, $c{=}7$;
+Section~\ref{sec:cd-schema}), the highest accuracy of any configuration in
+the evaluation and the only result to enter the frontier range without
+modifying model weights. No training, no additional generated tokens, and no
+latency overhead are introduced: the measured per-call latency for CD+schema
+(0.704~s mean) falls within the same range as plain CD and does not exceed
+the unconstrained baseline. The implementation cost is maintaining enriched
+prompt templates that include parameter descriptions, type annotations, and
+enumerated defaults for each tool. The cost-benefit ratio is the most
+favourable in the evaluation, and the gain scales with schema richness: tools
+with detailed descriptions and enumerated defaults expose more of the missing
+vocabulary that schema enrichment recovers.
+
 AWQ INT4 quantization adds a further infrastructure benefit at near-zero
 accuracy cost~\cite{lin2024awq}. The $-0.5$ percentage point change (two
 test cases) falls within run-to-run variance. Memory is reduced by 63.5\%
@@ -200,18 +216,20 @@ which retrains on the same xlam content reformatted to match the inference
 pipeline's JSON output convention exactly. CD+FT-aligned achieves
 76.75\% (307/400), a gain of 7.00 percentage points over CD+FT v1 and
 4.00 percentage points above the CD baseline, making it the best
-result in the evaluation. FT-only confirms that fine-tuning does improve
+training-based result in the evaluation. FT-only confirms that fine-tuning does improve
 format compliance in the unguided setting ($+12.25$ percentage points over
 Base), establishing that the training signal is meaningful. The 63
 percentage point gap between FT-aligned-ng (13.25\%) and
 CD+FT-aligned confirms that constrained decoding remains the dominant
 contributor even after fine-tuning.
 
-Taken together, the results support a clear ordering by cost-benefit ratio
-for this task: constrained decoding first, quantization second, and
-training-based methods as the remaining path to accuracy above the
-no-training ceiling. Prompting interventions offer no benefit on this
-failure class and add latency or context overhead.
+Taken together, the results support a clear ordering by cost-benefit ratio:
+schema-enriched constrained decoding (CD+schema, 89.0\%) delivers the highest
+accuracy at zero training cost; plain constrained decoding provides the core
+structural gain with no overhead; quantization adds substantial memory and
+loading benefits at near-zero accuracy cost; and format-aligned fine-tuning
+offers further marginal gains at the highest implementation cost. Prompting
+and retrieval interventions produce negative outcomes on this failure class.
 
 \section{Limitations}
 
@@ -303,13 +321,20 @@ residual value-convention scorer artifacts.
 The user simulator is the agent model itself (Qwen~2.5 7B), whereas
 the reference $\tau$-bench setup uses a frontier-model simulator.
 Simulator errors (misstated or omitted task details) deflate pass
-rates independently of agent capability, so the absolute 4.35\% pass
-rate conflates agent and simulator failures, and comparisons to
-published pass rates under stronger simulators are not like-for-like.
-The qualitative conclusion (single-call gains do not transfer to
-multi-turn completion) is robust to this confound only insofar as the
-trajectory inspection attributes failures to agent-side planning
-errors; a re-run with a frontier simulator would bound the effect.
+rates independently of agent capability, so the absolute pass rate
+conflates agent and simulator failures, and comparisons to published
+pass rates under stronger simulators are not like-for-like.
+Three independent runs at identical agent settings (temperature~0.0,
+seed~42) produced pass rates of 3.48\%, 4.35\%, and 5.22\%
+(4–6 tasks out of 115). Because the agent is fully deterministic
+across runs, the 1.74~pp spread is attributable entirely to stochastic
+simulator turns, bounding the simulator-noise contribution at
+$\pm$0.87~pp (one task at $n{=}115$). The qualitative conclusion---that
+single-call BFCL gains do not transfer to multi-step agentic
+completion---is robust to this effect: even at the upper bound (5.22\%)
+the gap to the 72.75\% BFCL CD result exceeds 67~pp, and the
+conclusion holds across all evaluated model sizes
+(Table~\ref{tab:tau-bench-results}).
 
 \textbf{Single model family.}
 All experiments use the Qwen~2.5 Instruct family across four sizes.
