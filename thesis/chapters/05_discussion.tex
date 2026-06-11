@@ -131,7 +131,7 @@ for 98.5\% of failures in Base~\cite{willard2023efficient, kwon2023vllm}.
 Schema-enriched constrained decoding extends the plain CD result by supplying
 the parameter descriptions, type constraints, and enumerated values that the
 standard pipeline omits from its prompts. Config~CD+schema achieves 89.0\%
-($+$16.5~pp over the paired CD baseline, McNemar $p < 0.00001$, $b{=}73$, $c{=}7$;
+($+16.5$~pp over the paired CD baseline, McNemar $p < 0.00001$, $b{=}73$, $c{=}7$;
 Section~\ref{sec:cd-schema}), the highest accuracy of any configuration in
 the evaluation and the only result to enter the frontier range without
 modifying model weights. No training, no additional generated tokens, and no
@@ -328,7 +328,7 @@ Three independent runs at identical agent settings (temperature~0.0,
 seed~42) produced pass rates of 3.48\%, 4.35\%, and 5.22\%
 (4--6 tasks out of 115). Because the agent is fully deterministic
 across runs, the 1.74~pp spread is attributable entirely to stochastic
-simulator turns, bounding the simulator-noise contribution at
+simulator turns, bounding the observed simulator-noise contribution at
 $\pm 0.87$~pp (one task at $n{=}115$). The qualitative conclusion---that
 single-call BFCL gains do not transfer to multi-step agentic
 completion---is robust to this effect: even at the upper bound (5.22\%)
