@@ -178,7 +178,7 @@ The conceptual punchline, repeated next slide: structural errors become impossib
 
 CD shifts the **entire curve up** without changing its shape. The remaining failures are now structurally valid but semantically wrong: format is solved, **argument-value accuracy is what scales**.
 
-**The 0.5B model alone reaches 51.5%, approaching GPT-5-mini (59.92%), with zero training.** CD becomes the baseline for every later experiment.
+**The 0.5B model alone reaches 51.5% with zero training — 27.25 pp below GPT-5-mini (78.75%), but recall that CD is the floor, and fine-tuning adds a further 7.75 pp at 0.5B.** CD becomes the baseline for every later experiment.
 
 <!--
 Most important conceptual slide. Two messages.
@@ -408,7 +408,7 @@ Residual failure characterisation: 44 remaining failures are scorer strictness, 
 | CD + LoRA (aligned) | 59.25% | 66.0% | 66.75% | 76.75% |
 | **CD + Schema** | — | — | — | **89.0%** |
 
-CD dominates at every size. Quantization is near-free above 1.5B. Prompting and RAG mostly hurt. Format-aligned LoRA beats CD across sizes. **Schema enrichment adds +16.25 pp at 7B with no training cost and no latency overhead.**
+CD dominates at every size. Quantization is near-free above 1.5B. Prompting and RAG mostly hurt. Format-aligned LoRA beats CD across sizes. **Schema enrichment adds +16.5 pp at 7B (over the paired CD baseline) with no training cost and no latency overhead.**
 
 <small class="opacity-50">This matrix is the size sweep, so every row above Base includes CD. CD+schema was evaluated at 7B only. Each technique was *also* run alone, without CD, at 7B to isolate its own contribution. Those numbers are on the next slide.</small>
 
@@ -556,7 +556,7 @@ A **68 pp gap at 7B**, and **no scale trend** in the agentic column: every size 
 <!--
 The most important honest result in the thesis. Do not bury it.
 
-State the simulator confound before anyone asks: the user simulator is the same 7B model, where the reference tau-bench setup uses a frontier model. A weak simulator deflates pass rates independently of agent capability, so the absolute floor is conservative and comparisons to published frontier pass rates are not like-for-like. The qualitative finding (single-call gains do not transfer to multi-turn) survives because trajectory inspection attributes the failures to agent-side planning errors. It would be easy to stop at "small models match frontier on single calls" and tell a triumphant story. The truth is more interesting: parity on single calls, collapse on multi-step agency.
+State the simulator confound before anyone asks: the user simulator is the same 7B model, where the reference tau-bench setup uses a frontier model. A weak simulator deflates pass rates independently of agent capability, so the absolute floor is conservative and comparisons to published frontier pass rates are not like-for-like. Quantitative bound: three independent runs at identical agent settings (temp 0.0, seed 42) produced 3.48%, 4.35%, and 5.22%. Because the agent is deterministic, the 1.74 pp spread is attributable entirely to stochastic simulator turns, bounding the observed simulator-noise contribution at ±0.87 pp. The qualitative finding (single-call gains do not transfer to multi-turn) survives: even at the 5.22% upper bound the gap to 72.75% BFCL CD exceeds 67 pp. It would be easy to stop at "small models match frontier on single calls" and tell a triumphant story. The truth is more interesting: parity on single calls, collapse on multi-step agency.
 
 The size column is the key addition here: the agentic floor is flat across 0.5B to 7B. So this is a capability boundary, not a tuning or scale problem within the small range. It is the single best argument for the cascade: the SLM handles the simple bulk, the frontier model handles genuine multi-step agency.
 
@@ -615,7 +615,7 @@ The parallel 0% is the cleanest limitation: structurally impossible in this arch
 
 **RQ1.** The unoptimized gap is enormous (1.5 to 4.75% vs ~79%) but it measures the **generic integration, not the model**: the native-template control reaches 96%. The gap is almost entirely **format**, and **flat across size**. CD closes it at every scale with structural guarantees.
 
-**RQ2.** CD dominates (+48 to +71 pp, growing with size). Quantization is near-free above 1.5B. Few-shot reverses with scale; CoT and RAG hurt at every size; format-aligned LoRA beats CD across all sizes; **schema enrichment adds +16.25 pp at 7B (p < 0.00001) with no training and no latency cost.**
+**RQ2.** CD dominates (+48 to +71 pp, growing with size). Quantization is near-free above 1.5B. Few-shot reverses with scale; CoT and RAG hurt at every size; format-aligned LoRA beats CD across all sizes; **schema enrichment adds +16.5 pp at 7B over the paired CD baseline (p < 0.00001) with no training and no latency cost.**
 
 **RQ3.** Yes. The 7B with CD+schema reaches **89.0%, 10.25 pp above GPT-5-mini and 2 pp below GPT-4.1**. Without training, CD+LoRA (76.75%) is just below GPT-5-mini (78.75%). Schema enrichment enters the frontier range without modifying model weights.
 
@@ -669,7 +669,7 @@ Likely questions:
 - "Why present all four sizes?" Because the thesis is about small models and the size interactions ARE findings: few-shot reverses, quantization penalty shrinks, fine-tuning helps small most, disambiguation never scales. A single size would hide all of that.
 - "Isn't CD just doing what the benchmark wants?" CD enforces structure exactly like frontier function-calling APIs, so the comparison is fair at the CD level. It does not touch values.
 - "Is the LoRA gain statistically significant?" McNemar on the paired predictions gives p = 0.044 at 7B, borderline against the run-to-run spread; the quantized-stack gain is not significant (p = 0.38). The stronger evidence is the consistent positive direction at all four sizes. I report it exactly that way. The CD+schema gain is unambiguous: p < 0.00001, 73 vs 7 discordant pairs.
-- "Why is tau-bench so low at every size, did something break?" No. The bottleneck is multi-turn planning, which none of my single-call techniques target, and it does not improve across the small range. The simulator is also a 7B model, so the absolute floor is conservative; the qualitative finding stands.
-- "How small can you really go?" 0.5B with CD reaches 51.5% on single calls, within 8.4 pp of GPT-5-mini, with zero training. For multi-step agency, no size in this range is sufficient, which is what the cascade is for.
+- "Why is tau-bench so low at every size, did something break?" No. The bottleneck is multi-turn planning, which none of my single-call techniques target, and it does not improve across the small range. The simulator is also a 7B model, so the absolute floor is conservative. Quantitative bound: three deterministic-agent runs gave 3.48%–5.22%; the 1.74 pp spread is pure simulator noise (±0.87 pp). The qualitative finding stands even at the 5.22% upper bound — the BFCL-to-τ-bench gap exceeds 67 pp.
+- "How small can you really go?" 0.5B with CD reaches 51.5% on single calls — 27.25 pp below GPT-5-mini (78.75%), but +7.75 pp with format-aligned LoRA (59.25%). For multi-step agency, no size in this range is sufficient, which is what the cascade is for.
 - "Does constrained decoding add latency?" The opposite: CD is 8× faster than unconstrained (0.878 s vs 6.995 s mean) because it terminates at the closing brace instead of generating prose. AWQ adds a further 25% reduction to 0.661 s.
 -->
