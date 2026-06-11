@@ -140,7 +140,7 @@ latency overhead are introduced: the measured per-call latency for CD+schema
 the unconstrained baseline. The implementation cost is maintaining enriched
 prompt templates that include parameter descriptions, type annotations, and
 enumerated defaults for each tool. The cost-benefit ratio is the most
-favourable in the evaluation, and the gain scales with schema richness: tools
+favorable in the evaluation, and the gain scales with schema richness: tools
 with detailed descriptions and enumerated defaults expose more of the missing
 vocabulary that schema enrichment recovers.
 
@@ -326,10 +326,10 @@ conflates agent and simulator failures, and comparisons to published
 pass rates under stronger simulators are not like-for-like.
 Three independent runs at identical agent settings (temperature~0.0,
 seed~42) produced pass rates of 3.48\%, 4.35\%, and 5.22\%
-(4–6 tasks out of 115). Because the agent is fully deterministic
+(4--6 tasks out of 115). Because the agent is fully deterministic
 across runs, the 1.74~pp spread is attributable entirely to stochastic
 simulator turns, bounding the simulator-noise contribution at
-$\pm$0.87~pp (one task at $n{=}115$). The qualitative conclusion---that
+$\pm 0.87$~pp (one task at $n{=}115$). The qualitative conclusion---that
 single-call BFCL gains do not transfer to multi-step agentic
 completion---is robust to this effect: even at the upper bound (5.22\%)
 the gap to the 72.75\% BFCL CD result exceeds 67~pp, and the
