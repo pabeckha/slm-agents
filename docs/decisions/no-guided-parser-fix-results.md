@@ -46,11 +46,11 @@ longer penalizes a valid object followed by trailing text.
 | Few-shot, 7B | 4.5 | **59.0** | +54.5 |
 | CoT, 3B | 14.3 | **58.3** | +44.0 |
 | CoT, 7B | 26.3 | **56.3** | +30.0 |
-| RAG, 3B | 2.3 | **48.5** | +46.3 |
+| RAG, 3B | 2.3 | **48.5** | +46.2 |
 | RAG, 7B | 2.5 | **52.0** | +49.5 |
 | FT-aligned, 1.5B | 21.5 | **27.5** | +6.0 |
 | FT-aligned, 3B | 4.0 | **24.3** | +20.3 |
-| FT-aligned, 7B | 13.3 | **41.0** | +27.8 |
+| FT-aligned, 7B | 13.3 | **41.0** | +27.7 |
 
 Run manifests: `data/output/bfcl_*_no_guided/runs/2026-06-12T*` (old
 manifests retained alongside).
