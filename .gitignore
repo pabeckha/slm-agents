@@ -253,6 +253,9 @@ cython_debug/
 ## Generated if empty string is given at "Please type another file name for output:"
 .pdf
 
+## External books/references — do not commit
+Cole Nussbaumer Knaflic - Storytelling with Data_ A Data Visualization Guide for Business Professionals (2016_2015, John Wiley & Sons) - libgen.li.pdf
+
 ## Bibliography auxiliary files (bibtex/biblatex/biber):
 *.bbl
 *.bbl-SAVE-ERROR
