@@ -313,15 +313,15 @@ print(f"Saved {out}")
 N_BFCL = 400  # test cases per configuration
 
 
-def _wilson_ci_halfwidth(acc_pct, n=N_BFCL, z=1.96):
-    """Half-width of the 95 % Wilson score interval, in percentage points."""
+def _wilson_ci_errors(acc_pct, n=N_BFCL, z=1.96):
+    """Asymmetric 95 % Wilson score interval errors, in percentage points."""
     p = acc_pct / 100.0
     denom  = 1 + z**2 / n
     centre = (p + z**2 / (2 * n)) / denom
     half   = (z / denom) * np.sqrt(p * (1 - p) / n + z**2 / (4 * n**2))
-    # Wilson interval is asymmetric; use the larger arm as a symmetric bound
     lo, hi = centre - half, centre + half
-    return max(p - lo, hi - p) * 100.0
+    # Asymmetric errors as [[lower_error], [upper_error]] for matplotlib
+    return [[(p - lo) * 100.0], [(hi - p) * 100.0]]
 
 
 MEM_POINTS = [
@@ -346,7 +346,7 @@ ax.text(3.3, 95.5, "above GPT-5-mini",
 for name, mem, acc, dx, dy, ha in MEM_POINTS:
     is_hl = name.startswith("CD+schema")
     col = C_HIGHLIGHT if is_hl else C_NEUTRAL_DARK
-    ax.errorbar(mem, acc, yerr=_wilson_ci_halfwidth(acc),
+    ax.errorbar(mem, acc, yerr=_wilson_ci_errors(acc),
                 fmt="none", ecolor=col, elinewidth=0.8, capsize=2, zorder=4)
     ax.scatter(mem, acc, color=col, marker="o", s=80 if is_hl else 60, zorder=5)
     ax.annotate(
