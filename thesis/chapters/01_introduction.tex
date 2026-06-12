@@ -151,7 +151,7 @@ This thesis addresses three research questions:
     \item[RQ3] \textit{Can a fully optimized small language model configuration achieve production-viable tool-calling accuracy on consumer hardware?}
 \end{description}
 
-\noindent RQ1 establishes the baseline gap that motivates the work. RQ2 is the core empirical contribution: an incremental ablation study that isolates the marginal impact of each technique. RQ3 addresses the practical question of whether the optimized configuration is viable for real-world deployment.
+\noindent RQ1 establishes the baseline gap that motivates the work. RQ2 is the core empirical contribution: an ablation study that runs in two directions, adding each technique cumulatively on top of the existing stack and, in a complementary isolation arm, evaluating the inference-time techniques without constrained decoding to separate their standalone effect from the contribution of constrained decoding itself. RQ3 addresses the practical question of whether the optimized configuration is viable for real-world deployment.
 
 For RQ3, production viability is assessed against two explicit
 criteria. The first is frontier parity: single-call accuracy within

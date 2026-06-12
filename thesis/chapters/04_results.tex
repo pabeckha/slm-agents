@@ -364,9 +364,10 @@ the constrained-decoding ceiling. To isolate the contribution of
 constrained decoding itself, the three inference-time techniques are
 additionally evaluated without guided decoding, denoted PE-ng
 (few-shot), ITC-ng (chain-of-thought), and RAG-ng (retrieval), where
-\textit{ng} indicates no guided decoding. These runs are supplementary
-controls rather than rungs on the eleven-configuration ladder, and are
-evaluated on the 7B model at full precision (bfloat16) on BFCL~v4
+\textit{ng} indicates no guided decoding. These runs form the isolation
+arm of the experimental design rather than rungs on the
+eleven-configuration ladder, and are evaluated on the 7B model at full
+precision (bfloat16) on BFCL~v4
 \texttt{simple\_python}. Table~\ref{tab:isolation} reports the result.
 
 \begin{table}[ht]
