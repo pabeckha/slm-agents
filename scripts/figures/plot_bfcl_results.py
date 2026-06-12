@@ -306,24 +306,48 @@ print(f"Saved {out}")
 # Story: CD+schema achieves 89 % above the GPT-5-mini line at the same
 # 14.25 GiB footprint as CD.
 # Design: single marker shape (o) — shape encoding removed; colour +
-# direct labels carry all differentiation.
+# direct labels carry all differentiation. Labels at x=14.25 are staggered
+# left/right so leader lines never cross. Error bars are 95 % binomial
+# (Wilson) confidence intervals over the 400 BFCL test cases.
+
+N_BFCL = 400  # test cases per configuration
+
+
+def _wilson_ci_halfwidth(acc_pct, n=N_BFCL, z=1.96):
+    """Half-width of the 95 % Wilson score interval, in percentage points."""
+    p = acc_pct / 100.0
+    denom  = 1 + z**2 / n
+    centre = (p + z**2 / (2 * n)) / denom
+    half   = (z / denom) * np.sqrt(p * (1 - p) / n + z**2 / (4 * n**2))
+    # Wilson interval is asymmetric; use the larger arm as a symmetric bound
+    lo, hi = centre - half, centre + half
+    return max(p - lo, hi - p) * 100.0
+
 
 MEM_POINTS = [
-    # (label, mem_gib, acc, text_x_offset, text_y_offset)
-    ("B",             14.25,  1.50,  0.3,   1.5),
-    ("FT-only",       14.25, 13.75,  0.3,   1.5),
-    ("CD+FT",         14.25, 69.75, -5.5,  -1.0),   # left of cluster
-    ("CD",            14.25, 72.75, -4.5,   1.5),   # left of cluster
-    ("CD+FT-aligned", 14.25, 76.75,  0.3,   1.5),
-    ("CD+Q",           5.20, 72.25,  0.3,   1.5),
-    ("CD+schema",     14.25, 89.00,  0.3,   1.5),
+    # (label, mem_gib, acc, text_x_offset, text_y_offset, ha)
+    ("B",              14.25,  1.50,  0.4,   0.0, "left"),
+    ("FT-only",        14.25, 13.75,  0.4,   0.0, "left"),
+    ("CD+FT",          14.25, 69.75, -0.5,  -4.0, "right"),  # below-left
+    ("CD",             14.25, 72.75, -0.6,   0.0, "right"),  # left
+    ("CD+FT-aligned",  14.25, 76.75,  0.4,  -1.5, "left"),   # below ref line
+    ("CD+Q (INT4)",     5.20, 72.25,  0.4,   0.0, "left"),
+    ("CD+schema",      14.25, 89.00,  0.4,   0.0, "left"),
 ]
 
 fig, ax = plt.subplots(figsize=(5.0, 3.6))
 
-for name, mem, acc, dx, dy in MEM_POINTS:
-    is_hl = (name == "CD+schema")
+# Region above the GPT-5-mini reference: frontier-level accuracy
+ax.axhspan(78.75, 97, facecolor=C_HIGHLIGHT, alpha=0.05, zorder=0)
+ax.text(3.3, 95.5, "above GPT-5-mini",
+        ha="left", va="top",
+        fontsize=7.5, color=C_REF_LINE, style="italic")
+
+for name, mem, acc, dx, dy, ha in MEM_POINTS:
+    is_hl = name.startswith("CD+schema")
     col = C_HIGHLIGHT if is_hl else C_NEUTRAL_DARK
+    ax.errorbar(mem, acc, yerr=_wilson_ci_halfwidth(acc),
+                fmt="none", ecolor=col, elinewidth=0.8, capsize=2, zorder=4)
     ax.scatter(mem, acc, color=col, marker="o", s=80 if is_hl else 60, zorder=5)
     ax.annotate(
         name,
@@ -332,8 +356,9 @@ for name, mem, acc, dx, dy in MEM_POINTS:
         fontsize=LABEL_FONTSIZE,
         fontweight="bold" if is_hl else "normal",
         color=C_HIGHLIGHT if is_hl else "black",
-        arrowprops=dict(arrowstyle="-", color=C_NEUTRAL_DARK, lw=0.6),
-        va="center",
+        arrowprops=dict(arrowstyle="-", color=C_NEUTRAL_DARK, lw=0.6)
+        if abs(dy) > 2 else None,
+        ha=ha, va="center",
     )
 
 ax.set_xlabel("GPU Memory (↓) [GiB]")
@@ -341,10 +366,19 @@ ax.set_ylabel("AST Accuracy (↑) [%]")
 ax.set_xlim(3, 18)
 ax.set_ylim(-5, 97)
 
-# GPT-5-mini reference line — direct label, no legend
+# Direction cue: ideal configurations sit towards the top-left
+ax.annotate("better",
+            xy=(0.07, 0.52), xytext=(0.23, 0.36),
+            xycoords="axes fraction", textcoords="axes fraction",
+            fontsize=LABEL_FONTSIZE, color=C_REF_LINE, style="italic",
+            ha="center", va="center",
+            arrowprops=dict(arrowstyle="->", color=C_REF_LINE, lw=0.9))
+
+# GPT-5-mini reference line — direct label on the left, clear of the
+# point cluster at x = 14.25
 ax.axhline(78.75, linestyle=":", color=C_REF_LINE, linewidth=1.0, zorder=2)
-ax.text(17.7, 79.5, "GPT-5-mini (78.75%)",
-        ha="right", va="bottom",
+ax.text(3.3, 79.7, "GPT-5-mini (78.75%)",
+        ha="left", va="bottom",
         fontsize=7.5, color=C_REF_LINE, style="italic")
 
 _clean_axes(ax)
