@@ -44,7 +44,7 @@ MODEL_FP16="${MODEL_FP16:-Qwen/Qwen2.5-7B-Instruct}"
 MODEL_AWQ="${MODEL_AWQ:-Qwen/Qwen2.5-7B-Instruct-AWQ}"
 CATEGORY="${CATEGORY:-simple_python}"
 LIMIT="${LIMIT:-100}"
-VLLM_PORT=8000
+VLLM_PORT=$((10000 + ${LSB_JOBID:-$$} % 20000))
 
 echo "=== Job info ==="
 echo "Job ID: $LSB_JOBID"
@@ -73,6 +73,14 @@ start_vllm() {
     for i in $(seq 1 1800); do
         if curl -s "http://localhost:${VLLM_PORT}/health" > /dev/null 2>&1; then
             echo "vLLM ready after ${i}s"
+            SERVED_MODEL=$(curl -s "http://localhost:${VLLM_PORT}/v1/models" \
+                | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null)
+            if [ "$SERVED_MODEL" != "$1" ]; then
+                echo "ERROR: server at port ${VLLM_PORT} serves '$SERVED_MODEL', expected '$1'"
+                echo "(another job's vLLM server may be answering on this port)"
+                exit 1
+            fi
+            echo "Verified served model: $SERVED_MODEL"
             return 0
         fi
         if ! kill -0 "$VLLM_PID" 2>/dev/null; then

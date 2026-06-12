@@ -52,7 +52,7 @@ mkdir -p logs
 
 MODEL="${MODEL:-Qwen/Qwen2.5-7B-Instruct}"
 CONFIG="${CONFIG:-}"   # empty = run B then CD; set to CDQ for quantized run
-VLLM_PORT=8000
+VLLM_PORT=$((10000 + ${LSB_JOBID:-$$} % 20000))
 
 case "$MODEL" in
     *-AWQ*|*-awq*) QUANT_FLAGS="--quantization awq_marlin --enforce-eager --dtype auto" ;;
@@ -98,6 +98,15 @@ if [ -z "$CONFIG" ] || [ "$CONFIG" = "B" ]; then
     echo "=== Config B: baseline (no constrained decoding) ==="
     $EVAL --config B
 fi
+
+SERVED_MODEL=$(curl -s "http://localhost:${VLLM_PORT}/v1/models" \
+    | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null)
+if [ "$SERVED_MODEL" != "$MODEL" ]; then
+    echo "ERROR: server at port ${VLLM_PORT} serves '$SERVED_MODEL', expected '$MODEL'"
+    echo "(another job's vLLM server may be answering on this port)"
+    exit 1
+fi
+echo "Verified served model: $SERVED_MODEL"
 
 if [ -z "$CONFIG" ] || [ "$CONFIG" = "CD" ]; then
     echo "=== Config CD: constrained decoding ==="

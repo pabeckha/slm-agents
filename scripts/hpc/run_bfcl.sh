@@ -34,7 +34,7 @@ module load cuda/12.6.3
 
 # ── Configuration ──────────────────────────────────────────────────────
 MODEL="${MODEL:-Qwen/Qwen2.5-7B}"
-VLLM_PORT=8000
+VLLM_PORT=$((10000 + ${LSB_JOBID:-$$} % 20000))
 # ───────────────────────────────────────────────────────────────────────
 
 PROJECT_DIR="$HOME/Documents/slm-agents"
@@ -84,6 +84,15 @@ if ! curl -s "http://localhost:${VLLM_PORT}/health" > /dev/null 2>&1; then
     kill "$VLLM_PID" 2>/dev/null
     exit 1
 fi
+
+SERVED_MODEL=$(curl -s "http://localhost:${VLLM_PORT}/v1/models" \
+    | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null)
+if [ "$SERVED_MODEL" != "$MODEL" ]; then
+    echo "ERROR: server at port ${VLLM_PORT} serves '$SERVED_MODEL', expected '$MODEL'"
+    echo "(another job's vLLM server may be answering on this port)"
+    exit 1
+fi
+echo "Verified served model: $SERVED_MODEL"
 
 # ── Step 2: Run BFCL evaluation ───────────────────────────────────────
 echo "=== Running BFCL generate ==="

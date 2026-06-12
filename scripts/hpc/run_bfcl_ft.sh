@@ -41,7 +41,7 @@ mkdir -p logs
 MERGED_MODEL="${MERGED_MODEL:-${MODEL:-models/merged/Qwen_Qwen2.5-7B-Instruct-merged}}"
 LORA_BASE="${LORA_BASE:-Qwen/Qwen2.5-7B-Instruct}"
 CATEGORY="${CATEGORY:-simple_python}"
-VLLM_PORT=8000
+VLLM_PORT=$((10000 + ${LSB_JOBID:-$$} % 20000))
 
 echo "=== Job info ==="
 echo "Job ID: $LSB_JOBID"
@@ -85,6 +85,15 @@ if ! curl -s "http://localhost:${VLLM_PORT}/health" > /dev/null 2>&1; then
     echo "ERROR: vLLM failed to start within 1800s"
     exit 1
 fi
+
+SERVED_MODEL=$(curl -s "http://localhost:${VLLM_PORT}/v1/models" \
+    | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null)
+if [ "$SERVED_MODEL" != "$MERGED_MODEL" ]; then
+    echo "ERROR: server at port ${VLLM_PORT} serves '$SERVED_MODEL', expected '$MERGED_MODEL'"
+    echo "(another job's vLLM server may be answering on this port)"
+    exit 1
+fi
+echo "Verified served model: $SERVED_MODEL"
 
 echo "=== GPU memory after model load ==="
 nvidia-smi
