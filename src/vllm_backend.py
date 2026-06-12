@@ -199,14 +199,16 @@ class VLLMBackend:
         )
         raw = response.choices[0].text.strip()
 
-        # Without guided decoding the model may emit extra text around JSON.
+        # Without guided decoding the model may emit extra text around JSON,
+        # including further few-shot-style examples after the answer. Decode
+        # the first complete JSON object rather than slicing to the last brace.
         if not self._guided:
             start = raw.find("{")
-            end = raw.rfind("}") + 1
-            if start != -1 and end > start:
-                raw = raw[start:end]
-
-        args = json.loads(raw)
+            if start == -1:
+                raise ValueError(f"no JSON object in completion: {raw!r}")
+            args = json.JSONDecoder().raw_decode(raw, start)[0]
+        else:
+            args = json.loads(raw)
 
         # Cast numeric types to match the declared parameter type.
         for name, param in func.parameters.items():
