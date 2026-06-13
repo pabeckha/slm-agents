@@ -121,6 +121,18 @@ def _matching_source(claim: Claim) -> dict:
     )
 
 
+# data/output is gitignored (regenerable), so the reproduction check is a
+# local-only guard: it runs on a machine that has the experiment outputs and is
+# skipped in CI / fresh checkouts, where there is nothing to reproduce against.
+_DATA_ROOT = REPO_ROOT / "data" / "output"
+DATA_PRESENT = _DATA_ROOT.exists() and next(_DATA_ROOT.rglob("*.json"), None) is not None
+
+
+@pytest.mark.skipif(
+    not DATA_PRESENT,
+    reason="data/output is gitignored; reproduction check runs only where the "
+    "experiment outputs are present (e.g. locally / on HPC).",
+)
 @pytest.mark.parametrize("claim", CLAIMS, ids=lambda c: c.claim_id)
 def test_claim_reproduced_in_data(claim: Claim) -> None:
     """Some result file still reproduces the count the thesis reports."""
