@@ -22,6 +22,7 @@ dependencies = [
 dev = [
   "flake8>=7.0",
   "mypy>=1.10",
+  "pytest>=8.0",
 ]
 hpc = [
   "vllm==0.8.5",
@@ -42,6 +43,9 @@ hpc = [
   "tau-bench",
   "litellm>=1.41",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [tool.uv.sources]
 llm-sdk = { path = "llm_sdk" }

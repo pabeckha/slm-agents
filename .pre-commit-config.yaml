@@ -49,3 +49,12 @@ repos:
     rev: v0.23
     hooks:
       - id: validate-pyproject
+
+  - repo: local
+    hooks:
+      - id: thesis-consistency
+        name: thesis consistency tests
+        entry: uv run --no-project --with pytest pytest tests/ -q
+        language: system
+        pass_filenames: false
+        files: ^(tests/|thesis/chapters/|docs/decisions/|data/output/)
