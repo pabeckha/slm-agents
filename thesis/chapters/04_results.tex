@@ -79,8 +79,11 @@ against accuracy for the main configurations.
 \includegraphics[width=0.65\textwidth]{pictures/figures/fig_memory_vs_accuracy.pdf}
 \caption{GPU memory footprint vs.\ BFCL \texttt{simple\_python} AST accuracy for
          selected configurations. CD+Q achieves equivalent accuracy
-         to CD at 63.5\% lower memory. The reference line marks the
-         weakest frontier entry on this category (GPT-5-mini, 78.75\%).}
+         to CD at 63.5\% lower memory. The dotted reference line marks the
+         weakest frontier entry on this category (GPT-5-mini, 78.75\%);
+         the shaded band above it indicates frontier-level accuracy.
+         Error bars are 95\% binomial (Wilson) confidence intervals over
+         the 400 test cases.}
 \label{fig:memory-accuracy}
 \end{figure}
 
