@@ -1,0 +1,24 @@
+name: thesis-consistency
+
+# Regression tests that keep the numbers quoted in the thesis/docs consistent
+# with the experiment data they come from (tests/test_thesis_consistency.py).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "tests/**"
+      - "thesis/chapters/**"
+      - "docs/decisions/**"
+      - "data/output/**"
+      - ".github/workflows/thesis-tests.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      # The tests import only the stdlib + pytest, so run them in an ephemeral
+      # env without building the (GPU/HPC) project dependencies.
+      - run: uv run --no-project --with pytest pytest tests/ -v
