@@ -101,6 +101,40 @@ CLAIMS: list[Claim] = [
         ("docs/decisions/schema-rich-full-run-results.md",),
         "CD+schema-rich, 7B (89.0%).",
     ),
+
+    # --- size sweep, BFCL `multiple` category (04_results size table) ---------
+    Claim("cd_multiple_0_5b",
+          "data/output/bfcl/Qwen_Qwen2.5-0.5B-Instruct/scores/multiple_scores.json",
+          84, 200, (_RESULTS,), "CD multiple, Qwen2.5-0.5B (42.0%)."),
+    Claim("cd_multiple_1_5b",
+          "data/output/bfcl/Qwen_Qwen2.5-1.5B-Instruct/scores/multiple_scores.json",
+          107, 200, (_RESULTS,), "CD multiple, Qwen2.5-1.5B (53.5%)."),
+    Claim("cd_multiple_3b",
+          "data/output/bfcl/Qwen_Qwen2.5-3B-Instruct/scores/multiple_scores.json",
+          124, 200, (_RESULTS,), "CD multiple, Qwen2.5-3B (62.0%)."),
+    Claim("cd_multiple_7b",
+          "data/output/bfcl/Qwen_Qwen2.5-7B-Instruct/scores/multiple_scores.json",
+          141, 200, (_RESULTS,), "CD multiple, Qwen2.5-7B (70.5%)."),
+    Claim("cdfta_multiple_0_5b",
+          "data/output/bfcl_ft_aligned/*0.5B-Instruct-merged-aligned/scores/multiple_scores.json",
+          111, 200, (_RESULTS,), "CD+FT-aligned multiple, 0.5B (55.5%)."),
+    Claim("cdfta_multiple_1_5b",
+          "data/output/bfcl_ft_aligned/*1.5B-Instruct-merged-aligned/scores/multiple_scores.json",
+          122, 200, (_RESULTS,), "CD+FT-aligned multiple, 1.5B (61.0%)."),
+    Claim("cdfta_multiple_3b",
+          "data/output/bfcl_ft_aligned/*3B-Instruct-merged-aligned/scores/multiple_scores.json",
+          121, 200, (_RESULTS,), "CD+FT-aligned multiple, 3B (60.5%)."),
+    Claim("cdfta_multiple_7b",
+          "data/output/bfcl_ft_aligned/*7B-Instruct-merged-aligned/scores/multiple_scores.json",
+          141, 200, (_RESULTS,), "CD+FT-aligned multiple, 7B (70.5%)."),
+
+    # --- BFCL `parallel_multiple` category (04_results) -----------------------
+    Claim("cd_parallel_multiple_7b",
+          "data/output/bfcl/Qwen_Qwen2.5-7B-Instruct/scores/parallel_multiple_scores.json",
+          77, 200, (_RESULTS,), "CD parallel_multiple, 7B (38.5%)."),
+    Claim("cdfta_parallel_multiple_7b",
+          "data/output/bfcl_ft_aligned/*7B-Instruct-merged-aligned/scores/parallel_multiple_scores.json",
+          61, 200, (_RESULTS,), "CD+FT-aligned parallel_multiple, 7B (30.5%)."),
 ]
 
 
