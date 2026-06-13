@@ -15,6 +15,7 @@ import argparse
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 
 def via_pymupdf(path):
@@ -82,6 +83,10 @@ def main():
     ap.add_argument("pdf")
     ap.add_argument("-o", "--out")
     args = ap.parse_args()
+
+    pdf_path = Path(args.pdf)
+    if not pdf_path.is_file():
+        raise SystemExit(f"ERROR: File not found or is not a file: {pdf_path}")
 
     text = extract(args.pdf)
     if args.out:

@@ -25,7 +25,7 @@ Skills are modular, self-contained packages that extend agent capabilities by pr
 ### Three-Level Loading System
 
 1. **Metadata (name + description)** - Always in context (~100 words)
-2. **SKILL.md body** - When skill triggers (<200 lines, ideally <500 lines for optimal performance)
+2. **SKILL.md body** - When skill triggers (ideally <200 lines, max 500 lines for performance)
 3. **Bundled resources** - As needed by agent (unlimited)
 
 ### Why Progressive Disclosure Matters

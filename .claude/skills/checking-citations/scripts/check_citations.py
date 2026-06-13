@@ -50,7 +50,7 @@ def collect_citations(tex_files: list[Path]) -> dict[str, list[str]]:
     for f in tex_files:
         text = f.read_text(encoding="utf-8", errors="replace")
         # strip full-line comments to avoid counting commented-out cites
-        text = re.sub(r"(?<!\\)%.*", "", text)
+        text = re.sub(r"((?<!\\)(?:\\\\)*)%.*", r"\1", text)
         for m in CITE_RE.finditer(text):
             for key in m.group(1).split(","):
                 key = key.strip()
@@ -171,6 +171,9 @@ def main() -> int:
     args = ap.parse_args()
 
     tex_dir = Path(args.tex_dir)
+    if not tex_dir.is_dir():
+        print(f"ERROR: Directory '{tex_dir}' does not exist or is not a directory", file=sys.stderr)
+        return 2
     bib_path = Path(args.bib) if args.bib else next(iter(sorted(tex_dir.rglob("*.bib"))), None)
     if bib_path is None or not bib_path.exists():
         print("ERROR: no .bib file found", file=sys.stderr)

@@ -94,7 +94,7 @@ def main() -> int:
 
 
 def _url_from_howpublished(hp: str) -> str:
-    m = re.search(r"\\url\{([^}]+)\}", hp) or re.search(r"(https?://\S+)", hp)
+    m = re.search(r"\\url\{([^}]+)\}", hp) or re.search(r"(https?://[^}\s]+)", hp)
     return m.group(1) if m else ""
 
 

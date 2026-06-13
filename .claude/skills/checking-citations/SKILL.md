@@ -63,7 +63,7 @@ results, and overstated claims. See
 [references/claim-source-match.md](references/claim-source-match.md) for the
 review procedure and what to flag.
 
-## 3b. Citation grounding (anti-hallucination, web)
+## 3. Citation grounding (anti-hallucination, web)
 
 Verify against the **actually retrieved source** that each cited paper exists and
 supports its claim, instead of trusting the model's memory. Extract identifiers
