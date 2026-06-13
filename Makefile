@@ -1,7 +1,10 @@
-.PHONY: install run debug clean lint lint-strict
+.PHONY: install run debug clean lint lint-strict test
 
 install:
 	uv sync
+
+test:
+	uv run --group dev pytest tests/ -v
 
 run:
 	uv run python -m src
