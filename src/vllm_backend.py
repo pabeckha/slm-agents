@@ -77,59 +77,111 @@ class VLLMBackend:
         args = self._extract_args(prompt, func)
         return FunctionCall(prompt=prompt, fn_name=fn_name, args=args)
 
-    def process_parallel(
-        self, prompt: str, functions: list[FunctionDef]
-    ) -> list[FunctionCall]:
-        """Select and call multiple functions for parallel-category queries.
+    # BFCL parallel queries need up to 8 calls (ground-truth distribution tops
+    # out at 8); cap the generated list there so the grammar stays bounded.
+    _MAX_PARALLEL_CALLS = 8
 
-        Step 1: guided_json to get list of function names to call.
-        Step 2: extract args for each selected function (same as single-call path).
+    def _build_parallel_calls_schema(self, functions: list[FunctionDef]) -> dict:
+        """Schema for a list of calls, each pinned to one function's args.
+
+        Each array element is one of the per-function call objects
+        (``name`` fixed with ``const`` + that function's argument schema), so
+        the same function may appear multiple times with *different* arguments
+        -- the case the previous "select distinct names, extract once" design
+        could not express. ``maxItems`` is bounded by the available functions
+        only when fewer than the global cap, never by the count of *distinct*
+        functions (the old ``min(len(fn_names), 5)`` cap forced a single call
+        whenever just one function was available, which deterministically
+        failed every parallel item).
         """
-        fn_names = [f.name for f in functions]
+        variants = []
+        for func in functions:
+            variants.append(
+                {
+                    "type": "object",
+                    "properties": {
+                        "name": {"const": func.name},
+                        "arguments": _build_args_json_schema(func),
+                    },
+                    "required": ["name", "arguments"],
+                    "additionalProperties": False,
+                }
+            )
+        item_schema = variants[0] if len(variants) == 1 else {"oneOf": variants}
 
-        calls_schema = {
+        return {
             "type": "object",
             "properties": {
                 "calls": {
                     "type": "array",
-                    "items": {"type": "string", "enum": fn_names},
+                    "items": item_schema,
                     "minItems": 1,
-                    "maxItems": min(len(fn_names), 5),
+                    "maxItems": self._MAX_PARALLEL_CALLS,
                 }
             },
             "required": ["calls"],
             "additionalProperties": False,
         }
 
+    def process_parallel(
+        self, prompt: str, functions: list[FunctionDef]
+    ) -> list[FunctionCall]:
+        """Emit all calls for a parallel-category query in one guided pass.
+
+        A single guided_json generation produces
+        ``{"calls": [{"name", "arguments"}, ...]}``, where ``name`` may repeat
+        and each element carries its own arguments. This replaces the previous
+        two-step "select distinct names, then extract args once per name"
+        pipeline, which could neither call the same function twice with
+        different arguments nor emit more calls than there were distinct
+        functions.
+        """
+        by_name = {f.name: f for f in functions}
         sel_prompt = build_parallel_selection_prompt(functions, prompt)
+
         kwargs: dict = {}
         if self._guided:
-            kwargs["extra_body"] = {"guided_json": json.dumps(calls_schema)}
+            schema = self._build_parallel_calls_schema(functions)
+            kwargs["extra_body"] = {"guided_json": json.dumps(schema)}
 
         response = self._client.completions.create(
             model=self._model,
             prompt=sel_prompt,
-            max_tokens=200,
+            max_tokens=1024,
             temperature=0,
             **kwargs,
         )
         raw = response.choices[0].text.strip()
 
-        try:
-            selected_names = json.loads(raw)["calls"]
-        except (json.JSONDecodeError, KeyError, TypeError):
-            # Fallback: try to pick names mentioned in the raw output.
-            selected_names = [n for n in fn_names if n in raw] or fn_names[:1]
+        calls = self._parse_parallel_calls(raw)
 
         results: list[FunctionCall] = []
-        for name in selected_names:
-            func = next((f for f in functions if f.name == name), None)
+        for call in calls:
+            func = by_name.get(call.get("name"))
             if func is None:
                 continue
-            args = self._extract_args(prompt, func)
-            results.append(FunctionCall(prompt=prompt, fn_name=name, args=args))
+            args = self._coerce_args(func, dict(call.get("arguments") or {}))
+            results.append(FunctionCall(prompt=prompt, fn_name=func.name, args=args))
 
+        # Never return empty: fall back to a single best-effort call so the
+        # item is scored against a real attempt rather than a parse error.
         return results or [self.process(prompt, functions)]
+
+    @staticmethod
+    def _parse_parallel_calls(raw: str) -> list[dict]:
+        """Parse the calls list, tolerating extra text in the no-guided path."""
+        try:
+            obj = json.loads(raw)
+        except json.JSONDecodeError:
+            start = raw.find("{")
+            if start == -1:
+                return []
+            try:
+                obj = json.JSONDecoder().raw_decode(raw, start)[0]
+            except json.JSONDecodeError:
+                return []
+        calls = obj.get("calls") if isinstance(obj, dict) else None
+        return [c for c in calls if isinstance(c, dict)] if isinstance(calls, list) else []
 
     def _select_function(
         self, prompt: str, functions: list[FunctionDef],
@@ -210,7 +262,11 @@ class VLLMBackend:
         else:
             args = json.loads(raw)
 
-        # Cast numeric types to match the declared parameter type.
+        return self._coerce_args(func, args)
+
+    @staticmethod
+    def _coerce_args(func: FunctionDef, args: dict) -> dict:
+        """Cast numeric values to match each parameter's declared type."""
         for name, param in func.parameters.items():
             if name not in args:
                 continue
@@ -219,5 +275,4 @@ class VLLMBackend:
                 args[name] = int(v)
             elif param.type == "float" and isinstance(v, int):
                 args[name] = float(v)
-
         return args
