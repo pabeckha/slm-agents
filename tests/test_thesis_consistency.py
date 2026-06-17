@@ -31,7 +31,7 @@ from thesis_claims import CLAIMS, Claim
 # is deliberately tight — only spaces, commas, parens, "~" and "\" — and never
 # spans "|", "&" or a newline, so we do NOT pair numbers across table cells (those
 # are covered exactly by the Tier-2 registry instead).
-_SEP = r"[ \t,()~\\]{0,4}"
+_SEP = r"[ \t,(~\\]{0,4}"
 _FRAC = r"(\d+)\s*/\s*(\d{2,4})"
 _PCT = r"(\d+(?:\.\d+)?)\s*\\?%"
 FRAC_THEN_PCT = re.compile(_FRAC + _SEP + _PCT)
@@ -106,9 +106,14 @@ def _matching_source(claim: Claim) -> dict:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (ValueError, OSError):
             continue
+        if not isinstance(data, dict):
+            continue
         if (data.get("correct_count") == claim.correct
                 and data.get("total_count") == claim.total):
-            acc = data["accuracy"]
+            acc = data.get("accuracy")
+            assert acc is not None, (
+                f"{claim.claim_id}: {path.name} is missing the 'accuracy' key."
+            )
             assert abs(claim.correct / claim.total - acc) < 1e-6, (
                 f"{claim.claim_id}: {path.name} is internally inconsistent "
                 f"({claim.correct}/{claim.total} != accuracy {acc})."

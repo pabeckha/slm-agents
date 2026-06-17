@@ -21,7 +21,7 @@ WHY NOT THE AGGREGATE scores/ FILES
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -32,7 +32,7 @@ class Claim:
     correct: int
     total: int
     # docs/chapters that quote this number; checked for the "<correct>/<total>" string
-    cited_in: tuple[str, ...] = field(default_factory=tuple)
+    cited_in: tuple[str, ...] = ()
     note: str = ""
 
 
@@ -87,8 +87,7 @@ CLAIMS: list[Claim] = [
     Claim(
         "cd_ft_aligned_simple_python",
         "data/output/bfcl_ft_aligned/"
-        "_work3_s242779_models_models_merged_Qwen_Qwen2.5-7B-Instruct-merged-aligned/"
-        "scores/simple_python_scores.json",
+        "*7B-Instruct-merged-aligned/scores/simple_python_scores.json",
         307, 400,
         ("docs/decisions/config-ft-lora-aligned-ablation.md",),
         "CD+FT-aligned, 7B (76.75%).",
