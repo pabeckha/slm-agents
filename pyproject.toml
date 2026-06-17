@@ -46,6 +46,7 @@ hpc = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 
 [tool.uv.sources]
 llm-sdk = { path = "llm_sdk" }

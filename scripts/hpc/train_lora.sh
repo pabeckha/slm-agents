@@ -40,6 +40,7 @@ ADAPTER_DIR="${ADAPTER_DIR:-models/lora/$(echo "$MODEL" | tr '/' '_')}"
 EPOCHS="${EPOCHS:-2}"
 RANK="${RANK:-16}"
 MAX_SAMPLES="${MAX_SAMPLES:-}"  # empty = use all
+FORMAT_VERSION="${FORMAT_VERSION:-v2}"  # v1 = plain (Python call syntax), v2 = aligned (JSON)
 
 echo "=== Job info ==="
 echo "Job ID: $LSB_JOBID"
@@ -47,7 +48,7 @@ echo "Host: $(hostname)"
 echo "Date: $(date)"
 echo "Base model: $MODEL"
 echo "Adapter output: $ADAPTER_DIR"
-echo "Epochs: $EPOCHS  Rank: $RANK"
+echo "Epochs: $EPOCHS  Rank: $RANK  Format: $FORMAT_VERSION"
 echo "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader)"
 nvidia-smi
 
@@ -74,6 +75,7 @@ uv run --group hpc python scripts/train_lora.py \
     --epochs "$EPOCHS" \
     --rank "$RANK" \
     --bf16 \
+    --format-version "$FORMAT_VERSION" \
     ${DATA_PATH_ARG} \
     ${MAX_SAMPLES_ARG}
 
