@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 
 from openai import OpenAI
 
@@ -19,6 +20,11 @@ _TYPE_MAP = {
     "array": "array",
     "dict": "object",
 }
+
+
+def _env_flag(name: str) -> bool:
+    """True if env var ``name`` is set to a truthy value (1/true/yes/on)."""
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _build_args_json_schema(func: FunctionDef) -> dict:
@@ -109,16 +115,27 @@ class VLLMBackend:
             )
         item_schema = variants[0] if len(variants) == 1 else {"oneOf": variants}
 
+        calls_schema: dict = {
+            "type": "array",
+            "items": item_schema,
+        }
+        # vLLM's xgrammar gate (guided_decoding/utils.py) lists array
+        # ``minItems``/``maxItems`` as unsupported and -- when the backend is
+        # *forced* to xgrammar (no ``auto`` fallback) -- rejects the whole
+        # request with a 400. gemma-3-1b-it must be pinned to xgrammar for the
+        # parallel cells (llguidance crashes on its 262144-vs-262145 vocab
+        # off-by-one), so for that re-run only we drop the array bounds via
+        # BFCL_PARALLEL_DROP_ARRAY_BOUNDS=1. The bounds only ever *weaken* the
+        # constraint (allow 0 or >cap calls), so at temp-0 their removal cannot
+        # bias the score upward; the schema/backend asymmetry vs the other cells
+        # is flagged in docs/decisions/cross-family-cd-results.md.
+        if not _env_flag("BFCL_PARALLEL_DROP_ARRAY_BOUNDS"):
+            calls_schema["minItems"] = 1
+            calls_schema["maxItems"] = self._MAX_PARALLEL_CALLS
+
         return {
             "type": "object",
-            "properties": {
-                "calls": {
-                    "type": "array",
-                    "items": item_schema,
-                    "minItems": 1,
-                    "maxItems": self._MAX_PARALLEL_CALLS,
-                }
-            },
+            "properties": {"calls": calls_schema},
             "required": ["calls"],
             "additionalProperties": False,
         }

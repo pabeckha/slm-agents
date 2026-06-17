@@ -102,12 +102,17 @@ fi
 echo "Verified served model: $SERVED_MODEL"
 
 # ── Run BFCL evaluation ─────────────────────────────────────────────
+# Tee the eval output so the validity gate below can inspect it: a forced
+# guided backend (e.g. xgrammar) rejects an unsupported schema with a per-request
+# client-side 400 (BadRequestError) that NEVER reaches $VLLM_LOG, so the
+# engine-health grep alone cannot catch it.
 echo "=== Running BFCL evaluation ==="
+EVAL_LOG="$(mktemp)"
 uv run --group hpc python -m src.bfcl_adapter \
     --backend vllm \
     --model "$MODEL" \
     --category "$CATEGORY" \
-    --vllm-url "http://localhost:${VLLM_PORT}/v1"
+    --vllm-url "http://localhost:${VLLM_PORT}/v1" 2>&1 | tee "$EVAL_LOG"
 
 # ── Engine-health gate ──────────────────────────────────────────────
 # A guided-decoding engine death (e.g. llguidance "vocab size too small") leaves
@@ -121,5 +126,32 @@ if grep -qE 'EngineDeadError|vocab size too small|engine dead|500 Internal Serve
     exit 1
 fi
 echo "Engine healthy: no crash markers in $VLLM_LOG"
+
+# ── Results-validity gate ───────────────────────────────────────────
+# Catch the client-side failure modes the engine grep misses: a forced backend
+# rejecting the schema (400 BadRequestError, "not supported by xgrammar") makes
+# every case fail with an empty call -> 0% that is infra, not capability. Fail if
+# any 400 appears OR if the run scored exactly zero correct cases.
+echo "=== Checking results validity ==="
+if grep -qE 'not supported by xgrammar|BadRequestError|Error code: 400' "$EVAL_LOG"; then
+    echo "FATAL: guided backend returned a 400 (schema rejected) — results for $MODEL/$CATEGORY are INVALID"
+    grep -nE 'not supported by xgrammar|BadRequestError|Error code: 400' "$EVAL_LOG" | tail -5
+    rm -f "$EVAL_LOG"
+    exit 1
+fi
+rm -f "$EVAL_LOG"
+
+MODEL_SLUG="$(printf '%s' "$MODEL" | tr '/' '_')"
+SCORE_FILE="data/output/bfcl/${MODEL_SLUG}/scores/${CATEGORY}_scores.json"
+if [ -f "$SCORE_FILE" ]; then
+    CORRECT="$(grep -oE '"correct_count"[[:space:]]*:[[:space:]]*[0-9]+' "$SCORE_FILE" | grep -oE '[0-9]+$')"
+    if [ "$CORRECT" = "0" ]; then
+        echo "FATAL: $SCORE_FILE has correct_count=0 — treating as an infra failure, not a 0% result"
+        exit 1
+    fi
+    echo "Results valid: correct_count=$CORRECT in $SCORE_FILE"
+else
+    echo "WARNING: expected score file $SCORE_FILE not found"
+fi
 
 echo "=== Done ==="
