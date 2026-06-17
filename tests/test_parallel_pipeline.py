@@ -20,6 +20,12 @@ from types import SimpleNamespace
 
 import pytest
 
+# These are unit tests over the src/ pipeline (pydantic + the vLLM adapter), not
+# the data-free thesis-consistency layer. CI runs `pytest tests/` in a --no-project
+# env (stdlib + pytest only), so skip this whole module there rather than crashing
+# collection for every other test.
+pytest.importorskip("pydantic")
+
 from src.bfcl_adapter import format_parallel_results
 from src.schema import FunctionDef, FunctionParameter
 from src.vllm_backend import VLLMBackend
