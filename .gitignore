@@ -7,9 +7,14 @@
 # Claude Code
 CLAUDE.md
 PRD.md
+.claude/projects/
 
 # Local tooling
 PB-AI-tooling/
+.codex/
+
+# Symlink into the HPC weights pool (machine-specific; weights never committed)
+/models
 
 # Model weights and checkpoints
 *.bin

@@ -3,14 +3,19 @@
 The experimental design follows a cumulative evaluation ladder: a baseline configuration
 is established first, and one technique is added at each subsequent step to isolate its
 marginal contribution. The Qwen~2.5 model family is evaluated across four sizes from
-0.5B to 7B. Six techniques are covered: constrained decoding, schema enrichment,
-quantization, few-shot prompting, retrieval-augmented generation, and LoRA fine-tuning.
+0.5B to 7B. Seven techniques are covered: constrained decoding, schema enrichment,
+quantization, few-shot prompting, chain-of-thought prompting, retrieval-augmented
+generation, and LoRA fine-tuning.
 All configurations are evaluated on the Berkeley Function Calling Leaderboard.
 
 \section{Experimental Design}
-The experimental design is based on controlled comparisons. A baseline configuration
-is established first, and each technique is added one at a time. This isolates the
-effect of each technique on tool-calling accuracy.
+The experimental design is based on controlled comparisons and runs in two
+complementary directions. In the first, a baseline configuration is established
+and each technique is added one at a time, which measures the marginal gain of
+each technique on top of the existing stack. In the second, the inference-time
+techniques are evaluated without constrained decoding, which measures what each
+technique achieves on its own and quantifies the contribution of constrained
+decoding itself.
 
 \subsection{Cumulative Evaluation Ladder}
 
@@ -34,9 +39,10 @@ and Config~FT-aligned-ng (format-aligned adapter, ng: no guided decoding).
 To isolate the contribution of constrained decoding, the three inference-time
 techniques are additionally evaluated without guided decoding: Config~PE-ng
 (few-shot), Config~ITC-ng (chain-of-thought), and Config~RAG-ng (retrieval).
-These isolation variants are supplementary controls and are reported in
-Section~\ref{sec:technique-isolation}; they are not rungs on the eleven-config
-ladder and are omitted from Figure~\ref{fig:eval-ladder}.
+These isolation variants form the second arm of the experimental design and
+are reported in Section~\ref{sec:technique-isolation}; they are not rungs on
+the eleven-config ladder and are therefore omitted from
+Figure~\ref{fig:eval-ladder}.
 
 \begin{figure}[ht]
 \centering
@@ -62,19 +68,18 @@ ladder and are omitted from Figure~\ref{fig:eval-ladder}.
 \node[main, right=1.5cm of CDQ] (CDQFTa)   {CD+Q+\\FT-aligned};
 
 % Inference-time branches from CD+Q (second row)
-\node[side, below=1.1cm of CDQ, xshift=-1.5cm] (CDQITC) {CD+Q+ITC};
-\node[side, below=1.1cm of CDQ, xshift= 1.5cm] (CDQRAG) {CD+Q+RAG};
-
-% Fine-tuning branches from CD (third row)
-\node[ft, below=2.4cm of CD, xshift=-1.5cm] (CDFT)  {CD+FT};
-\node[ft, below=2.4cm of CD, xshift= 1.5cm] (CDFTa) {CD+FT-aligned};
+\node[side, below=1.1cm of CDQ, xshift=-1.7cm] (CDQITC) {CD+Q+ITC};
+\node[side, below=1.1cm of CDQ, xshift= 1.7cm] (CDQRAG) {CD+Q+RAG};
 
 % Few-shot branch from CD (second row, full precision)
-\node[side, below=1.1cm of B, xshift=1.6cm] (PE) {PE};
+\node[side, below=1.1cm of B, xshift=0.8cm] (PE) {PE};
 
-% Unguided standalone (bottom row, below B)
-\node[para, below=2.4cm of B, xshift=-1.8cm] (FTonly)  {FT-only};
-\node[para, below=2.4cm of B, xshift=  0cm]  (FTalng)  {FT-aligned-ng};
+% Bottom row: unguided standalone (gray) and fine-tuning branches (green),
+% chained left to right so the boxes cannot overlap
+\node[para, below=2.4cm of B, xshift=-3.8cm] (FTonly) {FT-only};
+\node[para, right=0.4cm of FTonly] (FTalng) {FT-aligned-ng};
+\node[ft,   right=0.4cm of FTalng] (CDFT)   {CD+FT};
+\node[ft,   right=0.4cm of CDFT]   (CDFTa)  {CD+FT-aligned};
 
 % Main chain arrows
 \draw[arr] (B)   -- node[above, font=\footnotesize]{$+$CD}           (CD);
@@ -86,11 +91,11 @@ ladder and are omitted from Figure~\ref{fig:eval-ladder}.
 \draw[arr] (CDQ.south) -- node[right, font=\footnotesize]{$+$RAG} (CDQRAG.north);
 
 % Fine-tuning tracks from CD
-\draw[darr] (CD.south) -- node[left,  font=\footnotesize]{$+$FT}           (CDFT.north);
-\draw[darr] (CD.south) -- node[right, font=\footnotesize]{$+$FT\textsubscript{aligned}} (CDFTa.north);
+\draw[darr] (CD.south) -- node[left, font=\footnotesize, fill=white, inner sep=1pt, pos=0.3]{$+$FT} (CDFT.north);
+\draw[darr] (CD.south) -- node[left, font=\footnotesize, fill=white, inner sep=1pt, pos=0.65]{$+$FT\textsubscript{aligned}} (CDFTa.north);
 
 % Few-shot track from CD
-\draw[arr] (CD.south) -- node[left, font=\footnotesize]{$+$few-shot} (PE.north);
+\draw[arr] (CD.south) -- node[left, font=\footnotesize, fill=white, inner sep=1pt]{$+$few-shot} (PE.north);
 
 % Unguided standalone tracks from B
 \draw[darr] (B.south) -- (FTonly.north);

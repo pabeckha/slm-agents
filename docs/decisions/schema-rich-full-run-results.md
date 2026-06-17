@@ -54,3 +54,27 @@ CD+schema is the strongest single technique measured so far on this category
 without the hedging required for the FT-aligned deltas. Headline numbers for
 the thesis: 290/400 → 356/400, b = 73, c = 7, McNemar exact p < 0.00001,
 no latency cost.
+
+## Size sweep (issue #158) — all four sizes, post-fix runs (2026-06-13)
+
+The 7B pair above predates the port-collision/parser fixes but is valid (CD/
+schema both use guided decoding and the served-model check confirmed health).
+The 0.5B/1.5B/3B cells were re-run after the fixes (manifests
+`data/output/bfcl_schema_pair/{cd,schema_rich}/runs/2026-06-13T14-*`, jobs
+28645765/66/67), each verified per `vllm-port-collision.md` (served-model line,
+no 404s, total_count 400). Complete CD vs CD+schema sweep:
+
+| Qwen2.5 size | CD | CD+schema | Δ (pp) | Job |
+|---|---|---|---|---|
+| 0.5B | 51.50% (206/400) | 74.25% (297/400) | +22.75 | 28645765 |
+| 1.5B | 62.25% (249/400) | 84.00% (336/400) | +21.75 | 28645766 |
+| 3B   | 64.75% (259/400) | 88.00% (352/400) | +23.25 | 28645767 |
+| 7B   | 72.50% (290/400) | 89.00% (356/400) | +16.50 | 28624501 |
+
+The +16.5 pp 7B headline (McNemar above) is the *smallest* delta of the sweep:
+schema enrichment helps more at the small end (+22–23 pp at 0.5–3B), where the
+base model has the least innate schema-following ability. CD+schema's absolute
+ceiling still rises with size (74→88%), but its *marginal* contribution shrinks
+as the base improves. This is the size × technique interaction #158 was opened
+to test, now complete across all four sizes — fill the full-picture matrix and
+close #158.

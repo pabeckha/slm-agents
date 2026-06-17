@@ -1,0 +1,93 @@
+% ============================================================
+% DRAFT replacement tables for Section 4.2.7 (technique isolation)
+% after the no-guided JSON parser fix (PR #163, 2026-06-12).
+% NOT included in the build. Cells marked \pendingcell await
+% rerun jobs 28640860--28640872 (submitted 2026-06-12 with the
+% port-collision fix, PR #167).
+%
+% Corrected counts (from data/output/*/runs/2026-06-12T* manifests):
+%   Few-shot-ng : 3B 261/400 (65.25%), 7B 236/400 (59.00%)
+%   CoT-ng      : 3B 233/400 (58.25%), 7B 225/400 (56.25%)
+%   RAG-ng      : 3B 194/400 (48.50%), 7B 208/400 (52.00%)
+%   FT-aligned-ng: 1.5B 110/400 (27.50%), 3B 97/400 (24.25%),
+%                  7B 164/400 (41.00%)
+% Pending: B (all sizes), few-shot/CoT/RAG-ng at 0.5B and 1.5B,
+%          FT-aligned-ng 0.5B, FT-only-ng 7B.
+% ============================================================
+
+\newcommand{\pendingcell}{--}  % replace with rerun values
+
+% ---------- Replacement for tab:isolation (now a size sweep) ----------
+\begin{table}[ht]
+\centering
+\caption{BFCL~v4 \texttt{simple\_python} AST accuracy for the
+inference-time techniques evaluated without constrained decoding
+(\textit{ng}: no guided decoding), across all four Qwen~2.5 Instruct
+sizes (400 test cases each). Config~B and Config~CD are shown for
+reference. All no-guided figures use the corrected output parser
+(Section~\ref{sec:?parser-note?}); earlier parser-biased measurements
+are superseded.}
+\label{tab:isolation}
+\begin{tabular}{lrrrr}
+\toprule
+Config & 0.5B ($\uparrow$) & 1.5B ($\uparrow$) & 3B ($\uparrow$) & 7B ($\uparrow$) \\
+\midrule
+B (no technique, no CD) & \pendingcell & \pendingcell & \pendingcell & \pendingcell \\
+RAG-ng                  & \pendingcell & \pendingcell & 48.50\% & 52.00\% \\
+ITC-ng                  & \pendingcell & \pendingcell & 58.25\% & 56.25\% \\
+PE-ng                   & \pendingcell & \pendingcell & 65.25\% & 59.00\% \\
+FT-aligned-ng           & \pendingcell & 27.50\% & 24.25\% & 41.00\% \\
+\midrule
+CD (reference)          & 51.50\% & 62.25\% & 64.75\% & 72.75\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ---------- Replacement for tab:cd-contribution (7B) ----------
+\begin{table}[ht]
+\centering
+\caption{Marginal contribution of constrained decoding for each
+inference-time technique on the 7B model, using the corrected
+no-guided parser. The guided chain-of-thought and retrieval figures
+are measured with AWQ INT4 quantization (CD+Q+ITC and CD+Q+RAG); the
+0.5~pp quantization effect at 7B is small relative to the deltas
+shown.}
+\label{tab:cd-contribution}
+\begin{tabular}{lrrr}
+\toprule
+Technique & Without CD ($\uparrow$) & With CD ($\uparrow$) & CD contribution \\
+\midrule
+None (CD alone)  & \pendingcell\textsuperscript{a} & 72.75\% & \pendingcell \\
+Few-shot         & 59.00\% & 70.25\% & $+11.25$~pp \\
+Chain-of-thought & 56.25\% & 65.50\% & $+9.25$~pp  \\
+Retrieval        & 52.00\% & 47.75\% & $-4.25$~pp  \\
+Format-aligned LoRA & 41.00\% & 76.75\% & $+35.75$~pp \\
+\bottomrule
+\end{tabular}
+
+\smallskip
+\raggedright\footnotesize
+\textsuperscript{a}~Config~B rerun pending; the previously reported
+1.50\% was measured with the parser-biased extraction path.
+\end{table}
+
+% ---------- Optional: all-size CD-contribution deltas ----------
+% (with-CD size sweep from tab:size-sweep-full minus corrected ng values)
+\begin{table}[ht]
+\centering
+\caption{Constrained-decoding contribution (with-CD minus no-CD
+accuracy, percentage points) per technique and model size. Negative
+values indicate the technique scores higher without the constrained
+pipeline.}
+\label{tab:cd-contribution-sizes}
+\begin{tabular}{lrrrr}
+\toprule
+Technique & 0.5B & 1.5B & 3B & 7B \\
+\midrule
+Few-shot            & \pendingcell & \pendingcell & $+1.75$ & $+11.25$ \\
+Chain-of-thought    & \pendingcell & \pendingcell & $-0.25$ & $+9.25$  \\
+Retrieval           & \pendingcell & \pendingcell & $-0.25$ & $-4.25$  \\
+Format-aligned LoRA & \pendingcell & $+38.50$     & $+42.50$ & $+35.75$ \\
+\bottomrule
+\end{tabular}
+\end{table}

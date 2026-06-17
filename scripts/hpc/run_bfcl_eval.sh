@@ -34,7 +34,15 @@ mkdir -p logs
 
 MODEL="${MODEL:-Qwen/Qwen2.5-7B-Instruct}"
 CATEGORY="${CATEGORY:-simple_python}"
+# Optional: override the vLLM guided-decoding backend (e.g. GUIDED_BACKEND=outlines).
+# Default (unset) keeps vLLM's 'auto' routing. Needed for gemma-3, whose 262144-vs-262145
+# vocab crashes the llguidance backend that 'auto' picks for the parallel array/oneOf
+# schemas — see docs/decisions/cross-family-cd-results.md.
+GUIDED_BACKEND="${GUIDED_BACKEND:-}"
+BACKEND_ARG=""
+[ -n "$GUIDED_BACKEND" ] && BACKEND_ARG="--guided-decoding-backend $GUIDED_BACKEND"
 VLLM_PORT=$((10000 + ${LSB_JOBID:-$$} % 20000))
+VLLM_LOG="logs/vllm_${LSB_JOBID:-$$}.log"
 
 echo "=== Job info ==="
 echo "Job ID: $LSB_JOBID"
@@ -42,6 +50,7 @@ echo "Host: $(hostname)"
 echo "Date: $(date)"
 echo "Model: $MODEL"
 echo "Category: $CATEGORY"
+echo "Guided backend: ${GUIDED_BACKEND:-auto (vLLM default)}"
 echo "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader)"
 nvidia-smi
 
@@ -50,14 +59,20 @@ uv sync --group hpc
 
 # ── Start vLLM server ────────────────────────────────────────────────
 echo "=== Starting vLLM server ==="
+# Server stdout/stderr go to $VLLM_LOG so the post-eval health check can scan it
+# for an engine crash (the "Verified served model" health probe runs BEFORE any
+# guided request, so a guided-decoding engine-death otherwise passes the gate while
+# every case fails silently — exactly the gemma-3 262144-vs-262145 trap).
 uv run --group hpc python -m vllm.entrypoints.openai.api_server \
     --model "$MODEL" \
     --port "$VLLM_PORT" \
     --dtype auto \
     --max-model-len 4096 \
     --gpu-memory-utilization 0.9 \
-    &
+    $BACKEND_ARG \
+    > "$VLLM_LOG" 2>&1 &
 VLLM_PID=$!
+echo "vLLM server log: $VLLM_LOG"
 
 echo "Waiting for vLLM server (PID $VLLM_PID) ..."
 for i in $(seq 1 1800); do
@@ -93,5 +108,18 @@ uv run --group hpc python -m src.bfcl_adapter \
     --model "$MODEL" \
     --category "$CATEGORY" \
     --vllm-url "http://localhost:${VLLM_PORT}/v1"
+
+# ── Engine-health gate ──────────────────────────────────────────────
+# A guided-decoding engine death (e.g. llguidance "vocab size too small") leaves
+# the server returning 500s while BFCL records 200 empty/failed cases — a 0% that
+# is an infra artifact, NOT a capability result. Fail loudly so a chained done()
+# does not treat the crash as a clean run.
+echo "=== Checking vLLM engine health ==="
+if grep -qE 'EngineDeadError|vocab size too small|engine dead|500 Internal Server Error' "$VLLM_LOG"; then
+    echo "FATAL: vLLM engine crashed during evaluation — results for $MODEL/$CATEGORY are INVALID"
+    grep -nE 'EngineDeadError|vocab size too small|engine dead|ValueError|500 Internal Server Error' "$VLLM_LOG" | tail -20
+    exit 1
+fi
+echo "Engine healthy: no crash markers in $VLLM_LOG"
 
 echo "=== Done ==="

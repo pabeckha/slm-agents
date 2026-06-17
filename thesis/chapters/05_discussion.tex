@@ -74,9 +74,9 @@ malformed or conversational output rather than a single valid JSON
 object, is present at every scale.
 
 With constrained decoding applied, the accuracy curve follows a
-consistent scaling trend: 51.5\% at 0.5B, 62.3\% at 1.5B, 64.8\%
+consistent scaling trend: 51.50\% at 0.5B, 62.25\% at 1.5B, 64.75\%
 at 3B, and 72.75\% at 7B.
-The steepest gain occurs between 0.5B and 1.5B (+10.8~pp); the
+The steepest gain occurs between 0.5B and 1.5B (+10.75~pp); the
 1.5B-to-3B step is flatter (+2.5~pp); the 3B-to-7B step recovers
 to +8.0~pp.
 Constrained decoding shifts the entire curve upward without altering
@@ -329,9 +329,9 @@ seed~42) produced pass rates of 3.48\%, 4.35\%, and 5.22\%
 (4--6 tasks out of 115). Because the agent is fully deterministic
 across runs, the 1.74~pp spread is attributable entirely to stochastic
 simulator turns, bounding the observed simulator-noise contribution at
-$\pm 0.87$~pp (one task at $n{=}115$). The qualitative conclusion---that
+$\pm 0.87$~pp (one task at $n{=}115$). The qualitative conclusion, that
 single-call BFCL gains do not transfer to multi-step agentic
-completion---is robust to this effect: even at the upper bound (5.22\%)
+completion, is robust to this effect: even at the upper bound (5.22\%)
 the gap to the 72.75\% BFCL CD result exceeds 67~pp, and the
 conclusion holds across all evaluated model sizes
 (Table~\ref{tab:tau-bench-size}).
@@ -402,6 +402,22 @@ The cascade criterion of RQ3 (Chapter~\ref{ch:introduction}) adopts
 $p \geq 0.70$ as its reference point: at that fraction the local tier
 eliminates at least 70\% of per-query API costs, which all four
 constrained configurations at 7B exceed.
+
+The cost-benefit framing above costs the constrained local tier against a
+frontier API. For a single-model deployment a stronger local option is
+available: the same 7B model under its native tool-calling template
+(B-template) reaches 96.00\% on \texttt{simple\_python}
+(Table~\ref{tab:baseline-results}), above every constrained configuration
+on the same hardware. Where the cascade is built on one frozen model, the
+native template is therefore the local tier that should be deployed, and
+the constrained configurations are not recommended on accuracy grounds.
+The constrained path is costed here because it is the model-agnostic tier:
+output validity is guaranteed structurally and independently of any
+model's template, so a uniform integration is retained across heterogeneous
+or evolving models and the router is given guaranteed-parseable output. The
+$p$ values reported in this section thus apply to the general multi-model
+case; for a single frozen model the native template supersedes them.
+
 These values are upper-bound estimates: after constrained decoding is
 applied, every SLM output is structurally valid, removing structural
 routing signals. Achieving $p$ close to the measured accuracy requires a

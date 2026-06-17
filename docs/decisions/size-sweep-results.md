@@ -21,7 +21,7 @@
 | CD+FT-aligned (guided, bf16 merged) | 59.2% | 66.0% | 66.8% | 76.75% |
 
 7B values taken from established phase 1 runs (phase1-ablation-summary.md); earlier draft had transcription errors.
-7B CD multiple re-run (job 28601829, 2026-06-04) after crash fix: **70.5% (141/200)**. Earlier AWQ-only runs (May 3) were pre-crash-fix and produced corrupted empty outputs. 7B CD parallel: 0% (same as all other configs/sizes). CD+FT-aligned multiple/parallel for 0.5B–3B run separately — see section below.
+7B CD multiple re-run (job 28601829, 2026-06-04) after crash fix: **70.5% (141/200)**. Earlier AWQ-only runs (May 3) were pre-crash-fix and produced corrupted empty outputs. 7B CD parallel: ~~0% (same as all other configs/sizes)~~ **— correct for the old per-function single-extraction design; see the ⚠️ UPDATE block below. Under the extended pipeline (commit 2faa0df), 7B `parallel` = 79.0%.** CD+FT-aligned multiple/parallel for 0.5B–3B run separately — see section below.
 
 ### Quantization cost by size (CD vs CD+Q)
 
@@ -106,6 +106,72 @@ A cascade using 3B as the small tier and 7B as the large tier would see the 3B S
 | 7B | 72.75% | 76.75% | +4.0 pp |
 
 FT-aligned helps at every size. The benefit is largest at 0.5B (+7.7 pp), drops at 1.5B and 3B, then recovers at 7B (+4.0 pp). Fine-tuning does not close the 3B→7B gap — the gap under CD+FT-aligned (10 pp) is wider than under plain CD (7.95 pp). See `config-ft-aligned-size-sweep.md` for full analysis.
+
+> ## ⚠️ UPDATE (2026-06-16): the `parallel` 0% below is correct for the OLD pipeline; a later architecture extension lifts it
+>
+> Read this before citing any `parallel`-category number below. The two sections that
+> follow (CD+FT-aligned `parallel` 0.5B–7B = uniform 0%, CD+FT-aligned
+> `parallel_multiple` 7B = 30.5%, and the line-24 "7B CD parallel: 0%") were produced
+> under the pipeline **as documented in methodology §387–401**: a parallel selection
+> stage that emits at most one argument object per *distinct* function name (call
+> array `maxItems = number of distinct candidates`), because deterministic
+> temperature-0 extraction would give two calls to the same function identical args.
+> Every BFCL `parallel` case has exactly one distinct candidate function, so by that
+> design the pipeline emits a single call → 0%.
+>
+> **This is therefore a valid result for the architecture as evaluated, not a bug in
+> the measurement.** What changed: commit `2faa0df` ("joint guided multi-call
+> generation", `_build_parallel_calls_schema`) **extends the architecture** to emit a
+> JSON array of complete call objects generated jointly (each with its own argument
+> bindings, so the same function can repeat with different args) — exactly the remedy
+> the discussion (§5.3 / `ch:discussion`) names as the requirement for same-function
+> parallel calls. So these numbers are superseded by an *extension*, not corrected as
+> an error. Root cause + evidence: `cross-family-cd-results.md` (Tier-2 section);
+> framing + thesis edits: `thesis-parallel-artifact-correction.md`.
+>
+> **Post-fix plain-CD numbers under the extended pipeline** (Qwen, 200 cases,
+> jobs 28668046–50, manifests 2026-06-16 ≥01:14):
+>
+> | Size | `parallel` (plain CD, extended pipeline) |
+> |---|---|
+> | 0.5B | 9.5% |
+> | 1.5B | 64.0% |
+> | 3B   | 74.5% |
+> | 7B   | 79.0% |
+>
+> and Qwen 7B `parallel_multiple` went **38.5% → 72.5%** (job 28668050). `parallel`
+> is hard and size-sensitive under the extension — **not "solved"** (0.5B still
+> ~9.5%). The "uniformly 0% / hard ceiling at any size" reading below no longer holds;
+> rewrite the findings against the size gradient once the re-runs land.
+>
+> **Re-runs LANDED (2026-06-17), all valid (`total_count=200`, served-model
+> verified, no 404s; read from `runs/` manifests):**
+>
+> CD+FT-aligned, extended pipeline, Qwen merged-aligned checkpoints (jobs
+> 28671185–28671200) — supersedes the uniform-0% `parallel` table below:
+>
+> | Size | `parallel` (CD+FT-aligned) | `parallel_multiple` (CD+FT-aligned) |
+> |---|---|---|
+> | 0.5B | 45.5% (91/200) | 16.5% (33/200) |
+> | 1.5B | 58.0% (116/200) | 33.5% (67/200) |
+> | 3B   | 41.5% (83/200) | 38.0% (76/200) |
+> | 7B   | 72.0% (144/200) | 60.0% (120/200) |
+>
+> So CD+FT-aligned `parallel` is **NOT** uniformly 0% under the extended pipeline —
+> the "scale and fine-tuning together are insufficient for parallel calling"
+> negative result below is an artifact of the old single-call schema and must be
+> rewritten. (Numbers are non-monotonic in size — the aligned-adapter degradation
+> already noted for the no-guided sweep, not a job error.) Plain-CD
+> `parallel_multiple` for the contrast families also landed; see
+> `cross-family-cd-results.md` (2026-06-17 section) for the full plain-CD table.
+>
+> The CD+FT-aligned `multiple` numbers are **unaffected** (single-call category) and
+> stand as-is.
+>
+> **Still pending:** the two gemma-3-1b plain-CD `parallel` cells crashed (vLLM
+> llguidance vocab 262144-vs-262145 engine death — infra, not capability) and are
+> being re-run with `GUIDED_BACKEND=outlines` via
+> `scripts/hpc/run_gemma_parallel_reruns.sh`. See `cross-family-cd-results.md`.
 
 ## BFCL multiple and parallel — CD+FT-aligned size sweep (2026-05-17/19)
 

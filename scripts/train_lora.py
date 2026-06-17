@@ -19,7 +19,53 @@ import sys
 from pathlib import Path
 
 
-def format_xlam_example(row: dict, tokenizer) -> str:
+def format_xlam_example_v1(row: dict, tokenizer) -> str:
+    """v1 (plain) format: Python call syntax (name(arg=val, ...)).
+
+    This is the ORIGINAL training format, preserved verbatim for reproducibility.
+    It diverges from what guided_json constrains at eval time, which caused the
+    CD+FT regression that motivated the v2 (aligned) format below. Kept so the
+    plain-FT size sweep can be reproduced (see config-ft-lora-aligned-ablation.md).
+    """
+    tools = json.loads(row["tools"]) if isinstance(row["tools"], str) else row["tools"]
+    answers = json.loads(row["answers"]) if isinstance(row["answers"], str) else row["answers"]
+
+    fn_lines = []
+    for t in tools:
+        params_raw = t.get("parameters", {})
+        # HF xlam format: parameters.properties.{name}: {type, description}
+        # Local format:   parameters.{name}: {type, description}
+        props = params_raw.get("properties")
+        if isinstance(props, dict) and all(isinstance(v, dict) for v in props.values()):
+            params = props
+        else:
+            params = {k: v for k, v in params_raw.items() if isinstance(v, dict)}
+        param_str = ", ".join(
+            f"{n}: {p.get('type', 'string')}" for n, p in params.items()
+        )
+        fn_lines.append(f"- {t['name']}({param_str}): {t.get('description', '')}")
+
+    fn_block = "\n".join(fn_lines)
+    user_msg = f"Available functions:\n{fn_block}\n\nUser request: {row['query']}"
+
+    if isinstance(answers, list) and answers:
+        call = answers[0]
+        name = call.get("name", "")
+        args = call.get("arguments", {})
+        args_str = ", ".join(f"{k}={repr(v)}" for k, v in args.items())
+        assistant_msg = f"{name}({args_str})"
+    else:
+        assistant_msg = str(answers)
+
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant that calls functions to answer user requests. Output only the function call, nothing else."},
+        {"role": "user", "content": user_msg},
+        {"role": "assistant", "content": assistant_msg},
+    ]
+    return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+
+
+def format_xlam_example_v2(row: dict, tokenizer) -> str:
     """Convert an xlam row to the argument-extraction format used by the inference pipeline.
 
     The prompt and output format match src/prompt.py::build_args_extraction_prompt
@@ -83,6 +129,14 @@ def format_xlam_example(row: dict, tokenizer) -> str:
     return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
 
 
+_FORMATTERS = {"v1": format_xlam_example_v1, "v2": format_xlam_example_v2}
+
+
+def format_xlam_example(row: dict, tokenizer, version: str = "v2") -> str:
+    """Dispatch to the v1 (plain) or v2 (aligned) formatter."""
+    return _FORMATTERS[version](row, tokenizer)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="LoRA fine-tuning for function calling")
     parser.add_argument("--model", default="Qwen/Qwen2.5-7B-Instruct")
@@ -99,6 +153,9 @@ def main() -> None:
     parser.add_argument("--max-length", type=int, default=2048)
     parser.add_argument("--max-samples", type=int, default=None, help="Limit training samples")
     parser.add_argument("--bf16", action="store_true", default=True)
+    parser.add_argument("--format-version", choices=["v1", "v2"], default="v2",
+                        help="Training data format: v1 (plain, Python call syntax) "
+                             "or v2 (aligned, JSON arg-extraction). Default v2.")
     args = parser.parse_args()
 
     import torch
@@ -146,9 +203,9 @@ def main() -> None:
         ds = ds.select(range(min(args.max_samples, len(ds))))
     print(f"Using {len(ds)} samples")
 
-    print("Formatting dataset...")
+    print(f"Formatting dataset (format {args.format_version})...")
     formatted = ds.map(
-        lambda row: {"text": format_xlam_example(row, tokenizer)},
+        lambda row: {"text": format_xlam_example(row, tokenizer, args.format_version)},
         remove_columns=ds.column_names,
         num_proc=4,
     )
@@ -196,6 +253,7 @@ def main() -> None:
         "alpha": args.alpha,
         "lr": args.lr,
         "max_samples": args.max_samples,
+        "format_version": args.format_version,
     }
     with open(output_dir / "train_metadata.json", "w") as f:
         json.dump(meta, f, indent=2)

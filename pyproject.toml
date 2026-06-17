@@ -46,6 +46,7 @@ hpc = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 
 [tool.uv.sources]
 llm-sdk = { path = "llm_sdk" }
@@ -55,5 +56,6 @@ tau-bench = { path = "vendor/tau-bench", editable = true }
 [tool.uv]
 override-dependencies = [
   "vllm-flash-attn; sys_platform == 'never'",
-  "xformers; sys_platform == 'never'",
+  # xformers is required by the vLLM attention backend for Gemma-3 models
+  # (sliding-window attention); keep it installable for the cross-family sweep.
 ]

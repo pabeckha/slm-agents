@@ -12,7 +12,7 @@ Table~\ref{tab:baseline-results} summarizes the baseline, the native-template co
 \label{tab:baseline-results}
 \begin{tabular}{llrr}
 \toprule
-Config & Description & Correct & Accuracy \\
+Config & Description & Correct & Accuracy ($\uparrow$) \\
 \midrule
 B          & Raw model, generic prompt, no optimization & 6/400   & 1.5\% \\
 B-template & Native chat template, free generation      & 384/400 & 96.00\% \\
@@ -327,7 +327,7 @@ L40S GPU, vLLM backend). AST accuracy is shown for context.}
 \label{tab:latency}
 \begin{tabular}{lrrrr}
 \toprule
-Config & Mean (s) & Median (s) & p95 (s) & Accuracy \\
+Config & Mean (s) & Median (s) & p95 (s) & Accuracy ($\uparrow$) \\
 \midrule
 B (no CD)  & 6.995 & 6.929 & 11.922 & 1\%  \\
 CD         & 0.878 & 0.847 &  1.375 & 65\% \\
@@ -364,9 +364,10 @@ the constrained-decoding ceiling. To isolate the contribution of
 constrained decoding itself, the three inference-time techniques are
 additionally evaluated without guided decoding, denoted PE-ng
 (few-shot), ITC-ng (chain-of-thought), and RAG-ng (retrieval), where
-\textit{ng} indicates no guided decoding. These runs are supplementary
-controls rather than rungs on the eleven-configuration ladder, and are
-evaluated on the 7B model at full precision (bfloat16) on BFCL~v4
+\textit{ng} indicates no guided decoding. These runs form the isolation
+arm of the experimental design rather than rungs on the
+eleven-configuration ladder, and are evaluated on the 7B model at full
+precision (bfloat16) on BFCL~v4
 \texttt{simple\_python}. Table~\ref{tab:isolation} reports the result.
 
 \begin{table}[ht]
@@ -695,9 +696,9 @@ the frontier range, sitting 10.25~pp above GPT-5-mini and 2.00~pp below GPT-4.1.
 The gap to the best frontier model (Claude Sonnet~4.5 at 97.75\%) is 8.75~pp.
 
 Constrained decoding closes the integration gap, not the frontier gap, for
-a prompt that omits schema detail. Restoring that detail---parameter
+a prompt that omits schema detail. Restoring that detail (parameter
 descriptions, enumeration values, and defaults, which the native template and
-frontier APIs provide---closes most of the residual gap without training.
+frontier APIs provide) closes most of the residual gap without training.
 The comparison with B-template bounds the information loss at 7.00~pp above
 CD+schema, a gap attributable to the remaining value-convention artifacts and
 the native template's prompt-format advantage.
@@ -864,7 +865,9 @@ and Qwen~2.5 model sizes (400 test cases each).}
 Config        & 0.5B    & 1.5B    & 3B      & 7B      \\
 \midrule
 B             & 3.50\%  & 4.75\%  & 2.75\%  & 1.50\%  \\
+B-template    & 78.00\% & 84.75\% & 95.00\% & 96.00\% \\
 CD            & 51.50\% & 62.25\% & 64.75\% & 72.75\% \\
+CD+schema     & 74.25\% & 84.00\% & 88.00\% & 89.00\% \\
 CD+Q          & 47.75\% & 60.50\% & 64.50\% & 72.25\% \\
 PE            & 53.50\% & 64.75\% & 67.00\% & 70.25\% \\
 CD+Q+ITC      & 42.00\% & 54.75\% & 58.00\% & 65.50\% \\

@@ -71,9 +71,15 @@ def _signature(func: FunctionDef) -> str:
 def build_parallel_selection_prompt(
     functions: list[FunctionDef], query: str
 ) -> str:
-    """Build a prompt asking which functions to call in parallel.
+    """Build a prompt asking for every call needed to fulfil the request.
 
-    The model should output JSON: {"calls": ["fn1", "fn2", ...]}
+    The model should output JSON::
+
+        {"calls": [{"name": "fn1", "arguments": {...}}, ...]}
+
+    Each element is one call with its own arguments. The same function may
+    appear several times with different arguments (e.g. play two songs ->
+    two ``play`` calls), so the prompt asks for one entry per distinct action.
     """
     lines = ["Available functions:"]
     for func in functions:
@@ -81,8 +87,11 @@ def build_parallel_selection_prompt(
 
     lines.append(f"\nUser request: {query}")
     lines.append(
-        "List ALL function names that must be called to fulfil this request."
-        " Output a JSON object with a 'calls' key containing the list."
+        "Emit every function call needed to fulfil this request. If the same"
+        " function is needed more than once, repeat it with different"
+        " arguments -- one entry per distinct action. Output a JSON object with"
+        " a 'calls' key whose value is a list of {\"name\": ..., \"arguments\":"
+        " {...}} objects."
     )
     lines.append("JSON: ")
     return "\n".join(lines)

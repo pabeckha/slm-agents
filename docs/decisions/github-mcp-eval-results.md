@@ -163,6 +163,43 @@ The `query` parameter accepts GitHub search syntax (`is:issue is:open repo:owner
 
 All three configs (B, CD, CDQ) complete. Issue #36 can be closed after thesis write-up.
 
+### Update 2026-06-13 — re-validation + cross-family extension (in flight)
+
+Two staleness issues found when revisiting #36, plus an extension submitted:
+
+1. **B baseline (6%) predates two bug fixes.** The original B run (2026-05-30)
+   used the pre-fix no-guided path (parser fixed in PR #163) and the pre-fix
+   `run_github_mcp_eval.sh` (port-collision fixed in PR #167, commit 70406d9).
+   CD/CDQ are **unaffected** — their 96–98% prove the server was healthy in
+   that run (a port collision would have collapsed CD), and they use guided
+   decoding, not the no-guided parser. Only the **B number is suspect**, so it
+   is being recomputed with the fixed script (job **28647091**, CONFIG=B).
+   Same caveat as the BFCL Config B 1.5% rerun (handoff §4): B may move.
+
+2. **Single-family (Qwen2.5-7B only).** Extended to the cross-family contrast
+   set (§2c) via `scripts/hpc/run_github_mcp_cross_family.sh`, an LSF
+   dependency chain (serialized to avoid the shared-`.venv` `uv sync` race;
+   head anchored on the in-flight batch). B + CD per model; CD+Q deferred
+   (no AWQ INT4 variants per family yet):
+
+   | Job | Model | Configs |
+   |---|---|---|
+   | 28647091 | Qwen/Qwen2.5-7B-Instruct | B (rerun only) |
+   | 28647092 | meta-llama/Llama-3.2-3B-Instruct | B + CD |
+   | 28647093 | meta-llama/Llama-3.2-1B-Instruct | B + CD |
+   | 28647094 | google/gemma-3-4b-it | B + CD |
+   | 28647095 | google/gemma-3-1b-it | B + CD |
+   | 28647096 | microsoft/Phi-4-mini-instruct | B + CD |
+
+   Verify each per handoff §2 (served-model line, no 404s) before using the
+   numbers. Results land in `data/output/github_mcp/{B,CD}_<model_slug>/`.
+
+**Not yet in the thesis.** A `grep` of `thesis/` finds no reference to this
+eval — the strongest single RQ3 result is currently unused. Planned placement:
+Results chapter, as the real-world / production-viability validation (framed as
+a targeted single-domain validation per the limitation below), once the rerun-B
+and cross-family numbers land.
+
 ## Thesis Implications
 
 - **Direct RQ evidence**: 6% → 96% tool selection purely from adding structural output constraints, same model, same prompt. No fine-tuning, no RAG. This is the clearest single result in the thesis for constrained decoding as the enabling technique.
