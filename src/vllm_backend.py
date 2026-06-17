@@ -160,7 +160,8 @@ class VLLMBackend:
             func = by_name.get(call.get("name"))
             if func is None:
                 continue
-            args = self._coerce_args(func, dict(call.get("arguments") or {}))
+            args_raw = call.get("arguments")
+            args = self._coerce_args(func, args_raw if isinstance(args_raw, dict) else {})
             results.append(FunctionCall(prompt=prompt, fn_name=func.name, args=args))
 
         # Never return empty: fall back to a single best-effort call so the
