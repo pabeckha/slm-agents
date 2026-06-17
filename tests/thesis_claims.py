@@ -102,6 +102,49 @@ CLAIMS: list[Claim] = [
         "CD+schema-rich, 7B (89.0%).",
     ),
 
+    # --- B-template control size sweep (#157, tab:size-sweep-full) ------------
+    Claim("b_template_0_5b",
+          "data/output/bfcl_template_baseline/runs/*0.5B*no_guided.json",
+          312, 400,
+          ("docs/decisions/table-fill-verification-2026-06-16.md",),
+          "B-template, 0.5B (78.00%)."),
+    Claim("b_template_1_5b",
+          "data/output/bfcl_template_baseline/runs/*1.5B*no_guided.json",
+          339, 400,
+          ("docs/decisions/table-fill-verification-2026-06-16.md",),
+          "B-template, 1.5B (84.75%)."),
+    Claim("b_template_3b",
+          "data/output/bfcl_template_baseline/runs/*3B*no_guided.json",
+          380, 400,
+          ("docs/decisions/table-fill-verification-2026-06-16.md",),
+          "B-template, 3B (95.00%). A later 2026-06-14 re-run logged 0/400 "
+          "(failed); the glob still matches the valid 380/400 file."),
+    Claim("b_template_7b",
+          "data/output/bfcl_template_baseline/runs/*7B*no_guided.json",
+          384, 400,
+          ("docs/decisions/table-fill-verification-2026-06-16.md",),
+          "B-template, 7B (96.00%)."),
+
+    # --- CD+schema-rich size sweep (#158, tab:size-sweep-full) -----------------
+    Claim("schema_rich_0_5b",
+          "data/output/bfcl_schema_pair/schema_rich/runs/"
+          "*Qwen2.5-0.5B-Instruct_simple_python_guided_schema_rich.json",
+          297, 400,
+          ("docs/decisions/schema-rich-full-run-results.md",),
+          "CD+schema-rich, 0.5B (74.25%)."),
+    Claim("schema_rich_1_5b",
+          "data/output/bfcl_schema_pair/schema_rich/runs/"
+          "*Qwen2.5-1.5B-Instruct_simple_python_guided_schema_rich.json",
+          336, 400,
+          ("docs/decisions/schema-rich-full-run-results.md",),
+          "CD+schema-rich, 1.5B (84.00%)."),
+    Claim("schema_rich_3b",
+          "data/output/bfcl_schema_pair/schema_rich/runs/"
+          "*Qwen2.5-3B-Instruct_simple_python_guided_schema_rich.json",
+          352, 400,
+          ("docs/decisions/schema-rich-full-run-results.md",),
+          "CD+schema-rich, 3B (88.00%)."),
+
     # --- size sweep, BFCL `multiple` category (04_results size table) ---------
     Claim("cd_multiple_0_5b",
           "data/output/bfcl/Qwen_Qwen2.5-0.5B-Instruct/scores/multiple_scores.json",
@@ -129,18 +172,31 @@ CLAIMS: list[Claim] = [
           141, 200, (_RESULTS,), "CD+FT-aligned multiple, 7B (70.5%)."),
 
     # --- BFCL `parallel_multiple` category (04_results) -----------------------
-    Claim("cd_parallel_multiple_7b",
-          "data/output/bfcl/Qwen_Qwen2.5-7B-Instruct/scores/parallel_multiple_scores.json",
-          77, 200, (_RESULTS,), "CD parallel_multiple, 7B (38.5%)."),
-    Claim("cdfta_parallel_multiple_7b",
-          "data/output/bfcl_ft_aligned/*7B-Instruct-merged-aligned/scores/parallel_multiple_scores.json",
-          61, 200, (_RESULTS,), "CD+FT-aligned parallel_multiple, 7B (30.5%)."),
+    # NOTE: both 7B parallel_multiple claims are demoted to KNOWN_ISSUES pending the
+    # parallel-table rewrite (#173). cd_parallel_multiple_7b: re-run 28668050 moved
+    # 77/200 -> 145/200. cdfta_parallel_multiple_7b: FT-aligned re-run (job 28671187,
+    # 2026-06-17) moved 61/200 -> 120/200 (30.5% -> 60.0%). Restore both as Claims
+    # with the new numbers once the thesis tables adopt them.
 ]
 
 
 # Known unresolved discrepancies — documented, intentionally NOT asserted so the
 # suite stays green. Resolve the data, then promote each to a Claim above.
 KNOWN_ISSUES = """
+- cd_parallel_multiple_7b: thesis quotes 77/200 (38.5%) but the parallel-schema
+  fix re-run (job 28668050, 2026-06-16) overwrote
+  data/output/bfcl/Qwen_Qwen2.5-7B-Instruct/scores/parallel_multiple_scores.json
+  to 145/200 (72.5%). The thesis parallel_multiple table is being rewritten as a
+  size sweep under #173 (re-runs in flight, jobs 28671150-60 and 28671185-200);
+  restore as a Claim with the new numbers once that lands. See
+  docs/decisions/thesis-parallel-artifact-correction.md.
+- cdfta_parallel_multiple_7b: thesis quotes 61/200 (30.5%) but the FT-aligned
+  parallel-schema re-run (job 28671187, 2026-06-17) moved
+  data/output/bfcl_ft_aligned/*7B-Instruct-merged-aligned/scores/parallel_multiple_scores.json
+  to 120/200 (60.0%). Same rewrite as above (#173); restore as a Claim once the
+  thesis size-sweep parallel table adopts the new numbers. Full batch (22/24 valid;
+  the 2 gemma-3-1b cells crashed on the llguidance vocab bug, re-run pending) is in
+  docs/decisions/cross-family-cd-results.md (2026-06-17 section).
 - thesis CD baseline = 291/400 (72.75%) has no backing file in data/output
   (closest live runs are 289 and 290; the results docs note run-to-run drift of
   +/- one case). The mcnemar-significance doc attributes 291 to job 28142188.
