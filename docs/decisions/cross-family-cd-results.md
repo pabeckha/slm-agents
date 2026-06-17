@@ -242,15 +242,18 @@ Request ... failed (engine dead)  -> 500 Internal Server Error
   `run_bfcl_eval.sh` now captures the server log and exits 1 on
   `EngineDeadError`/`vocab size too small`/500s.
 - **Re-run pending:** `scripts/hpc/run_gemma_parallel_reruns.sh` resubmits both
-  cells with `GUIDED_BACKEND=outlines` (handles the schema features, no llguidance
-  vocab check). **Hypothesis — not verifiable off-HPC**; the gemma parallel numbers
-  are **pending a valid re-run**, recorded here as an infra failure, never as 0%
-  capability.
-- **Backend confound to flag in the thesis:** the 22 valid cells all ran on the
-  guidance backend (identical schema → identical `auto` routing); gemma alone is
-  forced onto outlines. Both faithfully enforce the same JSON schema at temp-0, so
-  the effect on correctness is expected negligible, but the asymmetry should be
-  noted, not hidden.
+  cells with `GUIDED_BACKEND=xgrammar` (jobs 28686566/28686567). A first attempt with
+  `outlines` (job 28682151) died at argument-parse — vLLM 0.8.5 only offers
+  `{auto, guidance, xgrammar}`, no outlines — caught by the new run_bfcl_eval.sh gate.
+  xgrammar is not llguidance, so it never runs the 262144-vs-262145 vocab assertion,
+  and `scripts/smoke_parallel_schema.py` confirms xgrammar compiles both parallel
+  schemas (single-fn-repeated and multi-fn `oneOf`) off-HPC. The gemma parallel
+  numbers are **pending a valid re-run**, recorded here as an infra failure, never as
+  0% capability.
+- **Backend confound to flag in the thesis:** the 22 valid cells ran under `auto`
+  (which routed this schema to the guidance backend); gemma alone is pinned to
+  xgrammar. Both faithfully enforce the same JSON schema at temp-0, so the effect on
+  correctness is expected negligible, but the asymmetry should be noted, not hidden.
 
 ## Next
 

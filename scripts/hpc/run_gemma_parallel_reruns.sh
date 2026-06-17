@@ -14,17 +14,19 @@
 #   schemas stayed on xgrammar and ran fine (55.5% / 44.0%), which is why only
 #   these two cells crashed.
 #
-# FIX (hypothesis — NOT verifiable off-HPC): force a non-llguidance backend via
-#   GUIDED_BACKEND=outlines. outlines supports the array/minItems/maxItems/oneOf
-#   features that pushed 'auto' off xgrammar, and does not run the llguidance
-#   vocab assertion. run_bfcl_eval.sh now also FAILS the job (exit 1) if the vLLM
-#   log still shows EngineDeadError / "vocab size too small" / 500s, so a re-crash
-#   will be loud instead of a silent fake-0%.
+# FIX: force GUIDED_BACKEND=xgrammar. vLLM 0.8.5 only offers {auto,guidance,xgrammar}
+#   (a first attempt with `outlines` died at argument-parse: "invalid choice", job
+#   28682151 — the hardened run_bfcl_eval.sh gate caught it). xgrammar is NOT
+#   llguidance, so it never runs the 262144-vs-262145 vocab assertion; and
+#   scripts/smoke_parallel_schema.py confirms xgrammar compiles BOTH parallel
+#   schemas (single-fn-repeated and multi-fn oneOf) off-HPC. gemma's simple/multiple
+#   cells already ran fine on xgrammar (55.5% / 44.0%). run_bfcl_eval.sh FAILS the
+#   job (exit 1) if the vLLM log still shows EngineDeadError / "vocab size too small"
+#   / 500s, so any re-crash is loud instead of a silent fake-0%.
 #
-# CAVEAT (record in the doc): the 22 valid cells in this batch all ran on the
-#   guidance backend (identical schema -> identical 'auto' routing); only gemma
-#   is forced onto outlines. That is a backend confound in the cross-family CD
-#   table and must be flagged, not hidden.
+# CAVEAT (record in the doc): the 22 valid cells in this batch ran under 'auto'
+#   (which routed this schema to guidance); gemma alone is pinned to xgrammar. That
+#   is a backend confound in the cross-family CD table and must be flagged, not hidden.
 #
 # Serialized done() chain so the two jobs never `uv sync` the shared NFS .venv at
 # the same time (the venv-race lesson).
@@ -32,13 +34,13 @@
 # Usage:
 #   bash scripts/hpc/run_gemma_parallel_reruns.sh
 #   DRY_RUN=1 bash scripts/hpc/run_gemma_parallel_reruns.sh   # print bsub only
-#   GUIDED_BACKEND=xgrammar bash scripts/hpc/run_gemma_parallel_reruns.sh  # try another
+#   GUIDED_BACKEND=guidance bash scripts/hpc/run_gemma_parallel_reruns.sh  # override
 
 set -e
 
 HPC_DIR="$(cd "$(dirname "$0")" && pwd)"
 MODEL="google/gemma-3-1b-it"
-GUIDED_BACKEND="${GUIDED_BACKEND:-outlines}"
+GUIDED_BACKEND="${GUIDED_BACKEND:-xgrammar}"
 
 PREV="-"
 for CATEGORY in parallel parallel_multiple; do
