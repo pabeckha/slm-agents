@@ -30,6 +30,7 @@
 set -e
 
 HPC_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$HPC_DIR/../.."   # project root — the [ -f "$ADAPTER_DIR" ] checks use relative paths
 MERGED_ROOT="/work3/s242779/models/models/merged"
 CATEGORY="${CATEGORY:-simple_python}"
 

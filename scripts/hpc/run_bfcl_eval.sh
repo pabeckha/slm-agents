@@ -144,9 +144,9 @@ rm -f "$EVAL_LOG"
 MODEL_SLUG="$(printf '%s' "$MODEL" | tr '/' '_')"
 SCORE_FILE="data/output/bfcl/${MODEL_SLUG}/scores/${CATEGORY}_scores.json"
 if [ -f "$SCORE_FILE" ]; then
-    CORRECT="$(grep -oE '"correct_count"[[:space:]]*:[[:space:]]*[0-9]+' "$SCORE_FILE" | grep -oE '[0-9]+$')"
-    if [ "$CORRECT" = "0" ]; then
-        echo "FATAL: $SCORE_FILE has correct_count=0 — treating as an infra failure, not a 0% result"
+    CORRECT="$(grep -oE '"correct_count"[[:space:]]*:[[:space:]]*[0-9]+' "$SCORE_FILE" | grep -oE '[0-9]+$' || echo "")"
+    if [ -z "$CORRECT" ] || [ "$CORRECT" = "0" ]; then
+        echo "FATAL: $SCORE_FILE has invalid or zero correct_count ($CORRECT) — treating as an infra failure, not a 0% result"
         exit 1
     fi
     echo "Results valid: correct_count=$CORRECT in $SCORE_FILE"

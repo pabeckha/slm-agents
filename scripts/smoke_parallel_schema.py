@@ -20,6 +20,7 @@ Run::
 from __future__ import annotations
 
 import json
+import os
 import sys
 
 
@@ -133,8 +134,16 @@ def try_outlines(schema: dict) -> tuple[bool, str]:
 
 def main() -> int:
     ok = True
+    # Mirror the production config: BFCL_PARALLEL_DROP_ARRAY_BOUNDS=1 drops
+    # minItems/maxItems before the request reaches vLLM, so the forced-xgrammar
+    # gate only ever sees the trimmed schema. Without honoring it here the gate
+    # always rejects (bounds present) and the smoke test is permanently red.
+    drop_bounds = os.environ.get("BFCL_PARALLEL_DROP_ARRAY_BOUNDS", "").strip().lower() in {"1", "true", "yes", "on"}
     for case_name, funcs in CASES.items():
         schema = build_parallel_calls_schema(funcs)
+        if drop_bounds and "calls" in schema.get("properties", {}):
+            schema["properties"]["calls"].pop("minItems", None)
+            schema["properties"]["calls"].pop("maxItems", None)
         xg_ok, xg_msg = try_xgrammar(schema)
         gate_ok, gate_msg = try_vllm_xgrammar_gate(schema)
         ol_ok, ol_msg = try_outlines(schema)
