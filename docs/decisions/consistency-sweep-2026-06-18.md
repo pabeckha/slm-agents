@@ -22,7 +22,7 @@ number corrections (handoff §5.4). Three checkboxes from #178.
 |---|---|---|
 | `02_background.tex:54` | "SLMs, typically under 10B parameters~\cite{sharma2025slmagents}" | "SLMs, commonly taken to span roughly 1 to 12 billion parameters~\cite{sharma2025slmagents}" (matches `01_introduction.tex:9` + source) |
 | `02_background.tex:324` | "Qwen 2.5 7B … strongest open-weight models for tool use at sub-10B parameter scales" | "Qwen 2.5 7B … strongest open-weight SLMs for tool use" (drop competing boundary; use defined term) |
-| `05_discussion.tex:518` | "Qwen 2.5 … strongest sub-10B models for tool use" | "Qwen 2.5 … strongest open-weight SLMs for tool use" |
+| `05_discussion.tex:518` | "Qwen 2.5 … strongest sub-10B models for tool use" | "Qwen 2.5 7B … strongest open-weight SLMs for tool use" (7B specified so the SLM label stays within the 1–12B range, matching `background:324`) |
 | `01_introduction.tex:174` | "…marginal contribution to tool-calling accuracy and reasoning quality." | "…marginal contribution to tool-calling accuracy." (over-promise trim; consistent with intro:111 narrow reasoning scope and the tool-calling-only Contributions) |
 
 ## Framing — assessed clean (no change needed)
