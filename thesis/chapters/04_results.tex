@@ -374,34 +374,46 @@ precision (bfloat16) on BFCL~v4
 \centering
 \caption{BFCL~v4 \texttt{simple\_python} AST accuracy for the
 inference-time techniques evaluated without constrained decoding
-(Qwen~2.5 7B-Instruct, bfloat16, 400 test cases). Config~B and
-Config~CD are shown for reference.}
+(\textit{ng}: no guided decoding; Qwen~2.5 7B-Instruct, bfloat16,
+400 test cases). Config~CD is shown for reference. All no-guided
+figures use the corrected first-complete-object JSON parser: under
+this lenient criterion the generic baseline Config~B scores 62.00\%,
+whereas the
+strict whole-completion parse of the headline integration floor
+(Table~\ref{tab:baseline-results}) yields 1.50\% for the same runs.}
 \label{tab:isolation}
 \begin{tabular}{llrrr}
 \toprule
 Config & Description & Correct & Accuracy ($\uparrow$) & Delta vs B \\
 \midrule
-B      & No technique, no CD     & 6/400   & 1.50\%  & baseline    \\
-RAG-ng & Retrieval, no CD        & 10/400  & 2.50\%  & $+1.00$~pp  \\
-PE-ng  & Few-shot, no CD         & 18/400  & 4.50\%  & $+3.00$~pp  \\
-ITC-ng & Chain-of-thought, no CD & 105/400 & 26.25\% & $+24.75$~pp \\
-CD     & Constrained decoding    & 291/400 & 72.75\% & $+71.25$~pp \\
+B      & No technique, no CD     & 248/400 & 62.00\% & baseline    \\
+RAG-ng & Retrieval, no CD        & 208/400 & 52.00\% & $-10.00$~pp \\
+PE-ng  & Few-shot, no CD         & 236/400 & 59.00\% & $-3.00$~pp  \\
+ITC-ng & Chain-of-thought, no CD & 225/400 & 56.25\% & $-5.75$~pp  \\
+CD     & Constrained decoding    & 291/400 & 72.75\% & $+10.75$~pp \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Without constrained decoding, none of the three prompt-level techniques
-exceeds 27\% accuracy. Few-shot prompting (PE-ng) reaches 4.50\%
-(18/400), an improvement of 3.00~pp over Base, and retrieval (RAG-ng)
-reaches 2.50\% (10/400), an improvement of 1.00~pp. Both gains are
-marginal: surfacing in-context examples or candidate functions does not
-help a model that cannot reliably produce a single parseable JSON
-object. Chain-of-thought (ITC-ng) reaches 26.25\% (105/400), an
-improvement of 24.75~pp over Base and the highest accuracy of any
-unguided configuration that leaves model weights unchanged. The
-step-by-step reasoning trace acts as self-scaffolding: generating a
-derivation before the final answer raises the rate at which the output
-is well-formed JSON, even though no structural constraint is applied.
+% TODO(#172): rewrite this paragraph in own voice. Claims INVERTED under the
+% corrected lenient parser; the old "none exceeds 27% / CoT is highest /
+% self-scaffolding" story is now false. Points to make:
+%  - Under the lenient parser the no-guided base (Config B) is already at 62.00%;
+%    the prompt-level techniques sit BELOW it: PE-ng 59.00% (-3.00 pp),
+%    ITC-ng 56.25% (-5.75 pp), RAG-ng 52.00% (-10.00 pp).
+%  - So adding in-context examples / a reasoning trace / retrieved candidates
+%    does not raise format compliance above plain prompting here; it slightly
+%    lowers it (more tokens -> more trailing text / more chances to deviate).
+%  - The earlier "CoT self-scaffolding" reading was an artifact of the buggy
+%    parser, which penalised the techniques unevenly; drop it.
+%  - CD (72.75%) is the only configuration that clears the base, by +10.75 pp.
+Without constrained decoding, the no-guided base configuration (Config~B)
+already reaches 62.00\% under the corrected parser, and none of the three
+prompt-level techniques exceeds it: few-shot (PE-ng) reaches 59.00\%
+(236/400, $-3.00$~pp), chain-of-thought (ITC-ng) 56.25\% (225/400,
+$-5.75$~pp), and retrieval (RAG-ng) 52.00\% (208/400, $-10.00$~pp).
+Constrained decoding (72.75\%) is the only configuration that exceeds the
+base, by $+10.75$~pp.
 
 The isolation measurements also quantify the marginal contribution of
 constrained decoding on top of each technique.
@@ -421,27 +433,36 @@ relative to the constrained-decoding contribution.}
 \toprule
 Technique & Without CD ($\uparrow$) & With CD ($\uparrow$) & CD contribution \\
 \midrule
-None (CD alone)  & 1.50\%  & 72.75\% & $+71.25$~pp \\
-Few-shot         & 4.50\%  & 70.25\% & $+65.75$~pp \\
-Chain-of-thought & 26.25\% & 65.50\% & $+39.25$~pp \\
-Retrieval        & 2.50\%  & 47.75\% & $+45.25$~pp \\
+None (CD alone)  & 62.00\% & 72.75\% & $+10.75$~pp \\
+Few-shot         & 59.00\% & 70.25\% & $+11.25$~pp \\
+Chain-of-thought & 56.25\% & 65.50\% & $+9.25$~pp  \\
+Retrieval        & 52.00\% & 47.75\% & $-4.25$~pp  \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Constrained decoding is the dominant contributor in every case. Its
-marginal contribution is largest for few-shot (+65.75~pp) and retrieval
-(+45.25~pp), where the unguided accuracy sits near the Base floor, and
-smallest for chain-of-thought (+39.25~pp), where the reasoning trace
-already supplies partial format scaffolding. The chain-of-thought result
-reverses direction with respect to constrained decoding: without guided
-decoding it is the strongest prompt-level technique (+24.75~pp over
-Base), whereas on top of constrained decoding it is the weakest (a
-decrease of 7.25~pp relative to CD). Once decoding is constrained, the
-format benefit of the reasoning trace is redundant, while the
-value-level errors it introduces remain. This confirms that the residual
-failures after constrained decoding are semantic rather than structural,
-consistent with the per-case flip analysis reported above for CD+Q+ITC.
+% TODO(#172): rewrite this paragraph in own voice. The old "CD is the dominant
+% contributor (+39 to +66 pp)" framing is FALSE under the corrected parser.
+% Points to make:
+%  - CD's marginal contribution at 7B is now modest: +10.75 pp over the base,
+%    +11.25 pp on top of few-shot, +9.25 pp on top of chain-of-thought.
+%  - For retrieval it is NEGATIVE: RAG-ng (52.00%) > CD+Q+RAG (47.75%), so the
+%    constrained pipeline costs 4.25 pp there (the retrieved context helps the
+%    free-form model more than it helps the constrained one).
+%  - Reframe CD's value as the STRUCTURAL GUARANTEE (format compliance that
+%    holds for any model/schema, recoverable from the strict 1.5% floor) PLUS a
+%    modest accuracy margin once a lenient parser is already in place -- not as
+%    accuracy dominance over prompting.
+%  - The semantic-vs-structural point (residual failures after CD are semantic)
+%    can stay, but no longer rests on the CoT "redundant scaffolding" story.
+Once a lenient first-object parser is in place, the marginal contribution of
+constrained decoding on the 7B model is modest: $+10.75$~pp over the base,
+$+11.25$~pp on top of few-shot, and $+9.25$~pp on top of chain-of-thought.
+For retrieval it is negative ($-4.25$~pp): RAG-ng (52.00\%) exceeds CD+Q+RAG
+(47.75\%). The value of constrained decoding therefore lies in its structural
+format guarantee, which recovers the strict-parse baseline from 1.50\% to a
+well-formed output in every case, rather than in a large accuracy margin over
+prompt-level techniques.
 
 \section{Training-Based Methods}
 

@@ -84,3 +84,48 @@ manifests retained alongside).
 
 Treat all pre-2026-06-12 no-guided results as invalid. Re-run the remaining
 contaminated configs with the fixed parser before updating thesis tables.
+
+## Update 2026-06-18 — all sizes landed and verified (issue #172)
+
+The remaining contaminated configs were re-run. Complete corrected no-guided
+table, **verified against `data/output/*_no_guided/runs/2026-06-12T*` manifests**
+(`correct_count / 400`), latest post-fix run per cell:
+
+| Config (no guided) | 0.5B | 1.5B | 3B | 7B |
+|---|---|---|---|---|
+| Config B (`bfcl_no_guided`) | 104 = 26.00% | 206 = 51.50% | 263 = 65.75% | 248 = 62.00% |
+| Few-shot (PE-ng) | 101 = 25.25% | 214 = 53.50% | 261 = 65.25% | 236 = 59.00% |
+| CoT (ITC-ng) | 76 = 19.00% | 178 = 44.50% | 233 = 58.25% | 225 = 56.25% |
+| RAG-ng | 99 = 24.75% | 173 = 43.25% | 194 = 48.50% | 208 = 52.00% |
+| FT-aligned-ng | 139 = 34.75% | 110 = 27.50% | 97 = 24.25% | 164 = 41.00% |
+| FT-only-ng (`bfcl_ft_no_guided`) | — | — | — | 212 = 53.00% |
+
+CD contribution (with-CD minus no-CD, pp), using the corrected no-CD column:
+
+| Technique | 0.5B | 1.5B | 3B | 7B |
+|---|---|---|---|---|
+| None (CD alone) | +25.50 | +10.75 | −1.00 | +10.75 |
+| Few-shot | +28.25 | +11.25 | +1.75 | +11.25 |
+| Chain-of-thought | +23.00 | +10.25 | −0.25 | +9.25 |
+| Retrieval | +1.25 | −8.50 | −0.25 | −4.25 |
+| Format-aligned LoRA | +24.50 | +38.50 | +42.50 | +35.75 |
+
+### Strict vs. lenient parser (important framing)
+
+The 1.50%% headline baseline and the 62.00%% corrected Config B are **the same
+7B runs under two parsing criteria**, not a bug vs. a fix:
+
+- **Strict** — `json.loads` on the *whole* completion (the naïve model-agnostic
+  integration). The model emits a valid first object then trailing text, so the
+  whole string fails to parse → 1.50%% (6/400). This is a legitimate strict
+  floor and is **kept as the thesis headline** (`tab:baseline-results`, intro,
+  abstract).
+- **Lenient** — `raw_decode` of the *first* complete object (PR #163). Used in
+  the **technique-isolation arm only**, so techniques are compared fairly rather
+  than by how little trailing text they emit → Config B 62.00%%.
+
+The genuinely-buggy parser was the *old lenient* one (first-`{` to last-`}`),
+which spanned multiple objects and scored the isolation configs at 0–26%% when
+their true lenient scores are 52–62%%. See
+`docs/decisions/no-guided-thesis-corrections-2026-06-18.md` for the thesis edit
+scope (option A) and the remaining prose-rewrite items.
