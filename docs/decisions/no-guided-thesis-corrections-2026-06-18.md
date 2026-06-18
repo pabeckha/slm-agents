@@ -32,6 +32,31 @@ under the kept headline. Only the isolation section moves.
   stubs**; the prior interpretive prose is preserved as `% TODO(#172)` bullets
   inline for rewrite in the author's voice (see below).
 
+### FT no-CD cells (decision: use lenient, label it)
+
+The no-CD LoRA figures were buggy-parser values and are corrected to the
+verified lenient parser (consistent with RAG-ng / FT-aligned-ng):
+
+- **FT-only**: 13.75% (55/400) → **53.00%** (212/400). Narrative inverted —
+  under the lenient parser FT-only (53.00%) is *below* the no-guided base
+  (62.00%), so plain LoRA without CD does not exceed the base on format
+  compliance. Stubbed + `% TODO(#172)`.
+- **FT-aligned-ng**: 13.25% (53/400) → **41.00%** (164/400). The explanatory
+  claim survives (format alignment still degrades the *unguided* path:
+  41.00% < 53.00%), only the magnitude grows (0.5 pp → 12.00 pp).
+- **`tab:full-ablation`**: FT rows corrected and re-sorted by accuracy; caption
+  now labels B as the strict floor and the FT no-CD figures as lenient.
+- **`tab:size-sweep-full`**: Config B row kept at the near-zero pre-fix values
+  (3.50/4.75/2.75/1.50) as an approximate strict floor; caption notes only the
+  7B value was independently re-grounded under strict parsing.
+
+### Still to regenerate (not a `.tex` edit)
+
+`pictures/figures/fig_bfcl_ablation.pdf` (the full-ablation bar chart) still
+plots the old buggy FT values (13.25/13.75%). Regenerate it from the corrected
+data so the figure matches `tab:full-ablation` (FT-aligned-ng 41.00%,
+FT-only 53.00%).
+
 All-size reference tables (not built): `thesis/drafts/isolation-tables-corrected.tex`.
 
 ## Remaining prose to rewrite (author's voice — `% TODO(#172)` markers in `04_results.tex`)
