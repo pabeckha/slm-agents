@@ -1,6 +1,7 @@
 \chapter{Results} \label{ch:results}
 
 \section{Baseline Performance}
+\label{sec:baseline}
 
 Table~\ref{tab:baseline-results} summarizes the baseline, the native-template control, and the constrained decoding results for Qwen~2.5 7B-Instruct on BFCL~v4 \texttt{simple\_python} (400 test cases). All no-training configurations, including few-shot prompting, are reported in Section~\ref{sec:no-training}.
 
@@ -849,6 +850,107 @@ within noise; at 7B the mean of 4.35\% for CD lies within the single-run
 standard error of the 3.48\% CD+FT-aligned result. Format-aligned fine-tuning,
 which increases BFCL \texttt{simple\_python} accuracy by up to 7.75~pp, does not
 transfer to multi-turn task completion.
+
+% =====================================================================
+% SCAFFOLD — issue #174. Tables are final (numbers validated 2026-06-18,
+% source docs/decisions/mcp-eval-results-section-outline.md). Prose is
+% deliberately left as comment-bullets: rewrite in your own voice.
+% Two open decisions baked in as placeholders below:
+%   (1) baseline parser-consistency sentence vs BFCL B=1.5% — see TODO.
+%   (2) gemma-3-4b cell omitted (no output on disk) — re-run or keep dropped.
+% =====================================================================
+\section{Real-World Tool Selection}
+\label{sec:github-mcp}
+
+% Lead para — motivation. Bullets to expand:
+% - BFCL simple_python shows ONE candidate fn; tau-bench has a fixed/known
+%   catalog. Neither is a real MCP deployment (choose from a full catalog of
+%   semantically similar ops, then produce valid args).
+% - This eval: 21 real GitHub MCP tools, 50 NL prompts; the 11 read-only tools
+%   are executed live against the GitHub REST API. Single domain, hand-crafted
+%   -> frame as a TARGETED real-world validation, not a BFCL replacement.
+% - Secondary question: does the RAG disambiguation collapse (-24pp, 1->many
+%   candidates) reappear at a real 21-tool scale?
+
+% TODO(parser-consistency): one methodological sentence acknowledging the
+% baseline (B) is parser-sensitive and the no-guided parser was hardened
+% mid-project (cross-ref the BFCL Config-B caveat, Section~\ref{sec:baseline}).
+% Do NOT cite the old 6% as a result; at most a one-clause parser-sensitivity
+% aside. See outline doc for the full rationale.
+
+\begin{table}[ht]
+\centering
+\caption{GitHub MCP real-world evaluation, Qwen~2.5 7B-Instruct (50 natural-language
+prompts over a 21-tool catalog). All configurations are scored under the hardened
+no-guided parser; constrained-decoding outputs parse unconditionally, so the
+baseline and constrained-decoding rows share one measurement basis.}
+\label{tab:github-mcp-qwen}
+\begin{tabular}{lrrr}
+\toprule
+Config & Tool selection ($\uparrow$) & Arg accuracy ($\uparrow$) & Exec.\ success (read-only) \\
+\midrule
+B (baseline)        & 92.0\% (46/50) & 80.0\% (40/50) & 93.3\% (28/30) \\
+CD                  & 96.0\% (48/50) & 80.0\% (40/50) & 90.0\% (27/30) \\
+CD+Q (AWQ 4-bit)    & 98.0\% (49/50) & 80.0\% (40/50) & 86.2\% (25/29) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Para after Table~\ref{tab:github-mcp-qwen}. Bullets to expand:
+% - LOAD-BEARING: B's 92% is the hardened parser recovering tool calls from
+%   free-form output -> B leans on parser engineering the way BFCL's B-template
+%   leans on the native chat template. This is what B now measures.
+% - CD adds only +4pp tool selection (92->96); arg accuracy flat at 80%. So
+%   CD's value over a capable model is the STRUCTURAL GUARANTEE, not raw
+%   accuracy (same conclusion as Section~\ref{sec:baseline}: B-template 96% > CD).
+% - Quantization is free: CDQ 98% tool / 80% arg, ~half memory, faster load
+%   (~6s vs ~24s), parser-independent. Lead the win with this.
+% - Live execution 86-93% (HTTP<400) -> real tool calls, not label-matching.
+%   The CD exec failures are all search_issues HTTP 422 (NL phrase instead of
+%   GitHub search syntax) -- a model-knowledge limit guided_json can't fix.
+
+\begin{table}[ht]
+\centering
+\caption{GitHub MCP tool selection and argument accuracy, baseline (B) versus
+constrained decoding (CD), across model families (50 prompts each, single hardened
+parser). The accuracy benefit of constrained decoding concentrates on the weakest
+viable model; for models that already comply it is marginal or negative.}
+\label{tab:github-mcp-cross-family}
+\begin{tabular}{lrrrr}
+\toprule
+Model & B tool & CD tool & B arg & CD arg \\
+\midrule
+Gemma-3 1B-Instruct         & 36\% & 38\% & 24\% & 22\% \\
+Llama-3.2 1B-Instruct       & 46\% & 82\% & 34\% & 56\% \\
+Llama-3.2 3B-Instruct       & 94\% & 80\% & 74\% & 60\% \\
+Phi-4-mini-Instruct         & 88\% & 90\% & 78\% & 78\% \\
+Qwen~2.5 7B-Instruct        & 92\% & 96\% & 80\% & 80\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Para after Table~\ref{tab:github-mcp-cross-family}. Bullets to expand:
+% - CD's benefit concentrates on the weakest VIABLE model: Llama-3.2-1B +36pp.
+% - For already-compliant models CD is marginal or negative: Phi +2, Qwen +4,
+%   Llama-3.2-3B -14 (94->80).
+% - gemma-3-1b is below the viability floor: B36/CD38, arg ~22%; nothing helps.
+% - This CONFIRMS the Baseline framing (Section~\ref{sec:baseline}): CD's value
+%   is the structural guarantee, not raw accuracy over a capable model.
+% - Llama-3B regression mechanism (validated, identical B/CD prompts): guided_choice
+%   over 21 tools shifts the 3B model toward the broad search_issues tool
+%   (7 of 9 new errors) -- the real disambiguation cost of forcing a choice over
+%   a large catalog.
+
+% Disambiguation para. Bullets:
+% - RAG showed -24pp as candidates grew; here CD at 21 tools holds 96% on Qwen-7B
+%   -> the RAG collapse was retrieval noise, not a general tool-count problem.
+% - BUT the Llama-3B regression shows large catalogs DO cost smaller models --
+%   nuance, not a flat "scale-free" claim.
+
+% Limitations (tie to Section~\ref{sec:threats-validity}):
+% - 50 cases, single domain, hand-crafted; write tools scored on selection+args
+%   only (not executed). Not end-to-end MCP transport (REST translation of {fn,args}).
+% - Baseline parser-sensitivity (the TODO sentence above).
 
 \section{Model-Size Scaling}
 \label{sec:model-size}
