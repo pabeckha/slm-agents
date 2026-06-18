@@ -216,12 +216,17 @@ which retrains on the same xlam content reformatted to match the inference
 pipeline's JSON output convention exactly. CD+FT-aligned achieves
 76.75\% (307/400), a gain of 7.00 percentage points over CD+FT v1 and
 4.00 percentage points above the CD baseline, making it the best
-training-based result in the evaluation. FT-only confirms that fine-tuning does improve
-format compliance in the unguided setting ($+12.25$ percentage points over
-Base), establishing that the training signal is meaningful. The 63
-percentage point gap between FT-aligned-ng (13.25\%) and
-CD+FT-aligned confirms that constrained decoding remains the dominant
-contributor even after fine-tuning.
+training-based result in the evaluation. % TODO(#172): rewrite in own voice. FT numbers corrected to the lenient parser;
+% the old "FT-only improves format compliance +12.25pp, training signal
+% meaningful" claim is FALSE -- under the lenient parser FT-only (53.00%) is
+% below the no-guided Base (62.00%), so plain fine-tuning does not improve
+% unguided format compliance here, and FT-aligned-ng is lower still (41.00%).
+Under the corrected lenient parser, plain fine-tuning does not raise unguided
+format compliance above Base: FT-only reaches 53.00\%, below the no-guided
+Base (62.00\%), and FT-aligned-ng is lower still at 41.00\%. The 35.75
+percentage point gap between FT-aligned-ng (41.00\%) and CD+FT-aligned
+(76.75\%) shows that constrained decoding remains the major contributor even
+after fine-tuning.
 
 Taken together, the results support a clear ordering by cost-benefit ratio:
 schema-enriched constrained decoding (CD+schema, 89.0\%) delivers the highest

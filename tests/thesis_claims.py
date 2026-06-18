@@ -144,6 +144,35 @@ CLAIMS: list[Claim] = [
           ("docs/decisions/schema-rich-full-run-results.md",),
           "CD+schema-rich, 3B (88.00%)."),
 
+    # --- corrected no-guided isolation arm + FT, 7B (#172, lenient parser) -----
+    # These lock the post-parser-fix lenient figures so they cannot silently
+    # drift back. The strict headline B (6/400) stays as b_no_guided_* above;
+    # these bind to the post-fix run files (much higher counts).
+    Claim("b_no_guided_lenient_7b",
+          "data/output/bfcl_no_guided/runs/*7B*no_guided.json",
+          248, 400, (_RESULTS,),
+          "Isolation-arm Config B, lenient parser, 7B (62.00%)."),
+    Claim("pe_ng_lenient_7b",
+          "data/output/bfcl_few_shot_no_guided/runs/*7B*few_shot.json",
+          236, 400, (_RESULTS,),
+          "PE-ng (few-shot, no CD), lenient parser, 7B (59.00%)."),
+    Claim("itc_ng_lenient_7b",
+          "data/output/bfcl_cot_no_guided/runs/*7B*cot.json",
+          225, 400, (_RESULTS,),
+          "ITC-ng (chain-of-thought, no CD), lenient parser, 7B (56.25%)."),
+    Claim("rag_ng_lenient_7b",
+          "data/output/bfcl_rag_no_guided/runs/*7B*rag*.json",
+          208, 400, (_RESULTS,),
+          "RAG-ng (retrieval, no CD), lenient parser, 7B (52.00%)."),
+    Claim("ft_only_ng_lenient_7b",
+          "data/output/bfcl_ft_no_guided/runs/*7B*.json",
+          212, 400, (_RESULTS,),
+          "FT-only (LoRA, no CD), lenient parser, 7B (53.00%)."),
+    Claim("ft_aligned_ng_lenient_7b",
+          "data/output/bfcl_ft_aligned_no_guided/runs/*7B*.json",
+          164, 400, (_RESULTS,),
+          "FT-aligned-ng (no CD), lenient parser, 7B (41.00%)."),
+
     # --- size sweep, BFCL `multiple` category (04_results size table) ---------
     Claim("cd_multiple_0_5b",
           "data/output/bfcl/Qwen_Qwen2.5-0.5B-Instruct/scores/multiple_scores.json",

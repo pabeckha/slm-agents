@@ -85,11 +85,13 @@ def _clean_axes(ax):
 # ---------------------------------------------------------------------------
 # Story: CD+schema (89.0%) enters the frontier range — the single highlighted bar.
 
+# No-CD figures (FT-aligned-ng, FT-only) use the corrected lenient parser
+# (PR #163); B is the strict whole-completion floor. See issue #172.
 CONFIGS = [
     ("B",               "B\n(raw)",             1.50),
-    ("FT-aligned-ng",   "FT-aligned\n(no CD)", 13.25),
-    ("FT-only",         "FT-only\n(no CD)",    13.75),
+    ("FT-aligned-ng",   "FT-aligned\n(no CD)", 41.00),
     ("CD+Q+RAG",        "CD+Q\n+RAG",          47.75),
+    ("FT-only",         "FT-only\n(no CD)",    53.00),
     ("CD+Q+ITC",        "CD+Q\n+CoT",          65.50),
     ("CD+FT",           "CD+FT\n(misaligned)", 69.75),
     ("PE",              "PE\n(few-shot)",       70.25),
@@ -327,7 +329,7 @@ def _wilson_ci_errors(acc_pct, n=N_BFCL, z=1.96):
 MEM_POINTS = [
     # (label, mem_gib, acc, text_x_offset, text_y_offset, ha)
     ("B",              14.25,  1.50,  0.4,   0.0, "left"),
-    ("FT-only",        14.25, 13.75,  0.4,   0.0, "left"),
+    ("FT-only",        14.25, 53.00,  0.4,   0.0, "left"),
     ("CD+FT",          14.25, 69.75, -0.5,  -4.0, "right"),  # below-left
     ("CD",             14.25, 72.75, -0.6,   0.0, "right"),  # left
     ("CD+FT-aligned",  14.25, 76.75,  0.4,  -1.5, "left"),   # below ref line

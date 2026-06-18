@@ -84,7 +84,27 @@ strict headline Base (1.50%, in the size-sweep / discussion §5) and **+10.75 pp
 vs the lenient isolation Base (62.00%). Make the parser distinction explicit
 wherever both could be read together, so they do not look contradictory.
 
+## Honest-methods disclosure + figure (this PR)
+
+- **`03_methodology.tex`**: added a stub paragraph (`% TODO(#172)` for voice
+  polish) stating the two parsing criteria — strict whole-completion (headline
+  floor, 1.50%) vs. lenient first-object (isolation arm, 62.00%) — and the
+  first-`{`-to-last-`}` → `raw_decode` fix (PR #163).
+- **`05_discussion.tex`**: fixed the FT restatement (was the buggy
+  "+12.25 pp / training signal meaningful / 63 pp gap"; now 53.00/41.00% and
+  35.75 pp gap), stubbed for voice.
+- **`fig_bfcl_ablation.pdf` + `fig_memory_vs_accuracy.pdf`**: regenerated from
+  `scripts/figures/plot_bfcl_results.py` with the corrected FT values
+  (41.00 / 53.00) and re-sorted ordering. The hardcoded values in that script
+  were updated.
+
 ## Verification
 
 - All corrected cells verified against `runs/2026-06-12T*` manifests (above doc).
-- `make test`: 92 passed (headline 1.5% / 96.00% / p-values unchanged).
+- Six new registry claims in `tests/thesis_claims.py` lock the corrected 7B
+  no-guided figures (B 248, PE 236, ITC 225, RAG 208, FT-only 212,
+  FT-aligned-ng 164 of 400) to their run files and to the `X/400` strings in
+  `04_results.tex`.
+- `make test`: **105 passed** (was 93); headline 1.5% / 96.00% / p-values
+  unchanged. The 6 new data-reproduction checks independently re-verified the
+  corrected counts against disk.
