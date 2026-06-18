@@ -197,7 +197,7 @@ cases each:
 | Llama-3.2-1B | 35.0% (70/200) | 25.5% (51/200) |
 | Llama-3.2-3B | — | 30.0% (60/200) |
 | Phi-4-mini | 80.5% (161/200) | 70.5% (141/200) |
-| gemma-3-1b | **INVALID — engine crash** | **INVALID — engine crash** |
+| gemma-3-1b | 16.5% (33/200) | 2.5% (5/200) |  ← resolved 2026-06-17, see below
 
 CD+FT-aligned (Qwen, merged-aligned checkpoints, all four sizes valid):
 
@@ -215,7 +215,7 @@ multi-call extension, NOT a permanent capability ceiling. (FT-aligned numbers ar
 non-monotonic in size — consistent with the aligned-adapter degradation already
 noted in the size sweep, not a job error.)
 
-### gemma-3-1b parallel = INVALID infra crash (NOT a capability result)
+### gemma-3-1b parallel = was INVALID infra crash — RESOLVED 2026-06-17 (now valid: 16.5% / 2.5%)
 
 Both gemma cells (jobs 28671151 `parallel`, 28671159 `parallel_multiple`) returned
 0.0% (0/200), but this is an **engine crash**, distinct from both the schema-cap
@@ -253,14 +253,24 @@ Request ... failed (engine dead)  -> 500 Internal Server Error
      the **standalone** xgrammar lib (which supports those keys), never vLLM's
      request-path gate. These outputs were quarantined (`*.INVALID-infra-400-*`), not
      banked.
-- **Current fix (pending re-run):** keep `GUIDED_BACKEND=xgrammar` and drop the array
-  bounds via `BFCL_PARALLEL_DROP_ARRAY_BOUNDS=1` (`src/vllm_backend.py`). `oneOf`/`const`
+- **Fix (RESOLVED 2026-06-17, jobs 28687715 `parallel` / 28687716 `parallel_multiple`):**
+  kept `GUIDED_BACKEND=xgrammar` and dropped the array bounds via
+  `BFCL_PARALLEL_DROP_ARRAY_BOUNDS=1` (`src/vllm_backend.py`). `oneOf`/`const`
   *are* supported by the gate, so the trimmed schema passes — verified directly against
   the installed `has_xgrammar_unsupported_json_features` (True with bounds → False
   without). The bounds only ever *weaken* the constraint (allow 0 or >cap calls), so at
   temp-0 their removal cannot bias gemma's score upward. `run_bfcl_eval.sh` now also
   fails the job on a client-side 400 or a `correct_count=0` score, so a third failure is
   loud, not a silent fake-0%.
+  **Both re-runs landed VALID** (exit 0, no `400`/`not supported by xgrammar` in the eval
+  log, engine healthy, `correct_count > 0`): **`parallel` = 16.5% (33/200)** and
+  **`parallel_multiple` = 2.5% (5/200)**. The dominant failure mode in both is
+  `Wrong number of functions` — with the infra/schema confound removed, these are now
+  real capability scores: gemma-3-1b genuinely struggles to emit the correct *count* of
+  parallel calls (lowest among the cross-family set, consistent with its position at the
+  small-model end). The four prior fake-0% score files + two failed manifests stay
+  quarantined as `*.INVALID-infra-400-20260617T210557`. Manifests:
+  `2026-06-17T20-15-39_…_parallel_guided.json`, `2026-06-17T20-27-04_…_parallel_multiple_guided.json`.
 - **Backend + schema confound to flag in the thesis:** the other parallel cells ran
   under `auto` (which routed this schema to the **guidance** backend) with the full
   `min/maxItems` schema; gemma alone is pinned to **xgrammar** with the **trimmed**
