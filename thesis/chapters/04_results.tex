@@ -121,9 +121,13 @@ the full parameter schema detail: descriptions, default values, and
 enumeration constraints from the BFCL function definitions.
 All preceding configurations expose only parameter names and types.
 
-CD+schema achieves 356/400 = 89.0\% AST accuracy on
-\texttt{simple\_python}, an increase of 16.5~pp over the paired CD
-baseline (290/400, 72.5\%). A paired McNemar test on stored per-case
+CD+schema achieves 356/400 = 89.00\% AST accuracy on
+\texttt{simple\_python}, an increase of 16.50~pp over the CD run
+co-evaluated on the same cases (290/400, 72.50\%). Measured instead
+against the canonical CD result (291/400, 72.75\%) reported elsewhere in
+this chapter, the gain is 16.25~pp; the two figures differ only by the
+one-case run-to-run drift between the paired and canonical CD references.
+A paired McNemar test on stored per-case
 predictions yields Table~\ref{tab:mcnemar-schema}.
 
 \begin{table}[ht]
@@ -156,7 +160,7 @@ failure after plain CD was attributable to missing value vocabulary:
 \texttt{discount\_rate} parameters whose description specifies a
 decimal fraction rather than a percentage.
 
-The 44 remaining failures (11.0\%) are predominantly
+The 44 remaining failures (11.00\%) are predominantly
 value-strictness artifacts in the benchmark ground truth:
 \texttt{"Los Angeles"} where the scorer expects
 \texttt{"Los Angeles, CA"}, \texttt{1e-05} where it expects
@@ -384,7 +388,7 @@ strict whole-completion parse of the headline integration floor
 \label{tab:isolation}
 \begin{tabular}{llrrr}
 \toprule
-Config & Description & Correct & Accuracy ($\uparrow$) & Delta vs B \\
+Config & Description & Correct & Accuracy ($\uparrow$) & Delta vs B ($\uparrow$) \\
 \midrule
 B      & No technique, no CD     & 248/400 & 62.00\% & baseline    \\
 RAG-ng & Retrieval, no CD        & 208/400 & 52.00\% & $-10.00$~pp \\
@@ -620,7 +624,7 @@ CD+Q            & CD + AWQ INT4                      & 72.25\% & $-0.50$~pp  \\
 CD              & Constrained decoding               & 72.75\% & --          \\
 CD+Q+FT-aligned & CD + AWQ INT4 + format-aligned LoRA & 74.25\% & $+1.50$~pp  \\
 CD+FT-aligned   & CD + format-aligned LoRA           & 76.75\% & $+4.00$~pp  \\
-\textbf{CD+schema} & \textbf{CD + schema enrichment (7B)} & \textbf{89.0\%} & $\mathbf{+16.25}$~pp \\
+\textbf{CD+schema} & \textbf{CD + schema enrichment (7B)} & \textbf{89.00\%} & $\mathbf{+16.25}$~pp \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -659,7 +663,7 @@ GPT-4.1-mini          & Frontier & 91.00\% \\
 GPT-5-mini            & Frontier & 78.75\% \\
 \midrule
 Qwen 2.5 7B B-template (control) & SLM (ours) & 96.00\% \\
-\textbf{Qwen 2.5 7B + CD+schema}     & \textbf{SLM (ours)} & \textbf{89.0\%}  \\
+\textbf{Qwen 2.5 7B + CD+schema}     & \textbf{SLM (ours)} & \textbf{89.00\%}  \\
 Qwen 2.5 7B + CD+FT-aligned & SLM (ours) & 76.75\% \\
 Qwen 2.5 7B + CD            & SLM (ours) & 72.75\% \\
 Qwen 2.5 7B + PE            & SLM (ours) & 70.25\% \\
@@ -675,7 +679,7 @@ Qwen 2.5 7B (raw)           & SLM (ours) & 1.50\%  \\
          (this work) vs.\ frontier models from the official leaderboard
          (Python Simple AST category). The native-template control
          (B-template, 96.00\%) lies within the flagship frontier band;
-         CD+schema (89.0\%) enters the frontier range above GPT-5-mini.}
+         CD+schema (89.00\%) enters the frontier range above GPT-5-mini.}
 \label{fig:frontier-comparison}
 \end{figure}
 
@@ -687,7 +691,7 @@ within the band spanned by flagship frontier models on this category
 model under the official harness on an earlier benchmark
 revision~\cite{chen2025toleap}: the model itself performs at frontier
 level when prompted through its native template. Plain CD (72.75\%) and
-CD+FT-aligned (76.75\%) sit below the frontier range; CD+schema (89.0\%),
+CD+FT-aligned (76.75\%) sit below the frontier range; CD+schema (89.00\%),
 which adds full parameter schema detail to the constrained prompt, enters
 the frontier range, sitting 10.25~pp above GPT-5-mini and 2.00~pp below GPT-4.1.
 The gap to the best frontier model (Claude Sonnet~4.5 at 97.75\%) is 8.75~pp.
@@ -1009,10 +1013,10 @@ size sweep was not extended to \texttt{parallel\_multiple}. Table~\ref{tab:bfcl-
 \label{tab:bfcl-parallel-multiple}
 \begin{tabular}{lrr}
 \toprule
-Config & Correct & Accuracy \\
+Config & Correct & Accuracy ($\uparrow$) \\
 \midrule
-CD            & 77/200 & 38.5\% \\
-CD+FT-aligned & 61/200 & 30.5\% \\
+CD            & 77/200 & 38.50\% \\
+CD+FT-aligned & 61/200 & 30.50\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1028,7 +1032,7 @@ xlam training distribution that reduce argument fidelity on tasks requiring
 several simultaneous calls. This is the only category where CD+FT-aligned
 underperforms plain CD.
 
-The \texttt{parallel\_multiple} score (38.5\%) is higher than
+The \texttt{parallel\_multiple} score (38.50\%) is higher than
 \texttt{parallel} (0.0\%) despite being nominally harder. The reason is
 contextual: prompts that reference distinct tools provide enough signal for
 the model to produce distinct calls. In the \texttt{parallel} category,

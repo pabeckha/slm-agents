@@ -73,7 +73,8 @@ lenient output parsing; the accuracy cost of that model-agnosticism,
 visible in the gap between the constrained configurations and
 B-template, is analysed in Chapter~\ref{ch:discussion}.
 
-This thesis investigates that assumption directly. It evaluates four Qwen~2.5
+This thesis directly investigates that assumption: that reliable agentic
+behavior requires large-scale models. It evaluates four Qwen~2.5
 Instruct sizes (0.5B, 1.5B, 3B, and 7B) on BFCL~v4
 \texttt{simple\_python}, using a main ladder of optimization configurations and
 additional isolation variants. The evaluation asks how much of the failure rate
@@ -93,7 +94,7 @@ frontier entry on the same category (GPT-5-mini, 78.75\%).
 The strongest result comes from schema-enriched constrained decoding
 (Config~CD+schema). This configuration adds parameter descriptions, enumeration
 values, and defaults to the argument extraction prompt while keeping the FSM
-mask unchanged. At 7B it reaches 89.0\% ($+$16.25~pp over plain CD, McNemar's
+mask unchanged. At 7B it reaches 89.00\% ($+$16.25~pp over plain CD, McNemar's
 test $p < 0.00001$), entering the frontier range above GPT-5-mini without
 modifying model weights. The failures that persist across configurations and
 sizes are semantic rather than structural: wrong optional parameter defaults,
@@ -174,7 +175,7 @@ This thesis addresses three research questions:
 
 \begin{description}
     \item[RQ1] \textit{What is the performance gap between unoptimized small language models (0.5B--7B parameters) and frontier models on tool-calling benchmarks?}
-    \item[RQ2] \textit{What is the marginal contribution of each optimization technique (constrained decoding, prompt engineering, retrieval-augmented generation, quantization, and LoRA fine-tuning) when applied cumulatively to small models for tool calling?}
+    \item[RQ2] \textit{What is the marginal contribution of each optimization technique (constrained decoding, schema enrichment, prompt engineering, chain-of-thought prompting, retrieval-augmented generation, quantization, and LoRA fine-tuning) when applied cumulatively to small models for tool calling?}
     \item[RQ3] \textit{Can a fully optimized small language model configuration achieve production-viable tool-calling accuracy on consumer hardware?}
 \end{description}
 
@@ -212,7 +213,7 @@ The main contributions of this thesis are:
     inference-time chain-of-thought, retrieval-augmented generation,
     quantization, LoRA fine-tuning, and schema-enriched prompting to
     BFCL \texttt{simple\_python} accuracy. Schema-enriched constrained
-    decoding (CD+schema, 89.0\%) is the strongest no-training
+    decoding (CD+schema, 89.00\%) is the strongest no-training
     configuration and the first to enter the frontier range
     (10.25~pp above GPT-5-mini, 78.75\%); CD+FT-aligned (76.75\%)
     is within single-run uncertainty of GPT-5-mini.

@@ -19,8 +19,10 @@ decoding itself.
 
 \subsection{Cumulative Evaluation Ladder}
 
-Eleven configurations are evaluated in total, as illustrated in
-Figure~\ref{fig:eval-ladder}. Four form a main chain, each building on the
+Twelve configurations are evaluated in total. Eleven form the cumulative
+ladder illustrated in Figure~\ref{fig:eval-ladder}; the twelfth, CD+schema,
+branches off separately and is reported in Section~\ref{sec:cd-schema}.
+Within the ladder, four form a main chain, each building on the
 previous one. Config~B is the baseline: the model is prompted without
 constrained decoding at full precision. In Config~CD, constrained decoding is
 added, forcing the output to conform to a valid JSON schema. In Config~CD+Q,
@@ -108,7 +110,9 @@ The main chain (top row, solid arrows) adds one technique at a time.
 Orange nodes are inference-time branches: PE branches from CD at full
 precision; ITC and RAG branch from CD+Q\@.
 Green nodes are fine-tuning branches from CD\@.
-Gray nodes are unguided standalone configurations (no constrained decoding).}
+Gray nodes are unguided standalone configurations (no constrained decoding).
+The off-ladder CD+schema variant (Section~\ref{sec:cd-schema}) is evaluated
+separately and is not shown.}
 \label{fig:eval-ladder}
 \end{figure}
 
