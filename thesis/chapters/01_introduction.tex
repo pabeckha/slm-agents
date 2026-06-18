@@ -12,10 +12,12 @@ The failure mode is concrete, and the aggregate figures that follow
 are measured on BFCL~v4 \texttt{simple\_python}. Consider a user query such as
 \textit{``What is the sum of 265 and 345?''} directed at Qwen~2.5 7B-Instruct
 without any optimization, where the available tool is an \texttt{add} function
-that accepts two numeric arguments. The expected output is a single valid
-function call, \texttt{\{"name": "add", "arguments": \{"a": 265, "b": 345\}\}}.
-A logged generation from this configuration (temperature~0) instead produces
-the following, reproduced verbatim:
+that accepts two numeric arguments. The expected final output of the
+evaluation pipeline is a single valid function call,
+\texttt{\{"name": "add", "arguments": \{"a": 265, "b": 345\}\}}, assembled by
+selecting the function name in the first stage and extracting its arguments
+in the second. A logged generation from the argument-extraction stage
+(temperature~0) instead produces the following, reproduced verbatim:
 \begin{verbatim}
 {"a": 265, "b": 345} The function `add` takes two numbers as
 arguments and returns their sum as a string. [...] To compute the
@@ -33,10 +35,10 @@ The result would be:
 
 So, the sum of 265 and 345 is 610.
 \end{verbatim}
-The model has identified the correct tool and arguments---the leading
-object \texttt{\{"a": 265, "b": 345\}} is itself well-formed---but it then
-continues in explanatory prose, and that trailing content makes the
-completion fail to parse as a single JSON object (a Python \texttt{json}
+The model has identified the correct arguments---the leading
+object \texttt{\{"a": 265, "b": 345\}} is itself well-formed---and the
+correct tool, named in the explanatory text that follows, but that
+trailing content makes the completion fail to parse as a single JSON object (a Python \texttt{json}
 \texttt{Extra data} error at the first character past the object). On
 BFCL~v4 \texttt{simple\_python}, 394 out of 400 responses from the
 unoptimized 7B model fail in this way, yielding 1.5\% overall accuracy
