@@ -395,21 +395,6 @@ CD     & Constrained decoding    & 291/400 & 72.75\% & $+10.75$~pp \\
 \end{tabular}
 \end{table}
 
-% TODO(#172): rewrite this paragraph in own voice. Claims INVERTED under the
-% corrected lenient parser; the old "none exceeds 27% / CoT is highest /
-% self-scaffolding" story is now false. Points to make:
-%  - Under the lenient parser the no-guided base (Config B) is already at 62.00%;
-%    the prompt-level techniques sit BELOW it: PE-ng 59.00% (-3.00 pp),
-%    ITC-ng 56.25% (-5.75 pp), RAG-ng 52.00% (-10.00 pp).
-%  - So adding in-context examples / a reasoning trace / retrieved candidates
-%    does not raise format compliance above plain prompting here; it slightly
-%    lowers it. NB: the lenient parser reads the FIRST complete object and
-%    ignores trailing text, so the drop is NOT about trailing text -- it is that
-%    under these techniques the model's first emitted object is more often
-%    absent or malformed (e.g. prose/CoT before the call, or a wrong first call).
-%  - The earlier "CoT self-scaffolding" reading was an artifact of the buggy
-%    parser, which penalised the techniques unevenly; drop it.
-%  - CD (72.75%) is the only configuration that clears the base, by +10.75 pp.
 Without constrained decoding, the no-guided base configuration (Config~B)
 already reaches 62.00\% under the corrected parser, and none of the three
 prompt-level techniques exceeds it: few-shot (PE-ng) reaches 59.00\%
@@ -444,20 +429,6 @@ Retrieval        & 52.00\% & 47.75\% & $-4.25$~pp  \\
 \end{tabular}
 \end{table}
 
-% TODO(#172): rewrite this paragraph in own voice. The old "CD is the dominant
-% contributor (+39 to +66 pp)" framing is FALSE under the corrected parser.
-% Points to make:
-%  - CD's marginal contribution at 7B is now modest: +10.75 pp over the base,
-%    +11.25 pp on top of few-shot, +9.25 pp on top of chain-of-thought.
-%  - For retrieval it is NEGATIVE: RAG-ng (52.00%) > CD+Q+RAG (47.75%), so the
-%    constrained pipeline costs 4.25 pp there (the retrieved context helps the
-%    free-form model more than it helps the constrained one).
-%  - Reframe CD's value as the STRUCTURAL GUARANTEE (format compliance that
-%    holds for any model/schema, recoverable from the strict 1.5% floor) PLUS a
-%    modest accuracy margin once a lenient parser is already in place -- not as
-%    accuracy dominance over prompting.
-%  - The semantic-vs-structural point (residual failures after CD are semantic)
-%    can stay, but no longer rests on the CoT "redundant scaffolding" story.
 Once a lenient first-object parser is in place, the marginal contribution of
 constrained decoding on the 7B model is modest: $+10.75$~pp over the base,
 $+11.25$~pp on top of few-shot, and $+9.25$~pp on top of chain-of-thought.
@@ -479,14 +450,6 @@ LoRA rank~16 in bfloat16~\cite{hu2022lora}. The adapter is merged into the
 base weights by linear interpolation before evaluation, producing a single
 merged model at full bfloat16 precision.
 
-% TODO(#172): rewrite in own voice. Number corrected to the lenient parser
-% (FT-only-ng 53.00%, 212/400; the old 13.75% was the buggy first-{-to-last-}
-% parser). Narrative INVERTED: under the lenient parser FT-only (53.00%) is
-% BELOW the no-guided base (62.00%), so plain LoRA without CD does NOT exceed
-% the unoptimised base on format compliance -- the old "+12.25pp gain, training
-% signal meaningful" reading was an artifact of the buggy parser. Compare like
-% with like (lenient vs lenient); do not compare lenient FT-only to the strict
-% 1.50% headline.
 Without constrained decoding (FT-only), the fine-tuned model reaches
 53.00\% accuracy (212/400) under the corrected lenient parser, below the
 no-guided base configuration (62.00\%) measured the same way. Plain LoRA
@@ -522,7 +485,6 @@ query, while the \texttt{simple\_python} category is exclusively single-call.
 This distribution mismatch may shift the model's prior toward multi-call
 patterns in contexts where a single call is required.
 
-% TODO(#172): "dominant contributor / 56pp" softened to match corrected FT-only.
 The gap between FT-only (53.00\%) and CD+FT (69.75\%) shows
 that constrained decoding still adds a clear margin even after fine-tuning:
 removing it reduces accuracy by 16.75~pp. The two techniques
