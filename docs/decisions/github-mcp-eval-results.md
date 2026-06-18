@@ -101,7 +101,7 @@ LSF job script (L40S GPU, 8 CPU, 20 GB RAM, 2 h wall time). Starts a vLLM server
 | Metric | B (baseline, new parser) | CD (constrained decoding) | CDQ (CD + AWQ 4-bit) |
 |---|---|---|---|
 | Tool selection | 92.0% (46/50) | 96.0% (48/50) | **98.0% (49/50)** |
-| Arg accuracy | 80.0% (40/50) | **80.0% (40/50)** | **80.0% (40/50)** |
+| Arg accuracy | 80.0% (40/50) | 80.0% (40/50) | 80.0% (40/50) |
 | Exec success (read-only) | 93.3% (28/30) | 90.0% (27/30) | 86.2% (25/29) |
 
 Under the hardened parser the baseline is **not** non-functional: a capable 7B model already selects
