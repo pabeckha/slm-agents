@@ -75,8 +75,7 @@ The format mismatch hypothesis is confirmed by CD+FT-aligned, which
 reformats training outputs to match the inference pipeline exactly.
 CD+FT-aligned improves accuracy at every size: $+7.75$~pp at 0.5B,
 $+3.75$~pp at 1.5B, $+2.00$~pp at 3B, and $+4.00$~pp at 7B
-(76.75\%, within single-run uncertainty of the weakest frontier
-entry, GPT-5-mini at 78.75\%).
+(76.75\%).
 CD+Q+FT-aligned applies AWQ INT4 quantization to the format-aligned
 LoRA-merged model and achieves 74.25\% (297/400) at 7B on the same
 5.20~GiB footprint.
@@ -120,8 +119,8 @@ CD+schema is the first constrained configuration in this evaluation
 to enter the frontier range, demonstrating that lower-tier frontier
 parity is reachable with structural validity guarantees intact and
 without modifying model weights.
-CD+FT-aligned (76.75\%) is within single-run uncertainty of
-GPT-5-mini, and the B-template control (96.00\%) shows that the
+CD+FT-aligned (76.75\%) approaches that range, and the B-template
+control (96.00\%) shows that the
 model itself reaches the flagship band; the remaining flagship gap
 reflects the native template's prompt-format advantage and residual
 value-convention scorer artifacts.
