@@ -20,6 +20,7 @@ Run::
 from __future__ import annotations
 
 import json
+import os
 import sys
 
 
@@ -97,6 +98,25 @@ def try_xgrammar(schema: dict) -> tuple[bool, str]:
         return False, f"{type(e).__name__}: {e}"
 
 
+def try_vllm_xgrammar_gate(schema: dict) -> tuple[bool, str]:
+    """Check vLLM's *request-path* xgrammar gate, not just the standalone lib.
+
+    This is the layer the original smoke test missed (and why job 28686566/28686567
+    400'd despite ``try_xgrammar`` passing): a forced ``xgrammar`` backend rejects
+    any schema that ``has_xgrammar_unsupported_json_features`` flags, even when the
+    standalone xgrammar library would compile it. Returns (accepted, msg) where
+    ``accepted`` means vLLM would NOT 400.
+    """
+    try:
+        from vllm.model_executor.guided_decoding.utils import (
+            has_xgrammar_unsupported_json_features as unsupported,
+        )
+    except Exception as e:  # noqa: BLE001
+        return False, f"import failed: {e}"
+    bad = unsupported(schema)
+    return (not bad), ("rejected (would 400)" if bad else "accepted")
+
+
 def try_outlines(schema: dict) -> tuple[bool, str]:
     try:
         from outlines.fsm.json_schema import build_regex_from_schema
@@ -114,19 +134,32 @@ def try_outlines(schema: dict) -> tuple[bool, str]:
 
 def main() -> int:
     ok = True
+    # Mirror the production config: BFCL_PARALLEL_DROP_ARRAY_BOUNDS=1 drops
+    # minItems/maxItems before the request reaches vLLM, so the forced-xgrammar
+    # gate only ever sees the trimmed schema. Without honoring it here the gate
+    # always rejects (bounds present) and the smoke test is permanently red.
+    drop_bounds = os.environ.get("BFCL_PARALLEL_DROP_ARRAY_BOUNDS", "").strip().lower() in {"1", "true", "yes", "on"}
     for case_name, funcs in CASES.items():
         schema = build_parallel_calls_schema(funcs)
+        if drop_bounds and "calls" in schema.get("properties", {}):
+            schema["properties"]["calls"].pop("minItems", None)
+            schema["properties"]["calls"].pop("maxItems", None)
         xg_ok, xg_msg = try_xgrammar(schema)
+        gate_ok, gate_msg = try_vllm_xgrammar_gate(schema)
         ol_ok, ol_msg = try_outlines(schema)
         print(f"[{case_name}]")
-        print(f"  xgrammar: {'OK ' if xg_ok else 'FAIL'} - {xg_msg}")
+        print(f"  xgrammar (standalone lib): {'OK ' if xg_ok else 'FAIL'} - {xg_msg}")
+        print(f"  xgrammar (vLLM request gate): {'OK ' if gate_ok else 'FAIL'} - {gate_msg}")
         print(f"  outlines: {'OK ' if ol_ok else 'FAIL'} - {ol_msg}")
-        # Need at least one backend to support it.
-        if not (xg_ok or ol_ok):
+        # For a *forced* xgrammar backend (the gemma re-run), the vLLM gate is the
+        # binding check -- standalone-lib success is not enough (it 400'd in prod).
+        if not gate_ok:
             ok = False
     print()
-    print("RESULT:", "oneOf schema is supported by at least one backend"
-          if ok else "NEITHER backend compiled the schema -- use flat fallback")
+    print("RESULT:", "schema passes vLLM's forced-xgrammar gate"
+          if ok else "vLLM's xgrammar gate REJECTS the schema -- it will 400 under "
+                     "a forced xgrammar backend (drop minItems/maxItems or use a "
+                     "fallback backend)")
     return 0 if ok else 1
 
 
