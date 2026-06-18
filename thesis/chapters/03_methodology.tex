@@ -19,8 +19,10 @@ decoding itself.
 
 \subsection{Cumulative Evaluation Ladder}
 
-Eleven configurations are evaluated in total, as illustrated in
-Figure~\ref{fig:eval-ladder}. Four form a main chain, each building on the
+Twelve configurations are evaluated in total. Eleven form the cumulative
+ladder illustrated in Figure~\ref{fig:eval-ladder}; the twelfth, CD+schema,
+branches off separately and is reported in Section~\ref{sec:cd-schema}.
+Within the ladder, four form a main chain, each building on the
 previous one. Config~B is the baseline: the model is prompted without
 constrained decoding at full precision. In Config~CD, constrained decoding is
 added, forcing the output to conform to a valid JSON schema. In Config~CD+Q,
@@ -108,7 +110,9 @@ The main chain (top row, solid arrows) adds one technique at a time.
 Orange nodes are inference-time branches: PE branches from CD at full
 precision; ITC and RAG branch from CD+Q\@.
 Green nodes are fine-tuning branches from CD\@.
-Gray nodes are unguided standalone configurations (no constrained decoding).}
+Gray nodes are unguided standalone configurations (no constrained decoding).
+The off-ladder CD+schema variant (Section~\ref{sec:cd-schema}) is evaluated
+separately and is not shown.}
 \label{fig:eval-ladder}
 \end{figure}
 
@@ -330,17 +334,11 @@ function. In CD and above, \texttt{guided\_choice} and
 \label{fig:pipeline}
 \end{figure}
 
-Base achieves 1.5\% AST accuracy (6/400) on BFCL~v4
-\texttt{simple\_python}. The dominant failure mode is format
-non-compliance: 394 of 400 outputs are rejected at the JSON
-parsing stage because the model wraps its answer in
-conversational prose rather than producing a bare JSON object.
-The model identifies the correct function and arguments in
-the majority of cases, but cannot express that knowledge in
-the required structured form without external guidance.
-Base therefore is the lower bound for all subsequent
-comparisons; any improvement over 1.5\% is attributable to
-the technique added at that rung of the evaluation ladder.
+Base establishes the lower bound for the evaluation ladder: the model is
+presented with the generic, model-agnostic pipeline and no constrained
+decoding, so any improvement at a later rung is attributable to the
+technique added there. Its accuracy and failure breakdown are reported in
+Chapter~\ref{ch:results}.
 
 The argument-extraction stage parses the completion as JSON under two
 criteria. The headline baseline applies a strict whole-completion parse: the
@@ -365,17 +363,15 @@ above. It prompts the same model through its native tool-calling
 chat template, passing the full unmodified BFCL function schemas
 (including parameter descriptions, default values, and
 enumerations), and parses the model's native \texttt{<tool\_call>}
-output with no guided decoding. B-template reaches 96.00\% (384/400)
-on \texttt{simple\_python}, with no parse failures: all 16 residual
-errors are argument-value errors. Two properties separate it from Base:
+output with no guided decoding. Two properties separate it from Base:
 the prompt format matches the model's instruction tuning, and the
 full schema detail is visible to the model, whereas the
 model-agnostic pipeline carries only parameter names and types. In
 exchange, B-template provides no structural validity guarantee and
-applies only to models that ship a tool-calling template. The
-implications of this control for interpreting the residual failure
-rate of the constrained configurations are discussed in
-Chapter~\ref{ch:discussion}.
+applies only to models that ship a tool-calling template. Its accuracy
+is reported in Chapter~\ref{ch:results}, and the implications of this
+control for interpreting the residual failure rate of the constrained
+configurations are discussed in Chapter~\ref{ch:discussion}.
 
 \section{Constrained Decoding}
 
@@ -412,18 +408,9 @@ The consequences of this design for the \texttt{parallel} category are
 analysed in Section~\ref{sec:bfcl-extended} and
 Chapter~\ref{ch:discussion}.
 
-CD achieves 72.75\% AST accuracy (291/400), a gain of
-71.25~pp over Base. Function selection accuracy is 100\%:
-constrained decoding eliminates all invalid function name
-outputs at Stage~1. The remaining 27.25\% failure rate is
-entirely semantic, comprising wrong argument values,
-incorrect numeric precision, and mismatched string formats.
-No output is rejected at the JSON parsing stage.
-This result establishes that the format compliance problem
-is fully solvable at inference time; the residual gap to
-frontier models reflects limitations in the model's learned
-value priors rather than its ability to produce structured
-output.
+The resulting accuracy for CD, together with the function-selection rate
+and the breakdown of residual argument-value failures, is reported in
+Chapter~\ref{ch:results}.
 
 \section{Quantization}
 
