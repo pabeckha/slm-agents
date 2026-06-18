@@ -8,31 +8,54 @@ The dominant constraint depends on the setting. In on-device and edge applicatio
 
 Small language models (SLMs), commonly taken to span roughly 1 to 12 billion parameters~\cite{sharma2025slmagents}, offer a possible answer. Recent open-weight models such as Qwen 2.5~\cite{qwen2024qwen25}, Llama 3.2~\cite{metaai2024llama32}, and Phi-4~\cite{abdin2024phi} can run on consumer-grade hardware, support local deployment, and sharply reduce per-query costs. Out of the box, however, SLMs struggle with the capabilities that agentic systems require. They can produce malformed structured outputs, select incorrect tools, hallucinate function arguments, and fail at multi-step reasoning. These shortcomings have led to a widespread assumption that reliable agentic behavior requires large-scale models.
 
-The failure mode is concrete. It is illustrated below with a minimal
-constructed example, chosen for clarity; the aggregate figures that follow
+The failure mode is concrete, and the aggregate figures that follow
 are measured on BFCL~v4 \texttt{simple\_python}. Consider a user query such as
 \textit{``What is the sum of 265 and 345?''} directed at Qwen~2.5 7B-Instruct
 without any optimization, where the available tool is an \texttt{add} function
-that accepts two numeric arguments. The expected output is a valid function
-call such as \texttt{\{"name": "add", "arguments": \{"a": 265, "b": 345\}\}}.
-A model exhibiting this failure mode produces, instead, output of the form:
-\begin{quote}
-\textit{The sum of 265 and 345 is 610. You can calculate this
-using the add function with parameters a=265 and b=345.}
-\end{quote}
-The model has understood the query and identified the correct tool
-and arguments, but has wrapped the answer in conversational prose
-that fails to parse as JSON. On BFCL~v4 \texttt{simple\_python},
-394 out of 400 such responses from the unoptimized 7B model fail
-with a JSON parse error, yielding 1.5\% overall accuracy. The problem
-is not that the model lacks the knowledge to answer; it is that the
-model cannot reliably express that knowledge in the structured format
-that agentic systems require.
+that accepts two numeric arguments. The expected final output of the
+evaluation pipeline is a single valid function call,
+\texttt{\{"name": "add", "arguments": \{"a": 265, "b": 345\}\}}, assembled by
+selecting the function name in the first stage and extracting its arguments
+in the second. A logged generation from the argument-extraction stage
+(temperature~0) instead produces the following, reproduced verbatim:
+\begin{verbatim}
+{"a": 265, "b": 345} The function `add` takes two numbers as
+arguments and returns their sum as a string. [...] To compute the
+sum, you would call the function like this:
+
+```javascript
+add(265, 345)
+```
+
+The result would be:
+
+```json
+"610"
+```
+
+So, the sum of 265 and 345 is 610.
+\end{verbatim}
+The model has identified the correct arguments---the leading
+object \texttt{\{"a": 265, "b": 345\}} is itself well-formed---and the
+correct tool, named in the explanatory text that follows, but that
+trailing content makes the completion fail to parse as a single JSON object (a Python \texttt{json}
+\texttt{Extra data} error at the first character past the object). On
+BFCL~v4 \texttt{simple\_python}, 394 out of 400 responses from the
+unoptimized 7B model fail in this way, yielding 1.5\% overall accuracy
+(6/400). The problem is not that the model lacks the knowledge to answer;
+it is that the model cannot reliably express that knowledge in the
+structured format that agentic systems require.
 
 The 1.5\% figure characterises a deliberately minimal, model-agnostic
 integration: the evaluation pipeline presents plain-text prompts and
 parses the completion as JSON, without using the model-specific
-tool-calling prompt template that Qwen~2.5 provides. A control
+tool-calling prompt template that Qwen~2.5 provides. The figure also
+reflects a strict single-object parse: the leading valid object in the
+generation above is discarded once trailing text follows it. A more
+lenient parser that accepts the first complete object recovers many of
+these same completions, as quantified in Chapter~\ref{ch:results}, so the
+1.5\% should be read as parser-dependent rather than as an intrinsic
+ceiling. A control
 configuration (B-template) quantifies this directly: prompting the
 same model through its native tool-calling chat template, with free
 generation and the model's native \texttt{<tool\_call>} output format,
