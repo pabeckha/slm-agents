@@ -171,7 +171,7 @@ schema-constrained tool calling. Neither covers multi-turn task
 completion, and the cascade criterion presumes that residual failures
 are handled by escalation to a frontier model in a cascade deployment.
 
-To answer these questions, the thesis evaluates an incremental pipeline of methods, ordered by implementation cost. No-training methods are evaluated first (constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}, quantization~\cite{lin2024awq}), followed by training-based methods (LoRA fine-tuning~\cite{hu2022lora}). Each method is assessed both individually and in combination, measuring its marginal contribution to tool-calling accuracy and reasoning quality.
+To answer these questions, the thesis evaluates an incremental pipeline of methods, ordered by implementation cost. No-training methods are evaluated first (constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}, quantization~\cite{lin2024awq}), followed by training-based methods (LoRA fine-tuning~\cite{hu2022lora}). Each method is assessed both individually and in combination, measuring its marginal contribution to tool-calling accuracy.
 
 \section{Contributions}
 
