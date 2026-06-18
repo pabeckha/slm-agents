@@ -90,13 +90,32 @@ LSF job script (L40S GPU, 8 CPU, 20 GB RAM, 2 h wall time). Starts a vLLM server
 
 ### Overall: B vs CD vs CDQ
 
-| Metric | B (baseline) | CD (constrained decoding) | CDQ (CD + AWQ 4-bit) |
-|---|---|---|---|
-| Tool selection | 6.0% (3/50) | 96.0% (48/50) | **98.0% (49/50)** |
-| Arg accuracy | 6.0% (3/50) | **80.0% (40/50)** | **80.0% (40/50)** |
-| Exec success (read-only) | 100% (1/1) | 90.0% (27/30) | 86.2% (25/29) |
+> **CORRECTED 2026-06-18 — B rerun landed; the original 6% is a parser artefact, not the headline.**
+> The original B run (2026-05-30) scored 6% under the old lenient no-guided parser. The rerun
+> under the hardened parser (PR #163/#167, job 28647091, 2026-06-13) scores **92%**. CD/CDQ are
+> **unaffected** (they use guided decoding — verified 0 parse failures across 50 cases each, so the
+> parser fix cannot touch them; CD/CDQ remain the original 2026-05-31 runs). **Do not cite "6% → 92%"
+> as a comparison and do not headline 6%.** The 6% is reportable only as a parser-sensitivity aside.
+> Table below is the corrected, same-parser basis.
 
-The baseline is effectively non-functional. Constrained decoding closes the tool selection gap to near-perfect. Critically, **AWQ 4-bit quantization has zero impact on argument accuracy and marginally improves tool selection** (+2 pp). The slightly lower CDQ execution rate (86% vs 90%) is a counting artefact: CDQ correctly predicted `search_issues` on task 12 (CD got it wrong), shifting that case from a read-only `list_issues` call to a read-only `search_issues` call with wrong args (HTTP 422) — one more execution failure but one fewer tool selection failure.
+| Metric | B (baseline, new parser) | CD (constrained decoding) | CDQ (CD + AWQ 4-bit) |
+|---|---|---|---|
+| Tool selection | 92.0% (46/50) | 96.0% (48/50) | **98.0% (49/50)** |
+| Arg accuracy | 80.0% (40/50) | **80.0% (40/50)** | **80.0% (40/50)** |
+| Exec success (read-only) | 93.3% (28/30) | 90.0% (27/30) | 86.2% (25/29) |
+
+Under the hardened parser the baseline is **not** non-functional: a capable 7B model already selects
+the right tool 92% of the time from free-form output, because the lenient-to-hardened parser still
+extracts a tool call from unconstrained text — B now leans on parser engineering the same way BFCL's
+B-template leans on the native chat template. Constrained decoding adds only **+4 pp** tool selection
+(92 → 96) and leaves arg accuracy flat at 80%. **CD's value here is therefore the structural guarantee
+(a valid call every time, any model/schema), not raw accuracy over a model that can already comply** —
+the same conclusion the BFCL Baseline section reaches (B-template 96% > CD 72.75%). The clean win is
+quantization: **AWQ 4-bit has zero impact on argument accuracy and marginally improves tool selection**
+(+2 pp, 96 → 98), and is parser-independent. The slightly lower CDQ execution rate (86% vs 90%) is a
+counting artefact: CDQ correctly predicted `search_issues` on task 12 (CD got it wrong), shifting that
+case from a read-only `list_issues` call to a `search_issues` call with wrong args (HTTP 422) — one more
+execution failure but one fewer tool selection failure.
 
 ### By Cluster
 
@@ -131,9 +150,14 @@ CDQ is stronger on easy and hard cases; CD has a slight edge on medium. No syste
 
 ## Analysis
 
-### Why the baseline collapses
+### What the baseline measures (corrected)
 
-The B config uses a raw completion endpoint with no structural constraint on output. The model produces free-form text or malformed JSON. The 6% score is accidental — not reliable tool use.
+The B config uses a raw completion endpoint with no structural constraint on output. Under the **old
+lenient parser** the model's free-form / malformed JSON scored 6% — an artefact of that parser, not a
+capability floor. Under the **hardened parser** the same outputs score **92%**: a capable 7B model does
+emit recoverable tool calls in free text, and the parser extracts them. So the baseline is parser-bound,
+not "accidental." The thesis claim is not "CD rescues a broken baseline" but "CD provides a structural
+guarantee the baseline cannot," which holds regardless of where the parser lands.
 
 ### Why quantization doesn't hurt
 
@@ -200,9 +224,38 @@ Results chapter, as the real-world / production-viability validation (framed as
 a targeted single-domain validation per the limitation below), once the rerun-B
 and cross-family numbers land.
 
+### Update 2026-06-18 — rerun + cross-family LANDED (numbers below)
+
+All re-extracted from `data/output/github_mcp/*/results.json` on 2026-06-18.
+B rerun and the cross-family B+CD chain are on disk and recorded. **One cell
+missing:** `gemma-3-4b` (job 28647094) produced no output dir — only `gemma-3-1b`
+landed. Omit gemma-3-4b until re-run, or drop the cell.
+
+Cross-family tool selection / arg accuracy (50 prompts each, single hardened parser):
+
+| Model | B tool | CD tool | Δ tool | B arg | CD arg |
+|---|---|---|---|---|---|
+| google/gemma-3-1b-it    | 36% (18/50) | 38% (19/50) | +2  | 24% | 22% |
+| meta-llama/Llama-3.2-1B | 46% (23/50) | 82% (41/50) | **+36** | 34% | 56% |
+| meta-llama/Llama-3.2-3B | 94% (47/50) | 80% (40/50) | **−14** | 74% | 60% |
+| microsoft/Phi-4-mini    | 88% (44/50) | 90% (45/50) | +2  | 78% | 78% |
+| Qwen/Qwen2.5-7B         | 92% (46/50) | 96% (48/50) | +4  | 80% | 80% |
+| google/gemma-3-4b-it    | — | — | — | — | — | (no output; rerun needed)
+
+Validated 2026-06-18: B/CD prompts byte-identical per case; the Llama-3.2-3B
+CD<B regression is real over-constraint (`guided_choice` over 21 tools shifts the
+3B model toward the broad `search_issues`: 7 of 9 new errors), not a pipeline bug.
+CD's accuracy benefit concentrates on the weakest *viable* model (Llama-3.2-1B);
+for already-compliant models it is marginal or negative; gemma-3-1b is below the
+viability floor (nothing helps). This is independent evidence for the
+structural-guarantee framing, not a contradiction of it.
+
+Thesis section outline drafted in `docs/decisions/mcp-eval-results-section-outline.md`
+(issue #174).
+
 ## Thesis Implications
 
-- **Direct RQ evidence**: 6% → 96% tool selection purely from adding structural output constraints, same model, same prompt. No fine-tuning, no RAG. This is the clearest single result in the thesis for constrained decoding as the enabling technique.
+- **Direct RQ evidence (corrected — do NOT use the old 6%→96% headline)**: under a consistent hardened parser, B 92% → CD 96% → CDQ 98% tool selection, same model, same prompt. CD's accuracy contribution over a capable model is small (+4 pp); its real contribution is the **structural guarantee** of a valid call every time. The dramatic gains appear on weaker models (cross-family below: Llama-3.2-1B +36 pp), which is where the enabling-technique story actually lives. The old "6% → 96%" framing was a parser artefact and must not be cited.
 - **Quantization is free**: CDQ matches CD on arg accuracy and slightly exceeds it on tool selection. AWQ 4-bit quantization does not degrade tool calling performance — the constrained output space compensates for reduced weight precision. CDQ is the optimal deployment config: same accuracy, half the memory, faster inference.
 - **Real-world validity**: 90% execution success on live GitHub API calls confirms the predictions are not label-matching artifacts. A deployed MCP agent using this pipeline would succeed on 9 out of 10 read-only GitHub requests.
 - **Disambiguation at 21-tool scale**: The RAG experiment showed −24 pp when tool count grew (single-function BFCL → multi-function setting). Here, CD at 21 tools still achieves 96% tool selection — suggesting the disambiguation failure was RAG-specific (retrieval noise), not a general scaling problem.

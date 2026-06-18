@@ -2,7 +2,10 @@
 
 **Status:** outline for the student to write in own voice (thesis-voice rule). Bullets + validated tables only — no finished prose.
 **Source data:** `data/output/github_mcp/*/results.json`, all metrics re-extracted 2026-06-18.
-**Placement:** new `\subsection` under `\section{Agentic Evaluation}` (04_results.tex, after the tau-bench size sweep, before `\section{Model-Size Scaling}`). Label `\label{sec:github-mcp}`.
+**Placement (student to decide):** the MCP eval is single-call selection from a 21-tool catalog — conceptually closer to the `multiple`/disambiguation work than to multi-turn `\section{Agentic Evaluation}` (tau-bench). Two options:
+  - (a) standalone `\section{Real-World Tool Selection}` framed as the production-viability / RQ3 validation — **recommended**, it reads cleanly and isn't shoehorned next to multi-step agentics;
+  - (b) `\subsection` under `\section{Agentic Evaluation}` after the tau-bench size sweep.
+  Label `\label{sec:github-mcp}` either way.
 
 ---
 
@@ -33,6 +36,7 @@ MCP baseline B = 92% (new parser) will sit in the same thesis as BFCL baseline B
 ### Result 1 — Headline (Qwen-7B, same-parser basis)
 - Table `tab:mcp-qwen` below.
 - Bullets:
+  - **Load-bearing causal line — state it here, where 92% first appears:** B's 92% is the *hardened parser* recovering tool calls from free-form output. B now leans on parser engineering exactly the way BFCL's B-template leans on the native chat template. This is the answer to the examiner's "what does B even measure?" and the setup for the structural-guarantee point. (The 6% old-parser number is a one-clause aside on parser sensitivity, nothing more.)
   - CD adds **+4pp** tool selection over an already-strong B (92→96); arg accuracy flat at 80%.
   - **Quantization is free:** CDQ 98% tool / 80% arg — matches-or-beats CD at ~half the memory and faster load (~6s vs ~24s). Parser-independent (CDQ is 05-31, 0 parse failures). This is the clean win — lead the discussion with it.
   - Live execution 86–93% (HTTP <400) → predictions are real tool calls, not label-matching. The 3 CD exec failures are all `search_issues` HTTP 422 (NL phrase instead of GitHub search syntax) — a model-knowledge limit `guided_json` can't fix (string type only).
@@ -101,7 +105,9 @@ Qwen/Qwen2.5-7B             & 92\% & 96\% & 80\% & 80\% \\
 \end{table}
 ```
 
-Counts (for footnotes if wanted): gemma B18/CD19 tool; Llama-1B B23/CD41; Llama-3B B47/CD40; Phi B44/CD45; Qwen B46/CD48 (all /50).
+Counts (for footnotes if wanted): gemma-3-1b B18/CD19 tool; Llama-1B B23/CD41; Llama-3B B47/CD40; Phi B44/CD45; Qwen B46/CD48 (all /50).
+
+**Missing cell:** `gemma-3-4b` (job 28647094) produced no output dir on disk — only gemma-3-1b landed. Either re-run it or drop the row; do not leave a blank in the thesis table.
 
 ---
 
