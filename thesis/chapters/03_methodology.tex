@@ -342,6 +342,17 @@ Base therefore is the lower bound for all subsequent
 comparisons; any improvement over 1.5\% is attributable to
 the technique added at that rung of the evaluation ladder.
 
+The argument-extraction stage parses the completion as JSON under two
+criteria. The headline baseline applies a strict whole-completion parse: the
+entire model output must load as a single JSON object, which is the floor a
+naive model-agnostic integration achieves (1.50\%). The technique-isolation
+arm (Section~\ref{sec:technique-isolation}) instead reads the first complete
+JSON object and ignores trailing text, so the prompt-level techniques are
+compared fairly; under this lenient criterion the same Base run scores
+62.00\%. An earlier no-guided parser sliced from the first to the last brace
+and so failed on a valid answer followed by further text; it was replaced by
+the first-object parser used for all corrected no-guided figures.
+
 Base is deliberately model-agnostic: it does not use the
 tool-calling prompt template that Qwen~2.5 provides. The 1.5\% figure
 measures what a generic integration achieves without model-specific

@@ -2,11 +2,11 @@
 
 \section{Motivation}
 
-Large language models (LLMs) have become the dominant backbone for agentic systems. These systems reason over user requests, decompose tasks, and call external tools to produce structured outputs. Frontier models such as GPT and Claude demonstrate strong performance on these tasks, but their deployment comes with trade-offs: high inference costs, dependency on external APIs, increased latency, and limited control over data privacy. For many real-world applications, these constraints make frontier models impractical.
+Large language models (LLMs) have become the dominant backbone for agentic systems. These systems reason over user requests, decompose tasks, and call external tools to produce structured outputs. Frontier models such as GPT and Claude perform strongly on these tasks, but they also introduce high inference costs, external API dependencies, added latency, and limited control over data privacy. In many deployment settings, these constraints are not secondary concerns; they determine whether the system can be used at all.
 
-Which of these constraints dominates depends on the deployment setting. In on-device and edge applications, such as a phone assistant or an in-vehicle agent, there may be no reliable network path to an external API, and inference must run within a fixed memory and power budget on the device itself. In domains governed by data-protection or sectoral regulation, including healthcare, legal, and financial services, transmitting user data to a third-party API is frequently prohibited regardless of cost, which removes the frontier API from consideration and leaves a locally hosted model as the only compliant option. In high-throughput backend automation, where a single task issues many tool calls and request volume reaches millions per day, routing every call to a metered API dominates the operating budget, and shifting even part of that traffic to a local model yields proportional savings. These settings share a common structure: a large fraction of individual tool calls are mechanically simple, requiring the model to emit a single valid tool call with correct arguments given a tool schema and the current state---the schema- and API-constrained regime where SLMs are most competitive~\cite{sharma2025slmagents}. Whether a small model can be made reliable enough at that narrow task to absorb the bulk of such calls, leaving only the hard cases for a frontier model, is the practical question behind this thesis.
+The dominant constraint depends on the setting. In on-device and edge applications, such as a phone assistant or an in-vehicle agent, there may be no reliable network path to an external API, and inference must fit within a fixed memory and power budget. In regulated domains such as healthcare, legal services, and finance, transmitting user data to a third-party API may be prohibited regardless of cost. In high-throughput backend automation, where a single task can issue many tool calls and request volume can reach millions per day, metered API calls dominate the operating budget. These settings share a common structure: many individual tool calls are mechanically simple. The model must emit one valid tool call with correct arguments given a tool schema and the current state, which is the schema- and API-constrained regime where SLMs are most competitive~\cite{sharma2025slmagents}. The practical question behind this thesis is whether a small local model can handle enough of these calls reliably, leaving only the hard cases for a frontier model.
 
-Small language models (SLMs), commonly taken to span roughly 1 to 12 billion parameters~\cite{sharma2025slmagents}, offer an alternative. Recent open-weight models such as Qwen 2.5~\cite{qwen2024qwen25}, Llama 3.2~\cite{metaai2024llama32}, and Phi-4~\cite{abdin2024phi} can run on consumer-grade hardware, enable local deployment, and drastically reduce per-query costs. However, out of the box, SLMs struggle with the core capabilities that agentic systems demand. They frequently produce malformed structured outputs, select incorrect tools, hallucinate function arguments, and fail at multi-step reasoning. These shortcomings have led to a widespread assumption that reliable agentic behavior requires large-scale models.
+Small language models (SLMs), commonly taken to span roughly 1 to 12 billion parameters~\cite{sharma2025slmagents}, offer a possible answer. Recent open-weight models such as Qwen 2.5~\cite{qwen2024qwen25}, Llama 3.2~\cite{metaai2024llama32}, and Phi-4~\cite{abdin2024phi} can run on consumer-grade hardware, support local deployment, and sharply reduce per-query costs. Out of the box, however, SLMs struggle with the capabilities that agentic systems require. They can produce malformed structured outputs, select incorrect tools, hallucinate function arguments, and fail at multi-step reasoning. These shortcomings have led to a widespread assumption that reliable agentic behavior requires large-scale models.
 
 The failure mode is concrete. It is illustrated below with a minimal
 constructed example, chosen for clarity; the aggregate figures that follow
@@ -50,34 +50,34 @@ lenient output parsing; the accuracy cost of that model-agnosticism,
 visible in the gap between the constrained configurations and
 B-template, is analysed in Chapter~\ref{ch:discussion}.
 
-This thesis investigates that assumption directly.
-Four Qwen~2.5 Instruct sizes (0.5B, 1.5B, 3B, and 7B) are evaluated
-across twelve configurations on BFCL~v4 \texttt{simple\_python}.
-Constrained decoding alone eliminates format compliance failures
-at every model size, raising accuracy from 1.5--4.75\% (unoptimized)
-to 51.50--72.75\% depending on size, without modifying model weights.
-The 0.5B model reaches 51.50\% under constrained decoding without
-any training.
-AWQ INT4 quantization reduces memory by 63.5\% at the 7B size
-(from 14.25~GiB to 5.20~GiB) at a cost of at most 0.5~pp above
-1.5B, within run-to-run variance.
-Format-aligned LoRA fine-tuning improves accuracy at every size.
-At 7B, the CD+FT-aligned configuration achieves 76.75\% on a single
-consumer GPU, within single-run uncertainty of the weakest frontier
-entry on the same category (GPT-5-mini, 78.75\%).
-Schema-enriched constrained decoding (Config~CD+schema), which adds
-parameter descriptions, enumeration values, and defaults to the
-argument extraction prompt while keeping the FSM mask unchanged,
-raises 7B accuracy to 89.0\% ($+$16.25~pp over plain CD,
-McNemar's test $p < 0.00001$), entering the frontier range above GPT-5-mini
-without modifying model weights.
-The failures that persist across all configurations and sizes are
-semantic rather than structural: wrong optional parameter defaults,
-numeric precision mismatches, and string format conventions that the
-model's learned priors do not match.
-That distinction, between failures that constraints can fix and
-failures that only training can address, organises the entire
-evaluation.
+This thesis investigates that assumption directly. It evaluates four Qwen~2.5
+Instruct sizes (0.5B, 1.5B, 3B, and 7B) on BFCL~v4
+\texttt{simple\_python}, using a main ladder of optimization configurations and
+additional isolation variants. The evaluation asks how much of the failure rate
+is caused by output format, how much remains as semantic argument error, and
+which interventions improve each part.
+
+The main result is that constrained decoding removes format-compliance failures
+at every model size. Accuracy rises from 1.5--4.75\% in the unoptimized setting
+to 51.50--72.75\%, depending on size, without modifying model weights. Even the
+0.5B model reaches 51.50\% under constrained decoding without training. AWQ
+INT4 quantization reduces memory by 63.5\% at the 7B size (from 14.25~GiB to
+5.20~GiB) at a cost of at most 0.5~pp above 1.5B, within run-to-run variance.
+Format-aligned LoRA fine-tuning improves accuracy at every size; at 7B,
+CD+FT-aligned reaches 76.75\%, within single-run uncertainty of the weakest
+frontier entry on the same category (GPT-5-mini, 78.75\%).
+
+The strongest result comes from schema-enriched constrained decoding
+(Config~CD+schema). This configuration adds parameter descriptions, enumeration
+values, and defaults to the argument extraction prompt while keeping the FSM
+mask unchanged. At 7B it reaches 89.0\% ($+$16.25~pp over plain CD, McNemar's
+test $p < 0.00001$), entering the frontier range above GPT-5-mini without
+modifying model weights. The failures that persist across configurations and
+sizes are semantic rather than structural: wrong optional parameter defaults,
+numeric precision mismatches, and string format conventions that the model's
+learned priors do not match. This distinction, between failures that constraints
+can fix and failures that require better semantic guidance or training,
+organises the evaluation.
 
 The practical deployment context motivating this investigation is the
 cascade architecture: a two-tier system in which a locally deployed
@@ -108,9 +108,9 @@ justifies it.
 
 \section{Problem Statement}
 
-Agentic systems built on language models must perform two fundamental capabilities well: reasoning correctly about user requests and calling the right tools with valid arguments. Reasoning requires the model to decompose tasks, decide when to call a tool versus respond directly, and chain multi-step logic without hallucinating intermediate steps. Tool calling requires selecting the correct function from a schema, producing valid structured arguments, and handling the result appropriately. Of these two capabilities, tool calling is evaluated directly in this thesis. Reasoning is operationalised narrowly, as the ability to select the correct function and construct correct argument values, and through one multi-step agentic benchmark; general-purpose reasoning benchmarks are outside the scope of the evaluation.
+Agentic systems built on language models need two capabilities: they must reason correctly about user requests, and they must call the right tools with valid arguments. Reasoning covers task decomposition, the decision to call a tool or answer directly, and multi-step logic over intermediate results. Tool calling covers function selection, structured argument generation, and appropriate handling of the tool result. This thesis evaluates tool calling directly. Reasoning is measured only where it appears inside tool selection, argument construction, and one multi-step agentic benchmark; general-purpose reasoning benchmarks are outside the scope of the evaluation.
 
-When small language models are used for these tasks without any optimization, they exhibit several failure modes. They generate invalid JSON, select non-existent tools, produce arguments with incorrect types or values, and fail to follow execution plans. These failures are not merely inconvenient; they render the agent non-functional for production use.
+Without optimization, small language models fail at these tasks in several ways. They generate invalid JSON, select non-existent tools, produce arguments with incorrect types or values, and fail to follow execution plans. These failures are not merely inconvenient. In a production agent, they can prevent the system from calling tools at all.
 
 Two categories of failure are distinguishable. Format failures occur
 when the model produces syntactically invalid output: malformed JSON,
@@ -155,7 +155,7 @@ This thesis addresses three research questions:
     \item[RQ3] \textit{Can a fully optimized small language model configuration achieve production-viable tool-calling accuracy on consumer hardware?}
 \end{description}
 
-\noindent RQ1 establishes the baseline gap that motivates the work. RQ2 is the core empirical contribution: an ablation study that runs in two directions, adding each technique cumulatively on top of the existing stack and, in a complementary isolation arm, evaluating the inference-time techniques without constrained decoding to separate their standalone effect from the contribution of constrained decoding itself. RQ3 addresses the practical question of whether the optimized configuration is viable for real-world deployment.
+\noindent RQ1 establishes the baseline gap that motivates the work. RQ2 is the core empirical contribution. It is answered through an ablation study with two parts: a cumulative ladder that adds one technique at a time, and a complementary isolation arm that evaluates inference-time techniques without constrained decoding. This separates each technique's standalone effect from the contribution of constrained decoding itself. RQ3 addresses the practical question of whether the optimized configuration is viable for real-world deployment.
 
 For RQ3, production viability is assessed against two explicit
 criteria. The first is frontier parity: single-call accuracy within
@@ -171,7 +171,7 @@ schema-constrained tool calling. Neither covers multi-turn task
 completion, and the cascade criterion presumes that residual failures
 are handled by escalation to a frontier model in a cascade deployment.
 
-To answer these questions, the thesis evaluates an incremental pipeline of methods, ordered by implementation cost. No-training methods are evaluated first (constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}, quantization~\cite{lin2024awq}), followed by training-based methods (LoRA fine-tuning~\cite{hu2022lora}). Each method is assessed both individually and in combination, measuring its marginal contribution to tool-calling accuracy.
+To answer these questions, the thesis evaluates an incremental pipeline of methods ordered by implementation cost. No-training methods are evaluated first: constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}, and quantization~\cite{lin2024awq}. Training-based methods, represented by LoRA fine-tuning~\cite{hu2022lora}, are evaluated after the no-training methods. Each method is assessed both individually and in combination to measure its marginal contribution to tool-calling accuracy.
 
 \section{Contributions}
 
@@ -184,8 +184,8 @@ The main contributions of this thesis are:
     to 51.50--72.75\%, by eliminating format failures without any
     modification to model weights and without relying on
     model-specific prompt templates.
-    \item An incremental ablation study across twelve configurations that isolates the
-    marginal contribution of constrained decoding, prompt engineering,
+    \item An incremental ablation study that isolates the marginal
+    contribution of constrained decoding, prompt engineering,
     inference-time chain-of-thought, retrieval-augmented generation,
     quantization, LoRA fine-tuning, and schema-enriched prompting to
     BFCL \texttt{simple\_python} accuracy. Schema-enriched constrained

@@ -374,34 +374,34 @@ precision (bfloat16) on BFCL~v4
 \centering
 \caption{BFCL~v4 \texttt{simple\_python} AST accuracy for the
 inference-time techniques evaluated without constrained decoding
-(Qwen~2.5 7B-Instruct, bfloat16, 400 test cases). Config~B and
-Config~CD are shown for reference.}
+(\textit{ng}: no guided decoding; Qwen~2.5 7B-Instruct, bfloat16,
+400 test cases). Config~CD is shown for reference. All no-guided
+figures use the corrected first-complete-object JSON parser: under
+this lenient criterion the generic baseline Config~B scores 62.00\%,
+whereas the
+strict whole-completion parse of the headline integration floor
+(Table~\ref{tab:baseline-results}) yields 1.50\% for the same runs.}
 \label{tab:isolation}
 \begin{tabular}{llrrr}
 \toprule
 Config & Description & Correct & Accuracy ($\uparrow$) & Delta vs B \\
 \midrule
-B      & No technique, no CD     & 6/400   & 1.50\%  & baseline    \\
-RAG-ng & Retrieval, no CD        & 10/400  & 2.50\%  & $+1.00$~pp  \\
-PE-ng  & Few-shot, no CD         & 18/400  & 4.50\%  & $+3.00$~pp  \\
-ITC-ng & Chain-of-thought, no CD & 105/400 & 26.25\% & $+24.75$~pp \\
-CD     & Constrained decoding    & 291/400 & 72.75\% & $+71.25$~pp \\
+B      & No technique, no CD     & 248/400 & 62.00\% & baseline    \\
+RAG-ng & Retrieval, no CD        & 208/400 & 52.00\% & $-10.00$~pp \\
+PE-ng  & Few-shot, no CD         & 236/400 & 59.00\% & $-3.00$~pp  \\
+ITC-ng & Chain-of-thought, no CD & 225/400 & 56.25\% & $-5.75$~pp  \\
+CD     & Constrained decoding    & 291/400 & 72.75\% & $+10.75$~pp \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Without constrained decoding, none of the three prompt-level techniques
-exceeds 27\% accuracy. Few-shot prompting (PE-ng) reaches 4.50\%
-(18/400), an improvement of 3.00~pp over Base, and retrieval (RAG-ng)
-reaches 2.50\% (10/400), an improvement of 1.00~pp. Both gains are
-marginal: surfacing in-context examples or candidate functions does not
-help a model that cannot reliably produce a single parseable JSON
-object. Chain-of-thought (ITC-ng) reaches 26.25\% (105/400), an
-improvement of 24.75~pp over Base and the highest accuracy of any
-unguided configuration that leaves model weights unchanged. The
-step-by-step reasoning trace acts as self-scaffolding: generating a
-derivation before the final answer raises the rate at which the output
-is well-formed JSON, even though no structural constraint is applied.
+Without constrained decoding, the no-guided base configuration (Config~B)
+already reaches 62.00\% under the corrected parser, and none of the three
+prompt-level techniques exceeds it: few-shot (PE-ng) reaches 59.00\%
+(236/400, $-3.00$~pp), chain-of-thought (ITC-ng) 56.25\% (225/400,
+$-5.75$~pp), and retrieval (RAG-ng) 52.00\% (208/400, $-10.00$~pp).
+Constrained decoding (72.75\%) is the only configuration that exceeds the
+base, by $+10.75$~pp.
 
 The isolation measurements also quantify the marginal contribution of
 constrained decoding on top of each technique.
@@ -421,27 +421,22 @@ relative to the constrained-decoding contribution.}
 \toprule
 Technique & Without CD ($\uparrow$) & With CD ($\uparrow$) & CD contribution \\
 \midrule
-None (CD alone)  & 1.50\%  & 72.75\% & $+71.25$~pp \\
-Few-shot         & 4.50\%  & 70.25\% & $+65.75$~pp \\
-Chain-of-thought & 26.25\% & 65.50\% & $+39.25$~pp \\
-Retrieval        & 2.50\%  & 47.75\% & $+45.25$~pp \\
+None (CD alone)  & 62.00\% & 72.75\% & $+10.75$~pp \\
+Few-shot         & 59.00\% & 70.25\% & $+11.25$~pp \\
+Chain-of-thought & 56.25\% & 65.50\% & $+9.25$~pp  \\
+Retrieval        & 52.00\% & 47.75\% & $-4.25$~pp  \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Constrained decoding is the dominant contributor in every case. Its
-marginal contribution is largest for few-shot (+65.75~pp) and retrieval
-(+45.25~pp), where the unguided accuracy sits near the Base floor, and
-smallest for chain-of-thought (+39.25~pp), where the reasoning trace
-already supplies partial format scaffolding. The chain-of-thought result
-reverses direction with respect to constrained decoding: without guided
-decoding it is the strongest prompt-level technique (+24.75~pp over
-Base), whereas on top of constrained decoding it is the weakest (a
-decrease of 7.25~pp relative to CD). Once decoding is constrained, the
-format benefit of the reasoning trace is redundant, while the
-value-level errors it introduces remain. This confirms that the residual
-failures after constrained decoding are semantic rather than structural,
-consistent with the per-case flip analysis reported above for CD+Q+ITC.
+Once a lenient first-object parser is in place, the marginal contribution of
+constrained decoding on the 7B model is modest: $+10.75$~pp over the base,
+$+11.25$~pp on top of few-shot, and $+9.25$~pp on top of chain-of-thought.
+For retrieval it is negative ($-4.25$~pp): RAG-ng (52.00\%) exceeds CD+Q+RAG
+(47.75\%). The value of constrained decoding therefore lies in its structural
+format guarantee, which recovers the strict-parse baseline from 1.50\% to a
+well-formed output in every case, rather than in a large accuracy margin over
+prompt-level techniques.
 
 \section{Training-Based Methods}
 
@@ -455,13 +450,11 @@ LoRA rank~16 in bfloat16~\cite{hu2022lora}. The adapter is merged into the
 base weights by linear interpolation before evaluation, producing a single
 merged model at full bfloat16 precision.
 
-Without constrained decoding (FT-only), the fine-tuned model achieves
-13.75\% accuracy (55/400), an improvement of 12.25~pp over the unguided
-baseline Base (1.5\%). Fine-tuning on a function-calling corpus teaches the
-model that tool-calling responses should be structured: parseable, single-object
-JSON is produced in more cases than by the base model. The 12.25~pp gain
-confirms that the training signal is meaningful and that the xlam examples
-contain sufficient format regularity for format learning to occur.
+Without constrained decoding (FT-only), the fine-tuned model reaches
+53.00\% accuracy (212/400) under the corrected lenient parser, below the
+no-guided base configuration (62.00\%) measured the same way. Plain LoRA
+fine-tuning without constrained decoding therefore does not exceed the
+unoptimised base on format compliance for this category.
 
 The xlam dataset encodes assistant-turn responses as Python call syntax
 (\texttt{func(arg=value, ...)}). This convention differs from the
@@ -492,9 +485,9 @@ query, while the \texttt{simple\_python} category is exclusively single-call.
 This distribution mismatch may shift the model's prior toward multi-call
 patterns in contexts where a single call is required.
 
-The gap between FT-only (13.75\%) and CD+FT (69.75\%) confirms
-that constrained decoding remains the dominant contributor to accuracy even
-after fine-tuning: removing it reduces accuracy by 56~pp. The two techniques
+The gap between FT-only (53.00\%) and CD+FT (69.75\%) shows
+that constrained decoding still adds a clear margin even after fine-tuning:
+removing it reduces accuracy by 16.75~pp. The two techniques
 are complementary, but fine-tuning on a misaligned training distribution does
 not improve on the CD baseline because the learned value conventions do not
 match those of the evaluation benchmark.
@@ -509,8 +502,9 @@ decoding), which applies the format-aligned adapter without
 constrained decoding, and CD+FT-aligned, which combines the
 adapter with the full constrained decoding pipeline.
 
-FT-aligned-ng achieves 13.25\% accuracy (53/400), a decrease of
-0.5~pp relative to FT-only. The format-aligned training objective
+FT-aligned-ng achieves 41.00\% accuracy (164/400) under the corrected
+lenient parser, a decrease of 12.00~pp relative to FT-only (53.00\%).
+The format-aligned training objective
 optimises for JSON-only argument extraction and omits the function name
 from the assistant turn, as required by the guided inference pipeline.
 The unguided evaluator must recover the function name from the raw output;
@@ -606,16 +600,19 @@ a bar chart with frontier reference lines.
 \begin{table}[ht]
 \centering
 \caption{BFCL v4 \texttt{simple\_python} AST accuracy across all twelve configurations.
-         $\Delta$ is relative to Config~CD (72.75\%).}
+         $\Delta$ is relative to Config~CD (72.75\%). Config~B is the strict
+         whole-completion-parse floor; the no-CD figures FT-only and
+         FT-aligned-ng use the corrected lenient first-object parser
+         (Table~\ref{tab:isolation}).}
 \label{tab:full-ablation}
 \begin{tabular}{llrr}
 \toprule
 Config & Technique & Accuracy (↑) & $\Delta$ vs CD \\
 \midrule
 B               & Raw baseline                       & 1.50\%  & $-71.25$~pp \\
-FT-aligned-ng   & Format-aligned LoRA, no CD         & 13.25\% & $-59.50$~pp \\
-FT-only         & LoRA, no CD                        & 13.75\% & $-59.00$~pp \\
+FT-aligned-ng   & Format-aligned LoRA, no CD         & 41.00\% & $-31.75$~pp \\
 CD+Q+RAG        & CD + AWQ + RAG top-5               & 47.75\% & $-25.00$~pp \\
+FT-only         & LoRA, no CD                        & 53.00\% & $-19.75$~pp \\
 CD+Q+ITC        & CD + AWQ + CoT                     & 65.50\% & $-7.25$~pp  \\
 CD+FT           & CD + LoRA (misaligned)             & 69.75\% & $-3.00$~pp  \\
 PE              & CD + few-shot                      & 70.25\% & $-2.50$~pp  \\
@@ -858,7 +855,10 @@ accuracy for all seven configurations across all four Qwen~2.5 Instruct sizes.
 \begin{table}[ht]
 \centering
 \caption{BFCL~v4 \texttt{simple\_python} AST accuracy across all configurations
-and Qwen~2.5 model sizes (400 test cases each).}
+and Qwen~2.5 model sizes (400 test cases each). The Config~B row reports the
+strict whole-completion-parse floor; only the 7B value (1.50\%) was
+independently re-grounded under strict parsing (the smaller-size values are
+the near-zero pre-fix measurements and approximate that floor).}
 \label{tab:size-sweep-full}
 \begin{tabular}{lrrrr}
 \toprule
