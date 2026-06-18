@@ -393,19 +393,30 @@ names, types, and required fields enforced, and
 \texttt{additionalProperties} set to false.
 
 For the \texttt{parallel} and \texttt{parallel\_multiple} categories,
-which require several simultaneous calls, the pipeline replaces the
-single-name selection stage with a parallel selection stage. The model
-generates a JSON object of the form \texttt{\{"calls": [\dots]\}} under
-\texttt{guided\_json}, where the array items are restricted to the set
-of candidate function names and the maximum array length equals the
-number of distinct candidates. Each selected name is then passed
-through the standard argument extraction stage. The pipeline therefore
-emits at most one argument object per distinct function name: because
-argument extraction is conditioned only on the user query and the
-selected function, and decoding is deterministic at temperature~0, two
-calls to the same function would receive identical argument objects.
-The consequences of this design for the \texttt{parallel} category are
-analysed in Section~\ref{sec:bfcl-extended} and
+which require several simultaneous calls, the single-name selection
+stage is replaced. The initial design generated a JSON object of the
+form \texttt{\{"calls": [\dots]\}} under \texttt{guided\_json}, where the
+array items were restricted to the set of candidate function names and
+the maximum array length equalled the number of distinct candidates;
+each selected name was then passed through the standard argument
+extraction stage. This design emits at most one argument object per
+distinct function name: because argument extraction is conditioned only
+on the user query and the selected function, and decoding is
+deterministic at temperature~0, two calls to the same function would
+receive identical argument objects. Every \texttt{parallel} case
+provides exactly one distinct candidate function, so this design
+produces a single call by construction.
+
+To support repeated calls to the same function, the schema is extended
+to a joint multi-call form: rather than selecting a list of names and
+then extracting arguments per name, the model generates a JSON array of
+complete call objects in a single guided-decoding pass, where each
+object carries its own function name and argument bindings and the same
+function may recur with distinct arguments. Both schemas are evaluated.
+The single-extraction design fixes the boundary of the per-function
+pipeline, and the joint multi-call schema is the remedy for that
+boundary; the consequences of each for the \texttt{parallel} category
+are analysed in Section~\ref{sec:bfcl-extended} and
 Chapter~\ref{ch:discussion}.
 
 The resulting accuracy for CD, together with the function-selection rate

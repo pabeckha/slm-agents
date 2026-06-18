@@ -43,7 +43,9 @@ therefore primarily a format-compliance gap: 394 of 400 baseline failures are
 malformed outputs rather than wrong answers. Constrained decoding removes that
 gap structurally, and schema enrichment recovers much of the remaining loss by
 restoring schema information discarded by the generic prompt. However, these
-single-call gains do not transfer to harder agentic settings: accuracy falls to
-4.3\% on $\tau$-bench retail and 0\% on BFCL \texttt{parallel}, showing that
-multi-turn planning and multi-call emission require additional architectural
-work.
+single-call gains do not transfer directly to harder settings: accuracy falls to
+4.3\% on $\tau$-bench retail, and BFCL \texttt{parallel} scores 0\% under the
+initial single-call schema, though extending the schema to joint multi-call
+generation lifts it to 79\% at 7B. The persistent $\tau$-bench gap shows that
+multi-turn planning, unlike multi-call emission, requires more than the
+optimization techniques studied here.

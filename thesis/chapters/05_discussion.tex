@@ -241,29 +241,38 @@ and a single expected call. The constrained decoding advantage depends on
 oracle function provision: \texttt{guided\_choice} guarantees correct
 function selection only when the correct function is the sole candidate.
 Generalisation to harder categories is partial: CD+FT-aligned reaches
-70.5\% on \texttt{multiple} at 7B, but \texttt{parallel} yields 0.0\%
-across all configurations and sizes. The \texttt{parallel} failure is
-not a soft accuracy limitation that more training or a larger model
-would gradually close; it follows from the structure of the parallel
-selection stage described in Chapter~\ref{ch:methodology}. That stage
-emits a set of distinct function names and runs one deterministic
-argument extraction per selected name, so the pipeline can produce at
-most one call per distinct function. In the \texttt{parallel} category,
-where every required call targets the same single candidate function,
-the pipeline emits exactly one call by construction; in
+70.5\% on \texttt{multiple} at 7B, and the \texttt{parallel} category
+exposes a limitation in the output schema rather than in model
+capability. Under the initial single-extraction design the
+\texttt{parallel} score is 0.0\% across all configurations and sizes,
+and this is not a soft accuracy limitation that more training or a
+larger model would gradually close; it follows from the structure of
+the parallel selection stage described in Chapter~\ref{ch:methodology}.
+That stage emits a set of distinct function names and runs one
+deterministic argument extraction per selected name, so the pipeline can
+produce at most one call per distinct function. In the \texttt{parallel}
+category, where every required call targets the same single candidate
+function, the pipeline emits exactly one call by construction; in
 \texttt{parallel\_multiple}, where the required calls target distinct
 functions, the same pipeline produces up to one call per function,
 which is why multi-call responses are observed there
 (Section~\ref{sec:bfcl-extended}). Supporting repeated calls to the
-same function requires either an output schema in which a JSON array
-holds complete call objects with their own argument bindings, or a
-multi-step execution loop where each iteration emits one call.
-Neither is present in the pipeline evaluated here. This result
-establishes the boundary of the evaluated architecture: optimization
-techniques applied within the per-function single-extraction design
-cannot address the \texttt{parallel} category, and the ceiling for
-this architecture is therefore 0\% on tasks that require repeated
-calls to one function.
+same function requires an output schema in which a JSON array holds
+complete call objects with their own argument bindings, or a multi-step
+execution loop where each iteration emits one call.
+
+The first of these remedies was implemented and evaluated. Replacing the
+single-extraction stage with a joint multi-call schema, in which the model
+generates an array of complete call objects in one guided pass, lifts
+\texttt{parallel} from a structural 0.0\% to a size gradient that reaches
+79.0\% at 7B and falls to 9.5\% at 0.5B (Section~\ref{sec:bfcl-extended}).
+The gradient confirms the diagnosis: the binding constraint was the schema,
+not scale, and once the schema admits repeated calls the category behaves
+like the others, improving with model size. The result therefore marks a
+boundary of the single-extraction architecture and the effect of moving past
+it, rather than a permanent ceiling on the task; same-function parallel
+calling at the smallest sizes remains hard, so the category is not solved
+outright.
 
 All experiments use a single model family (Qwen~2.5) across four sizes.
 Directional findings, such as the ordering of techniques by accuracy,

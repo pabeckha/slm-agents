@@ -268,11 +268,14 @@ matches this score exactly, confirming that the single-call architecture
 handles multi-candidate selection and that fine-tuning adds no benefit
 once scale is sufficient.
 The \texttt{parallel} category, which requires two simultaneous calls to
-the same function, yields 0.0\% across all configurations and sizes; the
-failure is in call count, not argument content.
-Extending the architecture to support parallel call emission is the
-prerequisite for applying the optimization techniques investigated here
-to the \texttt{parallel} and \texttt{parallel\_multiple} categories.
+the same function, yields 0.0\% under the initial single-extraction design,
+a structural property of that pipeline rather than a capability limit.
+Replacing it with a joint multi-call schema lifts \texttt{parallel} to 79.0\%
+at 7B with a clear size gradient, confirming the constraint was the output
+schema. What remains open is closing the residual argument-fidelity gap on
+\texttt{parallel\_multiple}, where format-aligned fine-tuning currently lowers
+accuracy relative to plain CD; training data targeting simultaneous multi-call
+generation, rather than format alignment alone, is the natural next step.
 
 Training data alignment is the binding constraint on LoRA fine-tuning for
 this task. Generating training examples from the target deployment's own
@@ -287,3 +290,27 @@ synthetic, to domain-matched, to human-curated examples) would
 quantify how much of the 23.25~pp residual gap after CD+FT-aligned can
 be closed by data quality improvements alone, without further changes to
 the model architecture or the optimization pipeline.
+
+The cross-family evaluation establishes external validity through
+Config~CD on \texttt{simple\_python} across four checkpoints from three
+laboratories (Meta, Google, Microsoft), the harder \texttt{multiple} and
+\texttt{parallel} BFCL categories on the same models, and Config~CD+FT-aligned
+on the Llama and Phi families. This evidence is sufficient to show that the
+size and technique effects observed on Qwen~2.5 are family-robust rather than
+a single-vendor artefact. The full model $\times$ technique $\times$ benchmark
+grid was not run for the contrast families: Config~CD+Q and Config~CD+Q+FT-aligned
+were evaluated only on Qwen~2.5, and $\tau$-bench was run only on the retail
+domain for Qwen~2.5. Completing this grid (per-family AWQ~INT4 quantization,
+quantized fine-tuned variants, and $\tau$-bench across each family) was deferred
+as a deliberate scope decision rather than treated as a required result, on the
+grounds that the cross-family CD and CD+FT evidence already supports the
+generalisation claim and that the quantization and agentic-benchmark techniques
+are characterised in depth on Qwen~2.5. One checkpoint, gemma-3-4b, is excluded
+from every guided-decoding configuration: it is loaded as a multimodal model on
+the frozen vLLM~0.8.5 stack, where structured-output decoding is not enforced for
+vision-language models, so the constrained-decoding protocol cannot be evaluated
+for it on this stack. Re-evaluating gemma-3-4b on a build that enforces guided
+decoding for multimodal checkpoints, and extending the quantization and
+$\tau$-bench configurations across all contrast families, would convert the
+cross-family contrast from a targeted external-validity check into a full
+replication of the Qwen~2.5 grid.
