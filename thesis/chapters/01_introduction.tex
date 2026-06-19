@@ -223,10 +223,12 @@ The main contributions of this thesis are:
     negligible above 1.5B, that few-shot prompting reverses direction
     at 7B, and that format-aligned fine-tuning improves accuracy at
     every size.
-    \item A characterization of the pipeline boundary: the two-stage single-call
-    architecture achieves 70.5\% on the \texttt{multiple} category at 7B but
-    0\% on \texttt{parallel}, establishing where architectural changes rather
-    than optimization techniques are required.
+    \item A characterization of the pipeline boundary and the schema change that
+    crosses it: the two-stage single-call architecture achieves 70.5\% on the
+    \texttt{multiple} category at 7B but 0\% on \texttt{parallel} by construction,
+    and replacing the per-function extraction stage with a joint multi-call schema
+    lifts \texttt{parallel} to 79\% at 7B, showing the limit was the output schema
+    rather than model capability.
 \end{enumerate}
 
 \section{Thesis Structure}

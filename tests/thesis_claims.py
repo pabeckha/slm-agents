@@ -199,32 +199,63 @@ CLAIMS: list[Claim] = [
           "data/output/bfcl_ft_aligned/*7B-Instruct-merged-aligned/scores/multiple_scores.json",
           141, 200, (_RESULTS,), "CD+FT-aligned multiple, 7B (70.5%)."),
 
-    # --- BFCL `parallel_multiple` category (04_results) -----------------------
-    # NOTE: both 7B parallel_multiple claims are demoted to KNOWN_ISSUES pending the
-    # parallel-table rewrite (#173). cd_parallel_multiple_7b: re-run 28668050 moved
-    # 77/200 -> 145/200. cdfta_parallel_multiple_7b: FT-aligned re-run (job 28671187,
-    # 2026-06-17) moved 61/200 -> 120/200 (30.5% -> 60.0%). Restore both as Claims
-    # with the new numbers once the thesis tables adopt them.
+    # --- BFCL `parallel` / `parallel_multiple` size sweep (04_results, #173) --
+    # Post-extension joint multi-call schema (commit 2faa0df). Thesis adopts the
+    # full size sweep in tab:bfcl-parallel-multiple; scores/ files match runs/.
+    Claim("cd_parallel_0.5b",
+          "data/output/bfcl/Qwen_Qwen2.5-0.5B-Instruct/scores/parallel_scores.json",
+          19, 200, (_RESULTS,), "CD parallel, 0.5B (9.5%)."),
+    Claim("cd_parallel_1.5b",
+          "data/output/bfcl/Qwen_Qwen2.5-1.5B-Instruct/scores/parallel_scores.json",
+          128, 200, (_RESULTS,), "CD parallel, 1.5B (64.0%)."),
+    Claim("cd_parallel_3b",
+          "data/output/bfcl/Qwen_Qwen2.5-3B-Instruct/scores/parallel_scores.json",
+          149, 200, (_RESULTS,), "CD parallel, 3B (74.5%)."),
+    Claim("cd_parallel_7b",
+          "data/output/bfcl/Qwen_Qwen2.5-7B-Instruct/scores/parallel_scores.json",
+          158, 200, (_RESULTS,), "CD parallel, 7B (79.0%)."),
+    Claim("cd_parallel_multiple_0.5b",
+          "data/output/bfcl/Qwen_Qwen2.5-0.5B-Instruct/scores/parallel_multiple_scores.json",
+          6, 200, (_RESULTS,), "CD parallel_multiple, 0.5B (3.0%)."),
+    Claim("cd_parallel_multiple_1.5b",
+          "data/output/bfcl/Qwen_Qwen2.5-1.5B-Instruct/scores/parallel_multiple_scores.json",
+          92, 200, (_RESULTS,), "CD parallel_multiple, 1.5B (46.0%)."),
+    Claim("cd_parallel_multiple_3b",
+          "data/output/bfcl/Qwen_Qwen2.5-3B-Instruct/scores/parallel_multiple_scores.json",
+          126, 200, (_RESULTS,), "CD parallel_multiple, 3B (63.0%)."),
+    Claim("cd_parallel_multiple_7b",
+          "data/output/bfcl/Qwen_Qwen2.5-7B-Instruct/scores/parallel_multiple_scores.json",
+          145, 200, (_RESULTS,), "CD parallel_multiple, 7B (72.5%)."),
+    Claim("cdfta_parallel_0.5b",
+          "data/output/bfcl_ft_aligned/*0.5B-Instruct-merged-aligned/scores/parallel_scores.json",
+          91, 200, (_RESULTS,), "CD+FT-aligned parallel, 0.5B (45.5%)."),
+    Claim("cdfta_parallel_1.5b",
+          "data/output/bfcl_ft_aligned/*1.5B-Instruct-merged-aligned/scores/parallel_scores.json",
+          116, 200, (_RESULTS,), "CD+FT-aligned parallel, 1.5B (58.0%)."),
+    Claim("cdfta_parallel_3b",
+          "data/output/bfcl_ft_aligned/*3B-Instruct-merged-aligned/scores/parallel_scores.json",
+          83, 200, (_RESULTS,), "CD+FT-aligned parallel, 3B (41.5%)."),
+    Claim("cdfta_parallel_7b",
+          "data/output/bfcl_ft_aligned/*7B-Instruct-merged-aligned/scores/parallel_scores.json",
+          144, 200, (_RESULTS,), "CD+FT-aligned parallel, 7B (72.0%)."),
+    Claim("cdfta_parallel_multiple_0.5b",
+          "data/output/bfcl_ft_aligned/*0.5B-Instruct-merged-aligned/scores/parallel_multiple_scores.json",
+          33, 200, (_RESULTS,), "CD+FT-aligned parallel_multiple, 0.5B (16.5%)."),
+    Claim("cdfta_parallel_multiple_1.5b",
+          "data/output/bfcl_ft_aligned/*1.5B-Instruct-merged-aligned/scores/parallel_multiple_scores.json",
+          67, 200, (_RESULTS,), "CD+FT-aligned parallel_multiple, 1.5B (33.5%)."),
+    Claim("cdfta_parallel_multiple_3b",
+          "data/output/bfcl_ft_aligned/*3B-Instruct-merged-aligned/scores/parallel_multiple_scores.json",
+          76, 200, (_RESULTS,), "CD+FT-aligned parallel_multiple, 3B (38.0%)."),
+    Claim("cdfta_parallel_multiple_7b",
+          "data/output/bfcl_ft_aligned/*7B-Instruct-merged-aligned/scores/parallel_multiple_scores.json",
+          120, 200, (_RESULTS,), "CD+FT-aligned parallel_multiple, 7B (60.0%)."),
 ]
 
 
 # Known unresolved discrepancies — documented, intentionally NOT asserted so the
 # suite stays green. Resolve the data, then promote each to a Claim above.
 KNOWN_ISSUES = """
-- cd_parallel_multiple_7b: thesis quotes 77/200 (38.5%) but the parallel-schema
-  fix re-run (job 28668050, 2026-06-16) overwrote
-  data/output/bfcl/Qwen_Qwen2.5-7B-Instruct/scores/parallel_multiple_scores.json
-  to 145/200 (72.5%). The thesis parallel_multiple table is being rewritten as a
-  size sweep under #173 (re-runs in flight, jobs 28671150-60 and 28671185-200);
-  restore as a Claim with the new numbers once that lands. See
-  docs/decisions/thesis-parallel-artifact-correction.md.
-- cdfta_parallel_multiple_7b: thesis quotes 61/200 (30.5%) but the FT-aligned
-  parallel-schema re-run (job 28671187, 2026-06-17) moved
-  data/output/bfcl_ft_aligned/*7B-Instruct-merged-aligned/scores/parallel_multiple_scores.json
-  to 120/200 (60.0%). Same rewrite as above (#173); restore as a Claim once the
-  thesis size-sweep parallel table adopts the new numbers. Full batch (22/24 valid;
-  the 2 gemma-3-1b cells crashed on the llguidance vocab bug, re-run pending) is in
-  docs/decisions/cross-family-cd-results.md (2026-06-17 section).
 - thesis CD baseline = 291/400 (72.75%) has no backing file in data/output
   (closest live runs are 289 and 290; the results docs note run-to-run drift of
   +/- one case). The mcnemar-significance doc attributes 291 to job 28142188.

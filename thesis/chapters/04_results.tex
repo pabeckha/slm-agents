@@ -517,6 +517,19 @@ because the training format no longer produces it, the unguided pass rate
 decreases. Format alignment improves the guided inference path at the cost
 of degrading the unguided path.
 
+This degradation generalises across model families. Evaluated without guided
+decoding on the same harness, the format-aligned adapters fall to
+0.00\%--3.75\% accuracy (Phi-4-mini 0/400; Llama-3.2-3B 9/400;
+Llama-3.2-1B 12/400; gemma-3-1b 15/400), whereas the matched instruct
+checkpoints retain 39.00\%--67.50\% under the same no-guided path
+(Phi-4-mini 270/400; Llama-3.2-3B 233/400; Llama-3.2-1B 165/400;
+gemma-3-1b 156/400). The drop is steeper than the 7B Qwen point
+(62.00\%$\rightarrow$41.00\%) and largest for Phi-4-mini, whose aligned
+model emits an empty completion for every case. Format alignment
+specialises the model to the constrained-decoding protocol: its standalone
+accuracy falls strictly below the unmodified instruct checkpoint,
+increasingly so away from the 7B Qwen setting.
+
 Fig.~\ref{fig:lora-training-loss} shows the training loss for both adapters.
 Both runs use identical hyperparameters and converge to similar final losses
 (v1: 0.203, v2: 0.229 at step 6750), confirming that the v1 regression is
@@ -1089,66 +1102,92 @@ saturates the category.
 \subsection{Parallel Function Calling}
 
 The \texttt{parallel} category requires generating two simultaneous calls
-to the same function. Under both CD and CD+FT-aligned, accuracy is 0.0\%
-at every model size from 0.5B to 7B. Inspection of the raw outputs shows
-the model consistently produces one call rather than two; the failure is in
-call count, not argument content. This outcome follows from the pipeline
-design described in Chapter~\ref{ch:methodology}: the parallel selection
-stage emits a set of distinct function names, and argument extraction
-produces exactly one argument object per selected name, so two calls to
-the same function cannot receive distinct argument bindings. Scale and
-fine-tuning do not change this: the parallel format remains out of reach
-for the evaluated pipeline at every size.
+to the same function. Under the initial single-extraction design
+(Chapter~\ref{ch:methodology}), accuracy is 0.0\% at every model size from
+0.5B to 7B. The parallel selection stage emits a set of distinct function
+names and produces exactly one argument object per selected name, and every
+\texttt{parallel} case provides a single distinct function, so the pipeline
+emits one call by construction. Inspection of the raw outputs confirms a
+single call where two are required, with argument content otherwise correct;
+the failure is in call count, not argument values. This is a structural
+property of the per-function design, not a soft accuracy limitation that
+scale or further training would gradually close.
+
+The joint multi-call schema removes this constraint. When the model instead
+generates a JSON array of complete call objects in one guided pass, the same
+function may recur with distinct arguments, and parallel accuracy increases
+with model size rather than collapsing to zero
+(Table~\ref{tab:bfcl-parallel-multiple}). Plain CD rises from 9.5\% at 0.5B
+to 79.0\% at 7B; CD+FT-aligned reaches 72.0\% at 7B. The limitation was
+therefore in the output schema, not model scale: once the schema admits
+repeated calls, accuracy on the category rises with size as in the other
+categories.
 
 \subsection{Parallel Multi-Function Calling}
 
 The \texttt{parallel\_multiple} category combines both challenges: multiple
-simultaneous calls drawn from different candidate functions. This was
-evaluated at 7B only; since the \texttt{parallel} category already establishes
-that call-count failure is size-independent (0.0\% at all four sizes), the
-size sweep was not extended to \texttt{parallel\_multiple}. Table~\ref{tab:bfcl-parallel-multiple} reports the results.
+simultaneous calls drawn from different candidate functions. Under the joint
+multi-call schema it is evaluated across all four sizes alongside
+\texttt{parallel}; Table~\ref{tab:bfcl-parallel-multiple} reports both.
 
 \begin{table}[ht]
 \centering
-\caption{BFCL~v4 AST accuracy on the \texttt{parallel\_multiple} category
-(200 test cases, Qwen~2.5 7B-Instruct).}
+\caption{BFCL~v4 AST accuracy on the \texttt{parallel} and
+\texttt{parallel\_multiple} categories under the joint multi-call schema
+(200 test cases each, Qwen~2.5).}
 \label{tab:bfcl-parallel-multiple}
-\begin{tabular}{lrr}
+\begin{tabular}{lrrrr}
 \toprule
-Config & Correct & Accuracy ($\uparrow$) \\
+& \multicolumn{2}{c}{\texttt{parallel}} & \multicolumn{2}{c}{\texttt{parallel\_multiple}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Size & CD & CD+FT-aligned & CD & CD+FT-aligned \\
 \midrule
-CD            & 77/200 & 38.50\% \\
-CD+FT-aligned & 61/200 & 30.50\% \\
+0.5B & 9.5\%\ (19/200)  & 45.5\%\ (91/200)  & 3.0\%\ (6/200)   & 16.5\%\ (33/200) \\
+1.5B & 64.0\%\ (128/200) & 58.0\%\ (116/200) & 46.0\%\ (92/200) & 33.5\%\ (67/200) \\
+3B   & 74.5\%\ (149/200) & 41.5\%\ (83/200)  & 63.0\%\ (126/200)& 38.0\%\ (76/200) \\
+7B   & 79.0\%\ (158/200) & 72.0\%\ (144/200) & 72.5\%\ (145/200)& 60.0\%\ (120/200) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Both configurations produce multi-call responses at the same rate: the
-distribution over number of calls per response (1--4) is nearly identical
-between the two. Output structure is not the bottleneck. The 8~pp gap comes
-from semantic errors in the CD+FT-aligned outputs: argument values copied
-from the first call to the second, notation normalised to match the training
-corpus (e.g.\ \texttt{x**2} substituted for \texttt{x\textasciicircum{}2}), and the
-occasional dropped call in three-call responses. These are biases from the
-xlam training distribution that reduce argument fidelity on tasks requiring
-several simultaneous calls. This is the only category where CD+FT-aligned
-underperforms plain CD.
+Plain CD on \texttt{parallel\_multiple} rises from 3.0\% at 0.5B to 72.5\%
+at 7B. At every size, CD+FT-aligned scores below plain CD on this category,
+and on \texttt{parallel} at 3B and 7B as well: these are the only categories
+where fine-tuning underperforms plain CD. Both configurations produce
+multi-call responses at comparable rates, so output structure is not the
+bottleneck. The gap comes from semantic errors in the CD+FT-aligned outputs:
+argument values copied from the first call to the second, notation normalised
+to match the training corpus (e.g.\ \texttt{x**2} substituted for
+\texttt{x\textasciicircum{}2}), and the occasional dropped call in three-call
+responses. These are biases from the xlam training distribution that reduce
+argument fidelity on tasks requiring several simultaneous calls. The
+CD+FT-aligned numbers are also non-monotonic in size (3B falls below 1.5B on
+both categories), consistent with the aligned-adapter degradation noted in
+the size sweep (Section~\ref{sec:model-size}).
 
-The \texttt{parallel\_multiple} score (38.50\%) is higher than
-\texttt{parallel} (0.0\%) despite being nominally harder. The reason is
-contextual: prompts that reference distinct tools provide enough signal for
-the model to produce distinct calls. In the \texttt{parallel} category,
-same-function prompts offer no such contrast, and the model collapses to a
-single call.
+At 7B under plain CD, \texttt{parallel} (79.0\%) now exceeds
+\texttt{parallel\_multiple} (72.5\%), reversing the ordering seen under the
+single-extraction design, where \texttt{parallel} was 0.0\% and
+\texttt{parallel\_multiple} non-zero because distinct-function prompts let the
+old pipeline emit more than one call. Under the joint schema both categories
+can emit repeated calls, so the residual gap reflects only that
+\texttt{parallel\_multiple} additionally requires selecting among several
+candidate functions, not a structural barrier specific to same-function
+repetition.
 
 \subsection{Capability Decomposition}
 
 The three categories define a ladder for the techniques evaluated in this
 thesis. Function selection under CD+FT-aligned is largely solved at 7B
-(70.5\% on \texttt{multiple}). Parallel calling of the same function is not
-achieved at any size. The combined task (\texttt{parallel\_multiple}) lands
-between: the structure is reachable at 7B, but fine-tuning's format biases
-lower argument accuracy relative to plain CD. Extending parallel support
-reliably would require training data that specifically targets simultaneous
-multi-call generation, not format alignment alone.
+(70.5\% on \texttt{multiple}). Same-function parallel calling is limited by
+the output schema rather than by model capability: under the single-extraction
+design it is 0.0\% at every size, while under the joint multi-call schema it
+ranges from 9.5\% at 0.5B to 79.0\% at 7B. The combined
+task (\texttt{parallel\_multiple}) tracks just below \texttt{parallel}
+(72.5\% at 7B, 3.0\% at 0.5B under plain CD), as it adds candidate-function
+selection on top of multi-call emission. Across both categories the residual
+gap is dominated by call-count and argument errors that narrow with scale;
+format-aligned fine-tuning does not help and slightly lowers argument
+fidelity, so closing the gap would require training data targeting
+simultaneous multi-call generation, not format alignment alone.
 
