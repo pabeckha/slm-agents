@@ -271,8 +271,8 @@ The \texttt{parallel} category, which requires two simultaneous calls to
 the same function, yields 0.0\% under the initial single-extraction design,
 a structural property of that pipeline rather than a capability limit.
 Replacing it with a joint multi-call schema lifts \texttt{parallel} to 79.0\%
-at 7B with a clear size gradient, confirming the constraint was the output
-schema. What remains open is closing the residual argument-fidelity gap on
+at 7B, with accuracy rising across sizes, which confirms the constraint was
+the output schema. What remains open is closing the residual argument-fidelity gap on
 \texttt{parallel\_multiple}, where format-aligned fine-tuning currently lowers
 accuracy relative to plain CD; training data targeting simultaneous multi-call
 generation, rather than format alignment alone, is the natural next step.

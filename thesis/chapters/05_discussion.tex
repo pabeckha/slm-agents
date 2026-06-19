@@ -222,7 +222,12 @@ format compliance above Base: FT-only reaches 53.00\%, below the no-guided
 Base (62.00\%), and FT-aligned-ng is lower still at 41.00\%. The 35.75
 percentage point gap between FT-aligned-ng (41.00\%) and CD+FT-aligned
 (76.75\%) shows that constrained decoding remains the major contributor even
-after fine-tuning.
+after fine-tuning. The same dependence holds across families and sharpens
+away from the 7B setting: without guided decoding the format-aligned adapters
+fall to 0.00\%--3.75\% (Phi-4-mini reaches 0.00\%), well below the 39.00\%--67.50\%
+retained by the matched instruct checkpoints, so format alignment specialises
+the model to the constrained-decoding protocol rather than producing a
+stronger standalone generator.
 
 Taken together, the results support a clear ordering by cost-benefit ratio:
 schema-enriched constrained decoding (CD+schema, 89.00\%) delivers the highest
@@ -264,15 +269,14 @@ execution loop where each iteration emits one call.
 The first of these remedies was implemented and evaluated. Replacing the
 single-extraction stage with a joint multi-call schema, in which the model
 generates an array of complete call objects in one guided pass, lifts
-\texttt{parallel} from a structural 0.0\% to a size gradient that reaches
-79.0\% at 7B and falls to 9.5\% at 0.5B (Section~\ref{sec:bfcl-extended}).
-The gradient confirms the diagnosis: the binding constraint was the schema,
-not scale, and once the schema admits repeated calls the category behaves
-like the others, improving with model size. The result therefore marks a
-boundary of the single-extraction architecture and the effect of moving past
-it, rather than a permanent ceiling on the task; same-function parallel
-calling at the smallest sizes remains hard, so the category is not solved
-outright.
+\texttt{parallel} from a structural 0.0\% to between 9.5\% at 0.5B and 79.0\%
+at 7B (Section~\ref{sec:bfcl-extended}). This confirms that the constraint
+was the schema rather than model scale: once repeated calls are permitted,
+accuracy on the category depends on size in the same way as the other
+categories. The result therefore identifies a boundary of the
+single-extraction architecture and the effect of moving past it, rather than
+a permanent ceiling on the task; same-function parallel calling at the
+smallest sizes remains hard, so the category is not solved outright.
 
 All experiments use a single model family (Qwen~2.5) across four sizes.
 Directional findings, such as the ordering of techniques by accuracy,

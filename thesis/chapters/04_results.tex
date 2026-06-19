@@ -517,6 +517,19 @@ because the training format no longer produces it, the unguided pass rate
 decreases. Format alignment improves the guided inference path at the cost
 of degrading the unguided path.
 
+This degradation generalises across model families. Evaluated without guided
+decoding on the same harness, the format-aligned adapters fall to
+0.00\%--3.75\% accuracy (Phi-4-mini 0/400; Llama-3.2-3B 9/400;
+Llama-3.2-1B 12/400; gemma-3-1b 15/400), whereas the matched instruct
+checkpoints retain 39.00\%--67.50\% under the same no-guided path
+(Phi-4-mini 270/400; Llama-3.2-3B 233/400; Llama-3.2-1B 165/400;
+gemma-3-1b 156/400). The drop is steeper than the 7B Qwen point
+(62.00\%$\rightarrow$41.00\%) and largest for Phi-4-mini, whose aligned
+model emits an empty completion for every case. Format alignment
+specialises the model to the constrained-decoding protocol: its standalone
+accuracy falls strictly below the unmodified instruct checkpoint,
+increasingly so away from the 7B Qwen setting.
+
 Fig.~\ref{fig:lora-training-loss} shows the training loss for both adapters.
 Both runs use identical hyperparameters and converge to similar final losses
 (v1: 0.203, v2: 0.229 at step 6750), confirming that the v1 regression is
@@ -1102,12 +1115,13 @@ scale or further training would gradually close.
 
 The joint multi-call schema removes this constraint. When the model instead
 generates a JSON array of complete call objects in one guided pass, the same
-function may recur with distinct arguments, and parallel accuracy follows a
-size gradient rather than collapsing to zero
+function may recur with distinct arguments, and parallel accuracy increases
+with model size rather than collapsing to zero
 (Table~\ref{tab:bfcl-parallel-multiple}). Plain CD rises from 9.5\% at 0.5B
 to 79.0\% at 7B; CD+FT-aligned reaches 72.0\% at 7B. The limitation was
-therefore located in the output schema, not in model scale: once the schema
-admits repeated calls, the category improves with size like the others.
+therefore in the output schema, not model scale: once the schema admits
+repeated calls, accuracy on the category rises with size as in the other
+categories.
 
 \subsection{Parallel Multi-Function Calling}
 
@@ -1165,10 +1179,10 @@ repetition.
 
 The three categories define a ladder for the techniques evaluated in this
 thesis. Function selection under CD+FT-aligned is largely solved at 7B
-(70.5\% on \texttt{multiple}). Same-function parallel calling is not a
-capability ceiling but a schema property: under the single-extraction design
-it is 0.0\% at every size, and under the joint multi-call schema it reaches
-79.0\% at 7B and follows a size gradient down to 9.5\% at 0.5B. The combined
+(70.5\% on \texttt{multiple}). Same-function parallel calling is limited by
+the output schema rather than by model capability: under the single-extraction
+design it is 0.0\% at every size, while under the joint multi-call schema it
+ranges from 9.5\% at 0.5B to 79.0\% at 7B. The combined
 task (\texttt{parallel\_multiple}) tracks just below \texttt{parallel}
 (72.5\% at 7B, 3.0\% at 0.5B under plain CD), as it adds candidate-function
 selection on top of multi-call emission. Across both categories the residual
