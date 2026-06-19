@@ -18,7 +18,7 @@ twice on `simple_python`: **guided** (the CD+FT-aligned config) and **no-guided*
 - Jobs (latest pipeline, Phi-4-mini): train 28690185, merge 28690186,
   guided eval 28690187, no-guided eval 28690188, cleanup 28690189 — all exit 0,
   no LSF `Exited`/`TERM_*`, all reached `=== Done ===`. Earlier models
-  (gemma-1b, Llama-1B, Llama-3B) from the same script across 2026-06-18.
+  (gemma-3-1b-it, Llama-3.2-1B, Llama-3.2-3B) from the same script across 2026-06-18.
 - Numbers read from the `runs/` manifests, not aggregate `scores/` (per
   `results_source_of_truth`).
 

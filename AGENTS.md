@@ -58,6 +58,7 @@ bsub < scripts/hpc/run_bfcl_few_shot.sh
 bsub < scripts/hpc/run_bfcl_rag.sh
 bsub < scripts/hpc/train_lora_aligned.sh
 bsub < scripts/hpc/run_bfcl_ft_aligned.sh
+bsub < scripts/hpc/run_bfcl_ft_aligned_no_guided.sh
 bsub < scripts/hpc/run_tau_bench.sh
 ```
 
