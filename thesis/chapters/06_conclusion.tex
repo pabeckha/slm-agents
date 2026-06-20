@@ -247,6 +247,15 @@ whether it increases at smaller scales where the interaction between
 fine-tuned weight deltas and INT4 quantization may be more
 pronounced.
 
+The technique-isolation measurements that remove constrained decoding
+(Configs PE, CoT, RAG, and FT-aligned without guidance) are reported at 7B
+only; extending them to 0.5B, 1.5B, and 3B would establish whether the
+near-zero unguided floor, and the ordering of the prompt-level techniques
+above it, holds across the size range or shifts as capacity decreases. This
+was deferred on the same grounds as the cross-family grid: the 7B isolation
+already attributes the structural gain to constrained decoding, and the
+smaller-size no-guided sweep already shows the floor is size-insensitive.
+
 RAG-based tool selection requires a stronger disambiguation signal than
 top-5 retrieval provides for a 7B model. Three concrete directions are:
 reducing $k$ to 1 or 2 to narrow the candidate set at the cost of recall;
@@ -295,7 +304,14 @@ The cross-family evaluation establishes external validity through
 Config~CD on \texttt{simple\_python} across four checkpoints from three
 laboratories (Meta, Google, Microsoft), the harder \texttt{multiple} and
 \texttt{parallel} BFCL categories on the same models, and Config~CD+FT-aligned
-on the Llama and Phi families. This evidence is sufficient to show that the
+across all four contrast checkpoints. The format-aligned adapter generalises in
+the same direction as on Qwen~2.5, improving guided accuracy at every family,
+while a paired no-guided evaluation shows the gain is contingent on the
+constraint: removing guided decoding collapses the aligned checkpoints to
+0.00\%--3.75\%, against 39.00\%--67.50\% for the matched instruct models, which
+confirms across families that the adapter specialises the model to the
+constrained-decoding protocol rather than producing a stronger standalone
+generator. This evidence is sufficient to show that the
 size and technique effects observed on Qwen~2.5 are family-robust rather than
 a single-vendor artefact. The full model $\times$ technique $\times$ benchmark
 grid was not run for the contrast families: Config~CD+Q and Config~CD+Q+FT-aligned
