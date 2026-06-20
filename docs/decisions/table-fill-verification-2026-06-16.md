@@ -28,31 +28,37 @@ paired value for the schema delta.
 | 3B   | 64.75% (259) | 88.00% (352) | +23.25 |
 | 7B   | 72.50% (290) | 89.00% (356) | +16.50 |
 
-## #159 — technique isolation, no-guided (simple_python, /400) ⚠️ 3B CONFLICT
+## #159 — technique isolation, no-guided (simple_python, /400) ✅ all four sizes verified (correction 2026-06-20)
 
-0.5B / 1.5B / 7B each have a single canonical post-parser-fix run (verified):
+**CORRECTION (2026-06-20):** the "3B CONFLICT" recorded here on 06-16 was a
+**bookkeeping error, not a real conflict**. The "06-13/14 re-run" column below was
+actually **Llama-3.2-3B** runs, not a Qwen2.5-3B re-run — the cited timestamps
+(06-13T22:36, 06-13T23:15, 06-14T00:51, 06-14T02:39, 06-14T08:12) all resolve to
+`meta-llama_Llama-3.2-3B-Instruct` files, and their counts (233/223/224/198/9)
+match the Llama 3B runs exactly. There is **one** canonical post-fix
+Qwen2.5-3B run per config (all 06-12 evening, all post the ~18:56 parser fix), so
+nothing needs reconciling. The "9/400 FAILED" ft-aligned that motivated the freeze
+is the **Llama** run, not Qwen.
 
-| Config | 0.5B | 1.5B | 7B |
-|---|---|---|---|
-| B (no_guided)   | 26.00% (104) | 51.50% (206) | 62.00% (248) |
-| few-shot-ng     | 25.25% (101) | 53.50% (214) | 59.00% (236) |
-| cot-ng          | 19.00% (76)  | 44.50% (178) | 56.25% (225) |
-| rag-ng          | 24.75% (99)  | 43.25% (173) | 52.00% (208) |
-| ft-aligned-ng   | 34.75% (139) | 27.50% (110) | 41.00% (164) |
+Canonical Qwen2.5 no-guided isolation grid (lenient first-complete-object parser,
+all post-fix, /400; 7B column matches thesis Table 4.3):
 
-**3B is unresolved — two post-fix runs per config disagree by ~30 cases:**
+| Config | 0.5B | 1.5B | 3B | 7B |
+|---|---|---|---|---|
+| B (no_guided)   | 26.00% (104) | 51.50% (206) | 65.75% (263) | 62.00% (248) |
+| few-shot-ng     | 25.25% (101) | 53.50% (214) | 65.25% (261) | 59.00% (236) |
+| cot-ng          | 19.00% (76)  | 44.50% (178) | 58.25% (233) | 56.25% (225) |
+| rag-ng          | 24.75% (99)  | 43.25% (173) | 48.50% (194) | 52.00% (208) |
+| ft-aligned-ng   | 34.75% (139) | 27.50% (110) | 24.25% (97)  | 41.00% (164) |
 
-| Config | 06-12 run (handoff/draft cite) | 06-13/14 re-run ("latest") |
-|---|---|---|
-| B-ng        | 263/400 = 65.75% (06-12T23:35) | 233/400 = 58.25% (06-13T22:36) |
-| few-shot-ng | 261/400 = 65.25% (06-12T20:01) | 223/400 = 55.75% (06-13T23:15) |
-| cot-ng      | 233/400 = 58.25% (06-12T20:26) | 224/400 = 56.00% (06-14T00:51) |
-| rag-ng      | 194/400 = 48.50% (06-12T20:17) | 198/400 = 49.50% (06-14T02:39) |
-| ft-aligned-ng | 97/400 = 24.25% (06-12T21:02) | 9/400 = 2.25% (06-14T08:12, FAILED — ignore) |
-
-Both 06-12 and 06-13/14 runs are post the 2026-06-12 ~18:56 parser fix, so this is
-**not** a pre/post-parser split — it is the no-guided run-to-run drift documented in
-`base-baseline-parser-drift` / `no-guided-parser-fix-results.md`. Needs a decision on
-which 3B run is canonical (and ideally a why — a ~7 pp swing on 400 cases is large)
-before the #159 3B row can be filled. The handoff #159 table and
-`thesis/drafts/isolation-tables-corrected.tex` currently use the 06-12 values.
+⚠️ **Do not treat the smaller-size rows as drop-in thesis material.** Under the
+lenient parser these no-guided numbers are inflated and non-monotonic: 3B B-ng
+(65.75%) exceeds 7B B-ng (62.00%) — implausible — and at 3B it also exceeds the
+guided CD reference (64.75%), making CD's marginal contribution **−1.0 pp** at 3B,
+versus **+62 pp** for the same runs under the strict whole-completion parser (3B
+strict B = 2.8%, see `size-sweep-results.md`). PE-ng at 1.5B (53.50%) also exceeds
+B (51.50%). The isolation section's claims ("CD alone outweighs every method
+combined"; "none of the prompt-level techniques exceeds B") hold at 7B but **break
+at 3B/1.5B under the lenient parser**. This is the `base-baseline-parser-drift`
+effect in its strongest form — the *sign* of CD's contribution at 3B is a
+parser-choice artifact. Full analysis: `isolation-size-complete-analysis.md`.
