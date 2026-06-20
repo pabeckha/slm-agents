@@ -46,32 +46,20 @@ unoptimized 7B model fail in this way, yielding 1.5\% overall accuracy
 it is that the model cannot reliably express that knowledge in the
 structured format that agentic systems require.
 
-The 1.5\% figure characterises a deliberately minimal, model-agnostic
-integration: the evaluation pipeline presents plain-text prompts and
-parses the completion as JSON, without using the model-specific
-tool-calling prompt template that Qwen~2.5 provides. The figure also
-reflects a strict single-object parse: the leading valid object in the
-generation above is discarded once trailing text follows it. A more
-lenient parser that accepts the first complete object recovers many of
-these same completions, as quantified in Chapter~\ref{ch:results}, so the
-1.5\% should be read as parser-dependent rather than as an intrinsic
-ceiling. A control
-configuration (B-template) quantifies this directly: prompting the
-same model through its native tool-calling chat template, with free
-generation and the model's native \texttt{<tool\_call>} output format,
-reaches 96.00\% (384/400) on the same test cases, confirming that the
-baseline gap is a property of the generic integration rather than of
-the model. This is consistent with the 94.50\% reported for the same
-model under the official BFCL harness on an earlier benchmark
-revision~\cite{chen2025toleap}. The baseline should
-therefore be read as the floor for a generic integration, not as the
-model's best achievable unoptimized performance. The contribution of
-constrained decoding examined here is that it restores format
-compliance structurally, with guarantees that hold for any model and
-any schema, rather than relying on model-specific templates and
-lenient output parsing; the accuracy cost of that model-agnosticism,
-visible in the gap between the constrained configurations and
-B-template, is analysed in Chapter~\ref{ch:discussion}.
+This 1.5\% figure is the floor of a deliberately minimal,
+model-agnostic integration, not the model's ceiling. It reflects
+plain-text prompts, a strict single-object parse that discards the
+leading valid object once trailing text follows it, and no use of the
+model-specific tool-calling template that Qwen~2.5 provides. A more
+lenient parser recovers many of these completions, and a control
+configuration that prompts the same model through its native
+tool-calling template (B-template) reaches 96.00\% (384/400) on the
+same test cases. The 1.5\% should therefore be read as the floor for a
+generic integration rather than an intrinsic limit, and the
+contribution of constrained decoding examined here is that it restores
+format compliance structurally, with guarantees that hold for any model
+and any schema. The full parser-sensitivity and B-template analysis is
+deferred to Chapters~\ref{ch:results} and~\ref{ch:discussion}.
 
 This thesis directly investigates that assumption: that reliable agentic
 behavior requires large-scale models. It evaluates four Qwen~2.5
@@ -229,6 +217,12 @@ The main contributions of this thesis are:
     and replacing the per-function extraction stage with a joint multi-call schema
     lifts \texttt{parallel} to 79\% at 7B, showing the limit was the output schema
     rather than model capability.
+    \item A targeted real-world validation on the GitHub MCP server (21 live
+    tools, 50 natural-language prompts) showing that constrained decoding holds
+    96.0\% tool selection at 7B when the model must choose from a full catalogue
+    of semantically similar operations, that its benefit concentrates on the
+    weakest viable model, and that forcing a choice over a large catalogue
+    imposes a disambiguation cost on smaller models.
 \end{enumerate}
 
 \section{Thesis Structure}

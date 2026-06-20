@@ -131,7 +131,7 @@ for 98.5\% of failures in Base~\cite{willard2023efficient, kwon2023vllm}.
 Schema-enriched constrained decoding extends the plain CD result by supplying
 the parameter descriptions, type constraints, and enumerated values that the
 standard pipeline omits from its prompts. Config~CD+schema achieves 89.00\%
-($+16.50$~pp over the paired CD baseline, McNemar $p < 0.00001$, $b{=}73$, $c{=}7$;
+($+16.25$~pp over plain CD, McNemar $p < 0.00001$, $b{=}73$, $c{=}7$;
 Section~\ref{sec:cd-schema}), the highest accuracy of any configuration in
 the evaluation and the only result to enter the frontier range without
 modifying model weights. No training, no additional generated tokens, and no
@@ -400,12 +400,27 @@ specific value conventions (e.g.\ \texttt{"gas"} not
 production API schema would not impose. The residual failures
 represent convention mismatches, not functional errors, in many cases.
 
+\textbf{Few-shot example design.}
+The three PE examples (Chapter~\ref{ch:methodology}) were authored to target
+failure classes identified by inspecting the test-split errors, so the design
+of the few-shot technique is informed by the evaluation set. This biases in
+PE's favour. The weak and size-dependent PE effect (at best $+2.5$~pp, and
+$-2.5$~pp at 7B) is therefore a conservative estimate rather than an inflated
+one: the technique fails to help even when its examples are tuned to the
+observed errors. A held-out development split would be the correct design for
+a clean, unbiased measurement.
+
 \section{Practical Implications} \label{sec:practical-implications}
 
 The cascade architecture motivating this work posits that an SLM handles
 the majority of tool-calling requests locally, escalating only those it
 cannot handle reliably to a frontier model API. The results allow the
-cost-benefit of this architecture to be quantified directly. If frontier
+cost-benefit of this architecture to be quantified directly. These figures
+are projections, not a measured cascade: they presume a semantic router that
+escalates the SLM's likely-wrong outputs, and because constrained decoding
+makes every output structurally valid, that router cannot use structural
+signals and is not built or evaluated here (revisited below). The $p$ values
+below are therefore upper bounds. If frontier
 API calls cost $c$ per query and the SLM tier cost is approximated as
 zero per query (amortized over fixed hardware), a cascade in which the
 SLM correctly handles a fraction $p$ of requests saves $p \cdot c$ per

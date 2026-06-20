@@ -48,10 +48,12 @@ Constrained decoding is the dominant optimization technique,
 contributing $+48$--$+71$~pp across the 0.5B to 7B size range
 without training and without generating additional tokens; at 7B the
 gain is $+71.25$~pp.
+
 AWQ INT4 quantization reduces model memory by 63.5\% (14.25~GiB to
 5.20~GiB at 7B) and startup time by 83.5\% (212~s to 35~s) at a
 cost of at most 0.5~pp above 1.5B, within run-to-run
 variance; at 0.5B the penalty is 3.75~pp.
+
 Few-shot prompting (PE) produces a size-dependent effect: accuracy
 improves by 2.0--2.5~pp at 0.5B--3B but decreases by 2.5~pp at
 7B, indicating that the direction of
@@ -66,6 +68,7 @@ disambiguation failure rather than retrieval quality.
 The disambiguation failure does not improve with model scale: the
 7B model is no more reliable than the 1.5B model at distinguishing
 semantically similar candidate functions.
+
 LoRA fine-tuning on
 \texttt{xlam-function-calling-60k}~\cite{zhang2024xlam}
 produced a 3~pp regression under CD+FT at 7B, attributed to a
@@ -89,6 +92,7 @@ significance ($p = 0.044$, borderline against the observed
 run-to-run spread) and the quantized-stack gain within noise
 ($p = 0.38$); the consistent positive direction across all four
 model sizes is the primary evidence for the format-alignment effect.
+
 Config~CD+schema, which enriches the Stage~2 prompt with parameter
 descriptions, enumeration values, and defaults while keeping the
 FSM structural constraint unchanged, raises 7B accuracy from
@@ -98,6 +102,7 @@ This is the strongest no-training gain observed in this evaluation
 and confirms that the dominant component of the residual after plain
 CD is schema information loss rather than the model's learned value
 priors.
+
 The finding for RQ2 is that the residual failure rate after
 constrained decoding is not addressed by generic prompt-level
 additions at any model size; format-aligned training reduces it
@@ -119,6 +124,10 @@ CD+schema is the first constrained configuration in this evaluation
 to enter the frontier range, demonstrating that lower-tier frontier
 parity is reachable with structural validity guarantees intact and
 without modifying model weights.
+This parity is established on the single-candidate
+\texttt{simple\_python} category; on the multi-candidate and parallel
+categories the same model remains below the frontier band
+(Section~\ref{sec:bfcl-extended}).
 CD+FT-aligned (76.75\%) approaches that range, and the B-template
 control (96.00\%) shows that the
 model itself reaches the flagship band; the remaining flagship gap
@@ -141,6 +150,14 @@ on consumer hardware, with the highest constrained configuration
 (CD+schema, 89.00\%) exceeding the lower tier of frontier models;
 multi-turn agentic workloads remain outside the viable region
 (Section~\ref{sec:future-work}).
+A targeted evaluation on the GitHub MCP server
+(Section~\ref{sec:github-mcp}), where the model selects from a 21-tool
+catalogue and read-only calls are executed live against the GitHub REST API,
+supports this scoping: constrained decoding retains 96.0\% tool selection at
+7B, and its benefit is largest for the weakest viable model, consistent with
+the interpretation that the value of constrained decoding lies in
+guaranteed-parseable output rather than in raw accuracy over an
+already-capable model.
 
 \section{Practical Deployment Guidelines}
 
@@ -313,7 +330,9 @@ confirms across families that the adapter specialises the model to the
 constrained-decoding protocol rather than producing a stronger standalone
 generator. This evidence is sufficient to show that the
 size and technique effects observed on Qwen~2.5 are family-robust rather than
-a single-vendor artefact. The full model $\times$ technique $\times$ benchmark
+a single-vendor artefact.
+
+The full model $\times$ technique $\times$ benchmark
 grid was not run for the contrast families: Config~CD+Q and Config~CD+Q+FT-aligned
 were evaluated only on Qwen~2.5, and $\tau$-bench was run only on the retail
 domain for Qwen~2.5. Completing this grid (per-family AWQ~INT4 quantization,
@@ -321,7 +340,9 @@ quantized fine-tuned variants, and $\tau$-bench across each family) was deferred
 as a deliberate scope decision rather than treated as a required result, on the
 grounds that the cross-family CD and CD+FT evidence already supports the
 generalisation claim and that the quantization and agentic-benchmark techniques
-are characterised in depth on Qwen~2.5. One checkpoint, gemma-3-4b, is excluded
+are characterised in depth on Qwen~2.5.
+
+One checkpoint, gemma-3-4b, is excluded
 from every guided-decoding configuration: it is loaded as a multimodal model on
 the frozen vLLM~0.8.5 stack, where structured-output decoding is not enforced for
 vision-language models, so the constrained-decoding protocol cannot be evaluated
