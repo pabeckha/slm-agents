@@ -157,12 +157,10 @@ enumeration constraints from the BFCL function definitions.
 All preceding configurations expose only parameter names and types.
 
 CD+schema achieves 356/400 = 89.00\% AST accuracy on
-\texttt{simple\_python}, an increase of 16.25~pp over the canonical CD
-result (291/400, 72.75\%) reported elsewhere in this chapter. Measured
-instead against the paired CD run co-evaluated on the same cases
-(290/400, 72.50\%), the gain is 16.50~pp; the two figures differ only by
-the one-case run-to-run drift between the canonical and paired CD
-references.
+\texttt{simple\_python}, 16.25~pp above the canonical CD result
+(72.75\%). Against the paired CD run co-evaluated on the same cases
+(72.50\%), the gain is 16.50~pp; the 0.25~pp difference is one-case
+run-to-run drift between the two CD references.
 A paired McNemar test on stored per-case
 predictions yields Table~\ref{tab:mcnemar-schema}.
 
@@ -334,12 +332,11 @@ The result establishes that the bottleneck in a RAG-based tool-calling pipeline
 for a 7B model is not retrieval quality but candidate discrimination. A
 recall@5 of 97.2\% is sufficient for the retrieval component; the model lacks
 the capacity to reliably distinguish among semantically similar candidate
-functions once they are retrieved. The three outcome categories partition the
-400 test cases, so the 209 incorrect predictions decompose as follows: 128
-cases with a wrong function selected, 8 cases with the correct function but
-wrong argument values, and 73 cases whose output is identical to CD+Q and
-incorrect under both configurations (shared semantic failures that retrieval
-neither caused nor fixed). Fig.~\ref{fig:rag-breakdown} summarises the outcome
+functions once they are retrieved. The 209 incorrect predictions fall into
+three groups: 128 with a wrong function selected, 8 with the correct function
+but wrong arguments, and 73 identical to CD+Q and wrong under both
+configurations. The last group is shared semantic failures that retrieval
+neither caused nor fixed. Fig.~\ref{fig:rag-breakdown} summarises the outcome
 distribution over all 400 test cases.
 
 \begin{figure}[htbp]
@@ -425,10 +422,10 @@ the two parse criteria are defined in Section~\ref{sec:baseline-def}).}
 Config & Description & Correct & Accuracy ($\uparrow$) & Delta vs B ($\uparrow$) \\
 \midrule
 B      & No technique, no CD     & 248/400 & 62.00\% & baseline    \\
-RAG-ng & Retrieval, no CD        & 208/400 & 52.00\% & $-10.00$~pp \\
-PE-ng  & Few-shot, no CD         & 236/400 & 59.00\% & $-3.00$~pp  \\
-ITC-ng & Chain-of-thought, no CD & 225/400 & 56.25\% & $-5.75$~pp  \\
-CD     & Constrained decoding    & 291/400 & 72.75\% & $+10.75$~pp \\
+RAG-ng & Retrieval, no CD        & 208/400 & 52.00\% & \dneg{$-10.00$~pp} \\
+PE-ng  & Few-shot, no CD         & 236/400 & 59.00\% & \dneg{$-3.00$~pp}  \\
+ITC-ng & Chain-of-thought, no CD & 225/400 & 56.25\% & \dneg{$-5.75$~pp}  \\
+CD     & Constrained decoding    & 291/400 & 72.75\% & \dpos{$+10.75$~pp} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -459,10 +456,10 @@ relative to the constrained-decoding contribution.}
 \toprule
 Technique & Without CD ($\uparrow$) & With CD ($\uparrow$) & CD contribution \\
 \midrule
-None (CD alone)  & 62.00\% & 72.75\% & $+10.75$~pp \\
-Few-shot         & 59.00\% & 70.25\% & $+11.25$~pp \\
-Chain-of-thought & 56.25\% & 65.50\% & $+9.25$~pp  \\
-Retrieval        & 52.00\% & 47.75\% & $-4.25$~pp  \\
+None (CD alone)  & 62.00\% & 72.75\% & \dpos{$+10.75$~pp} \\
+Few-shot         & 59.00\% & 70.25\% & \dpos{$+11.25$~pp} \\
+Chain-of-thought & 56.25\% & 65.50\% & \dpos{$+9.25$~pp}  \\
+Retrieval        & 52.00\% & 47.75\% & \dneg{$-4.25$~pp}  \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -584,16 +581,15 @@ not a training failure. The difference in BFCL accuracy (69.75\% vs.\
 CD+FT-aligned achieves 76.75\% accuracy (307/400), an improvement
 of 4.0~pp over CD and 7.0~pp over CD+FT. This is the strongest
 training-based configuration and the only fine-tuning configuration
-to exceed the no-training CD level of 72.75\%. Because both
-configurations are evaluated on the same 400 test cases,
-significance is assessed with McNemar's exact test over the
-per-case predictions; the single-proportion confidence interval
-reported in Section~\ref{sec:frontier-comparison} applies to
-absolute accuracies, not to paired differences. On the stored paired
-prediction files, where the CD run scores 289/400 (repeated CD runs
-varied between 289 and 291 of 400 over the project period;
-Section~\ref{ch:methodology}), fine-tuning corrects 45 cases and
-breaks 27 ($p = 0.044$).
+to exceed the no-training CD level of 72.75\%. Significance is
+assessed with McNemar's exact test over the per-case predictions,
+since both configurations use the same 400 cases. On the stored
+paired files, fine-tuning corrects 45 cases and breaks 27
+($p = 0.044$).\footnote{The CD reference scores 289/400 in the stored
+paired file; repeated CD runs varied between 289 and 291 of 400 over
+the project period (Section~\ref{ch:methodology}). The single-proportion
+confidence interval reported in Section~\ref{sec:frontier-comparison}
+applies to absolute accuracies, not to paired differences.}
 
 This result is nominally below the 0.05 threshold but lies within the
 observed run-to-run spread: a CD run at the upper end of the 289--291
@@ -635,14 +631,13 @@ changes.
 Despite the larger quantization penalty, the full stack retains a positive
 return on fine-tuning: CD+Q+FT-aligned (74.25\%) outperforms both the
 no-training ceiling Config~CD (72.75\%) and the quantized baseline
-Config~CD+Q (72.25\%). McNemar's exact test on the stored paired predictions (the CD+Q run
-scores 288/400 in the stored file, within the documented 288--289
-run-to-run spread; CD+Q+FT-aligned scores 297/400; 46 cases corrected,
-37 broken, $p = 0.38$) shows that this residual gain does not reach
-significance on its own: unlike the full-precision comparison, the
-quantized stack's advantage over CD+Q is within discordant-pair noise,
-so the retention of the training signal after quantization should be
-read as directional rather than statistically established. From a deployment perspective, CD+Q+FT-aligned occupies
+Config~CD+Q (72.25\%). McNemar's exact test does not confirm this gain.
+On the stored paired predictions, CD+Q+FT-aligned corrects 46 cases and
+breaks 37 ($p = 0.38$), within discordant-pair noise.\footnote{The CD+Q
+reference scores 288/400 in the stored file, within the documented
+288--289 run-to-run spread.} Unlike the full-precision comparison, the
+advantage over CD+Q is therefore directional rather than statistically
+established. From a deployment perspective, CD+Q+FT-aligned occupies
 the same memory footprint as Config~CD+Q (approximately 5.2~GiB of GPU
 memory), making fine-tuned capability available on consumer hardware at
 INT4 size.
@@ -663,18 +658,18 @@ a bar chart with frontier reference lines.
 \toprule
 Config & Technique & Accuracy (↑) & $\Delta$ vs CD \\
 \midrule
-B               & Raw baseline                       & 1.50\%  & $-71.25$~pp \\
-FT-aligned-ng   & Format-aligned LoRA, no CD         & 41.00\% & $-31.75$~pp \\
-CD+Q+RAG        & CD + AWQ + RAG top-5               & 47.75\% & $-25.00$~pp \\
-FT-only         & LoRA, no CD                        & 53.00\% & $-19.75$~pp \\
-CD+Q+ITC        & CD + AWQ + CoT                     & 65.50\% & $-7.25$~pp  \\
-CD+FT           & CD + LoRA (misaligned)             & 69.75\% & $-3.00$~pp  \\
-PE              & CD + few-shot                      & 70.25\% & $-2.50$~pp  \\
-CD+Q            & CD + AWQ INT4                      & 72.25\% & $-0.50$~pp  \\
+B               & Raw baseline                       & 1.50\%  & \dneg{$-71.25$~pp} \\
+FT-aligned-ng   & Format-aligned LoRA, no CD         & 41.00\% & \dneg{$-31.75$~pp} \\
+CD+Q+RAG        & CD + AWQ + RAG top-5               & 47.75\% & \dneg{$-25.00$~pp} \\
+FT-only         & LoRA, no CD                        & 53.00\% & \dneg{$-19.75$~pp} \\
+CD+Q+ITC        & CD + AWQ + CoT                     & 65.50\% & \dneg{$-7.25$~pp}  \\
+CD+FT           & CD + LoRA (misaligned)             & 69.75\% & \dneg{$-3.00$~pp}  \\
+PE              & CD + few-shot                      & 70.25\% & \dneg{$-2.50$~pp}  \\
+CD+Q            & CD + AWQ INT4                      & 72.25\% & \dneg{$-0.50$~pp}  \\
 CD              & Constrained decoding               & 72.75\% & --          \\
-CD+Q+FT-aligned & CD + AWQ INT4 + format-aligned LoRA & 74.25\% & $+1.50$~pp  \\
-CD+FT-aligned   & CD + format-aligned LoRA           & 76.75\% & $+4.00$~pp  \\
-\textbf{CD+schema} & \textbf{CD + schema enrichment (7B)} & \textbf{89.00\%} & $\mathbf{+16.25}$~pp \\
+CD+Q+FT-aligned & CD + AWQ INT4 + format-aligned LoRA & 74.25\% & \dpos{$+1.50$~pp}  \\
+CD+FT-aligned   & CD + format-aligned LoRA           & 76.75\% & \dpos{$+4.00$~pp}  \\
+\textbf{CD+schema} & \textbf{CD + schema enrichment (7B)} & \textbf{89.00\%} & \dpos{$\mathbf{+16.25}$~pp} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -760,19 +755,21 @@ A note on statistical precision: with $n=400$ binary test cases, the 95\%
 Wilson confidence interval is approximately $\pm$4.1--4.4~pp for accuracy
 values near 72--77\%. The difference between CD+FT-aligned (76.75\%) and
 GPT-5-mini (78.75\%) is therefore within the confidence interval of a
-single evaluation run, and that comparison is best interpreted as
-parity with the weakest frontier entry rather than a definitive
-ranking; the 14~pp or larger gaps to the flagship models are well
-outside it. Frontier model scores are taken from the official
-BFCL leaderboard and are not re-evaluated under the same harness, so
+single evaluation run, and is best read as parity with the weakest
+frontier entry rather than a definitive ranking. The 14~pp or larger
+gaps to the flagship models are well outside it.
+
+A second caveat concerns the harness. Frontier model scores are taken
+from the official BFCL leaderboard and are not re-evaluated locally, so
 methodology differences may affect comparability at the margin. The
-B-template control bounds this concern: 96.00\% under the local
-harness falls inside the 94.75\%--97.75\% flagship band on the same
-category, indicating that the local evaluation and the leaderboard
-are commensurable at the category level. Cross-harness comparisons in
-this section remain indicative; the internally consistent comparisons
-are those between configurations evaluated under the same local
-harness.
+B-template control bounds this concern: 96.00\% under the local harness
+falls inside the 94.75\%--97.75\% flagship band on the same category,
+indicating that the local evaluation and the leaderboard are
+commensurable at the category level.
+
+Cross-harness comparisons in this section therefore remain indicative.
+The internally consistent comparisons are those between configurations
+evaluated under the same local harness.
 
 The frontier comparison also requires scope interpretation. The \texttt{simple\_python} category is the least demanding BFCL scenario: single-turn, single-function calls with no selection ambiguity (one candidate function per test case). Both constrained decoding and frontier models' native tool-calling APIs guarantee valid JSON and valid function names, levelling the playing field on format compliance. The differentiator is argument value accuracy, where flagship frontier models hold a 14--21~pp advantage over the best constrained configuration, while the same 7B model under its native template is competitive with them. The phrase ``frontier range'' in this section therefore refers only to BFCL~v4 Python Simple AST, not to general agentic performance.
 
