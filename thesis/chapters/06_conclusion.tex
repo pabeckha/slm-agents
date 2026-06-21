@@ -2,12 +2,13 @@
 
 \section{Answering the Research Questions}
 
-The central finding of this thesis is that constrained decoding converts
-tool calling from a format-compliance problem, which is fixable structurally
-at inference time, into a problem of semantic argument-value error, which
-only format-aligned training can further reduce. The answers to the three
-research questions below substantiate this claim and quantify the contribution
-of each optimization technique.
+This chapter returns to the three research questions and summarizes what the
+experiments show. The central finding is that constrained decoding converts
+tool calling from a format-compliance problem, which is fixable structurally at
+inference time, into a problem of semantic argument-value error. That residual
+error can be reduced by restoring schema detail or, more modestly, by
+format-aligned training. The answers below quantify these effects and then
+translate them into deployment guidelines and future work.
 
 \paragraph{RQ1.} \textit{What is the performance gap between unoptimized small
 language models (0.5B--7B parameters) and frontier models on tool-calling benchmarks?}
@@ -96,8 +97,8 @@ model sizes is the primary evidence for the format-alignment effect.
 Config~CD+schema, which enriches the Stage~2 prompt with parameter
 descriptions, enumeration values, and defaults while keeping the
 FSM structural constraint unchanged, raises 7B accuracy from
-72.75\% to 89.00\% ($+$16.25~pp, McNemar $p < 0.00001$, $b{=}73$,
-$c{=}7$; Section~\ref{sec:cd-schema}).
+72.75\% to 89.00\% ($+$16.25~pp, McNemar $p < 0.00001$;
+Section~\ref{sec:cd-schema}).
 This is the strongest no-training gain observed in this evaluation
 and confirms that the dominant component of the residual after plain
 CD is schema information loss rather than the model's learned value
@@ -110,132 +111,123 @@ modestly, and schema-enriched prompting reduces it substantially by
 restoring the parameter context that the model-agnostic prompt
 discards.
 
-\paragraph{RQ3.} \textit{Can a fully optimized small language model configuration
-achieve production-viable tool-calling accuracy on consumer hardware?}
+\paragraph{RQ3.} \textit{Can an optimized small language model configuration
+achieve cascade-viable single-call tool-calling accuracy on consumer hardware?}
 
-Production viability is assessed against the two criteria defined in
-Chapter~\ref{ch:introduction}. Against frontier parity,
-Config~CD+schema achieves 89.00\% at 7B (Section~\ref{sec:cd-schema}),
-which is 10.25~pp above GPT-5-mini (78.75\%) and 2.00~pp below
-GPT-4.1 (91.00\%), while falling 8.75~pp short of the best frontier
-model (97.75\%) (cross-harness comparison against BFCL leaderboard
-scores, indicative only; Section~\ref{sec:frontier-comparison}).
-CD+schema is the first constrained configuration in this evaluation
-to enter the frontier range, demonstrating that lower-tier frontier
-parity is reachable with structural validity guarantees intact and
-without modifying model weights.
-This parity is established on the single-candidate
-\texttt{simple\_python} category; on the multi-candidate and parallel
-categories the same model remains below the frontier band
-(Section~\ref{sec:bfcl-extended}).
-CD+FT-aligned (76.75\%) approaches that range, and the B-template
-control (96.00\%) shows that the
-model itself reaches the flagship band; the remaining flagship gap
-reflects the native template's prompt-format advantage and residual
-value-convention scorer artifacts.
-Against the cascade criterion (a single consumer GPU and a local
-tier handling $p \geq 0.70$ of single-call traffic), five
-configurations qualify. CD+schema achieves 89.00\% at full bfloat16
-precision (14.25~GiB), fitting on a consumer NVIDIA RTX~4090
-(24~GiB) alongside substantial key-value cache capacity.
-CD+Q achieves 72.25\% on 5.20~GiB with no training required.
-CD+Q+FT-aligned achieves 74.25\% on the same 5.20~GiB footprint,
-adding a format-aligned LoRA adapter merged and quantized to INT4.
-CD+FT-aligned achieves 76.75\% and CD 72.75\% at full bfloat16
-precision (14.25~GiB). The criteria are deliberately scoped to
-single-call, schema-constrained tool calling; the cascade criterion
-presumes that residual semantic failures are absorbed by escalation.
-Under that scoping, an optimized SLM configuration is cascade-viable
-on consumer hardware, with the highest constrained configuration
-(CD+schema, 89.00\%) exceeding the lower tier of frontier models;
-multi-turn agentic workloads remain outside the viable region
-(Section~\ref{sec:future-work}).
-A targeted evaluation on the GitHub MCP server
-(Section~\ref{sec:github-mcp}), where the model selects from a 21-tool
-catalogue and read-only calls are executed live against the GitHub REST API,
-supports this scoping: constrained decoding retains 96.0\% tool selection at
-7B, and its benefit is largest for the weakest viable model, consistent with
-the interpretation that the value of constrained decoding lies in
-guaranteed-parseable output rather than in raw accuracy over an
-already-capable model.
+Under the scope defined in Chapter~\ref{ch:introduction}, the answer is yes for
+single-call, schema-constrained tool calling. Config~CD+schema achieves
+89.00\% at 7B (Section~\ref{sec:cd-schema}), which is 10.25~pp above
+GPT-5-mini (78.75\%) and 2.00~pp below GPT-4.1 (91.00\%) on BFCL~v4 Python
+Simple AST. It is the first constrained configuration in this evaluation to
+enter the lower frontier range on that category while retaining structural
+validity guarantees and requiring no model-weight updates. This comparison is
+indicative because frontier scores are taken from the public leaderboard rather
+than re-run under the local harness (Section~\ref{sec:frontier-comparison}).
+
+The result is deliberately narrow. It does not establish broad production-agent
+viability. On the multi-candidate and parallel BFCL categories, the same model
+remains below the frontier band (Section~\ref{sec:bfcl-extended}), and on
+$\tau$-bench retail the pass rate remains 4.35\% for CD, showing that
+single-call gains do not transfer to multi-turn task completion. The B-template
+control (96.00\%) also shows that, for a single frozen Qwen deployment, the
+native tool-calling template is the stronger local baseline. The constrained
+pipeline is justified when model-agnostic structural guarantees are required
+across heterogeneous models and schemas.
+
+Against the cascade criterion (a single consumer GPU and a local tier handling
+$p \geq 0.70$ of single-call traffic), five configurations qualify.
+CD+schema achieves 89.00\% at full bfloat16 precision (14.25~GiB), fitting on a
+consumer NVIDIA RTX~4090 (24~GiB) alongside substantial key-value cache
+capacity. CD+Q achieves 72.25\% on 5.20~GiB with no training required.
+CD+Q+FT-aligned achieves 74.25\% on the same 5.20~GiB footprint, while
+CD+FT-aligned achieves 76.75\% and CD 72.75\% at full bfloat16 precision
+(14.25~GiB). The cascade interpretation presumes that residual semantic
+failures are handled by escalation to a frontier model; the semantic router
+needed to do this is not implemented in this thesis.
+
+\begin{table}[ht]
+\centering
+\caption{Main thesis claims, supporting evidence, and scope.}
+\label{tab:claim-evidence-scope}
+\begin{tabular}{p{3.6cm} p{5.2cm} p{4.2cm}}
+\toprule
+Claim & Evidence & Scope \\
+\midrule
+Constrained decoding removes the dominant structural failure mode &
+Config~B scores 1.50\%; Config~CD scores 72.75\%, with 100\% valid function selection on \texttt{simple\_python} &
+BFCL~v4 \texttt{simple\_python}; model-agnostic Qwen~2.5 pipeline \\
+Schema detail explains much of the residual after CD &
+Config~CD+schema raises accuracy from 72.75\% to 89.00\% ($+$16.25~pp, McNemar $p < 0.00001$) &
+7B model on BFCL~v4 Python Simple AST \\
+Quantization is a practical deployment step above 1.5B &
+AWQ INT4 reduces 7B memory from 14.25~GiB to 5.20~GiB with a 0.5~pp accuracy change &
+Qwen~2.5 AWQ variants; single-call BFCL evaluation \\
+Format-aligned fine-tuning helps, but less than schema enrichment &
+CD+FT-aligned reaches 76.75\% at 7B and improves all four Qwen sizes, while CD+schema reaches 89.00\% without training &
+Format-aligned xlam LoRA; BFCL single-call setting \\
+Single-call gains do not solve multi-turn agency &
+CD reaches 72.75\% on BFCL \texttt{simple\_python} but 4.35\% pass rate on $\tau$-bench retail &
+$\tau$-bench retail with a 7B user simulator \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Practical Deployment Guidelines}
 
-The results across twelve configurations suggest a concrete decision
-procedure for teams deploying SLMs in tool-calling production systems.
-The procedure is ordered by implementation cost and is designed to allow
-an early exit at each step when the achieved accuracy meets the
-deployment requirement. The cascade cost model that quantifies the
-saving from each step is developed in
-Section~\ref{sec:practical-implications}; the steps below summarise the
-resulting recommendations.
+The results suggest a decision procedure for teams deploying SLMs in
+single-call tool-calling systems. The procedure is ordered by practical return:
+use the strongest available integration first, restore schema detail before
+training, and only then pay the cost of fine-tuning. The cascade cost model that
+quantifies the saving from each step is developed in
+Section~\ref{sec:practical-implications}.
 
-\textbf{Step~1: Benchmark the native template, then apply constrained
-decoding.}
-When the deployed model ships a tool-calling chat template, that
-template is the zero-cost reference point and should be benchmarked
-first; in this evaluation it reaches 96.00\% with free generation
-(B-template), at the cost of no structural validity guarantee and a
-model-specific integration. Constrained decoding requires no
-modification to model weights and no training data, and provides the
-guarantee: on BFCL~v4 \texttt{simple\_python} it raises accuracy
-from 1.5\% (the model-agnostic baseline without native tool-calling
-templates) to 72.75\% for the 7B model by eliminating format failures
-entirely. For tasks in which format compliance is the dominant failure
-mode this single step may be sufficient for production deployment,
-particularly when the target use case involves a fixed, well-documented
-tool schema.
+\textbf{Step~1: Benchmark the native template and decide whether model-agnostic
+guarantees are required.}
+When the deployed model ships a tool-calling chat template, that template is the
+zero-cost reference point and should be benchmarked first; in this evaluation it
+reaches 96.00\% with free generation (B-template). For a single frozen Qwen
+deployment, this is the stronger local baseline. Constrained decoding should be
+used when structural validity must be guaranteed independently of the model's
+native template, or when the deployment must support heterogeneous models and
+schemas under one integration.
 
-\textbf{Step~2: Quantize for memory efficiency.}
-AWQ INT4 quantization reduces the 7B model memory from 14.25~GiB to
-5.20~GiB and startup time from 212~s to 35~s, at a cost of 0.5~pp of
-accuracy (Config~CD+Q: 72.25\%). This cost is within run-to-run
-variance, and the quantized configuration is recommended whenever
-hardware capacity or cold-start latency are deployment constraints.
+\textbf{Step~2: Apply constrained decoding with full schema detail.}
+The highest-return no-training configuration is CD+schema. Carrying parameter
+descriptions, enumeration values, and default values into the argument
+extraction prompt raises 7B accuracy from 72.75\% to 89.00\% ($+$16.25~pp,
+$p < 0.00001$) while preserving the structural guarantee of guided decoding.
+This should be the default constrained setup whenever tool schemas contain rich
+metadata. Plain CD remains useful when schemas are sparse or when only type
+constraints are available.
 
-\textbf{Step~3: Evaluate prompting interventions cautiously.}
-Both few-shot prompting and chain-of-thought reasoning produced accuracy
-regressions in this evaluation: $-2.5$~pp for few-shot (Config~PE) and
-$-6.75$~pp for chain-of-thought (Config~CD+Q+ITC), with increased
-per-case inference time from the additional reasoning tokens.
-Prompting interventions are not recommended
-when constrained decoding is already active, because the residual
-failures are semantic rather than format-related and are not addressed
-by additional structure in the prompt.
+\textbf{Step~3: Quantize when memory or cold-start latency matter.}
+AWQ INT4 quantization reduces 7B model memory from 14.25~GiB to 5.20~GiB and
+startup time from 212~s to 35~s, at a cost of 0.5~pp for the base constrained
+model. This cost is within run-to-run variance at 7B, making quantization the
+recommended deployment step when hardware capacity or load time is binding.
 
-\textbf{Step~4: Invest in format-aligned fine-tuning for the accuracy
-ceiling.}
-Format-aligned LoRA fine-tuning is the only configuration that improves
-on constrained decoding alone. Config~CD+FT-aligned achieves 76.75\%,
-within single-run uncertainty of the weakest frontier entry on the same
-category (GPT-5-mini, 78.75\%). The binding
-constraint is training data alignment: the training distribution must
-match the inference pipeline's output format exactly. Applying the
-merged adapter to the quantized model (Config~CD+Q+FT-aligned) yields
-74.25\% on the same 5.20~GiB footprint, with a 2.5~pp quantization
-penalty relative to the full-precision adapter.
+\textbf{Step~4: Treat generic prompting additions as low priority.}
+Few-shot prompting and chain-of-thought reasoning both regress at 7B in this
+evaluation: $-2.5$~pp for few-shot and $-6.75$~pp for chain-of-thought, with
+additional token cost for the reasoning trace. These methods do not address the
+residual failure mode after constrained decoding, which is semantic convention
+matching rather than format learning.
 
-\textbf{Step~5: Enrich the prompt with full schema detail.}
-Config~CD+schema demonstrates that carrying parameter descriptions,
-enumeration values, and default values into the argument extraction
-prompt raises 7B accuracy from 72.75\% to 89.00\% ($+$16.25~pp,
-$p < 0.00001$) with no model weight modification and at per-call
-latency lower than unconstrained generation (Section~\ref{sec:latency}).
-Schema enrichment is the highest-return single step for teams whose
-tool schemas include rich parameter metadata and who cannot or do not
-wish to fine-tune. The benefit scales with schema richness: for
-sparse schemas with minimal descriptions, the gain will be
-proportionally smaller.
+\textbf{Step~5: Fine-tune only with deployment-aligned data.}
+Format-aligned LoRA fine-tuning improves on plain CD, reaching 76.75\% at 7B,
+but it is weaker than schema enrichment and depends on exact alignment between
+the training output format and the inference protocol. Fine-tuning should be
+reserved for cases where schema enrichment is insufficient and training examples
+can be generated from the target tool schemas and argument conventions. Applying
+the merged adapter to the quantized model yields 74.25\% on the same 5.20~GiB
+footprint.
 
 \textbf{Deployment boundary.}
-These guidelines apply to single-call, single-function scenarios
-analogous to BFCL~v4 \texttt{simple\_python}. The $\tau$-bench result
-(4.35\% pass rate on the retail domain) demonstrates that single-call
-accuracy does not predict multi-turn agentic performance, and no
-configuration in this evaluation transfers its single-call gains to
-multi-step tasks. Applications requiring reliable multi-turn tool
-execution should treat the results here as an entry point and apply the
-complementary techniques described in Section~\ref{sec:future-work}.
+These guidelines apply to single-call, schema-constrained scenarios analogous
+to BFCL~v4 \texttt{simple\_python}. They do not establish reliable multi-turn
+agentic execution. The $\tau$-bench result (4.35\% pass rate on retail) shows
+that applications requiring multi-step tool use need additional planning,
+state-tracking, and recovery mechanisms beyond the techniques evaluated here.
 
 \section{Future Work} \label{sec:future-work}
 
@@ -255,99 +247,12 @@ The $\tau$-bench airline domain offers a second evaluation environment that
 would indicate whether the retail result generalises across task structures
 and tool catalog sizes.
 
-The size-sweep reported in Section~\ref{sec:model-size} covers seven
-configurations across all four Qwen~2.5 sizes.
-Config~CD+Q+FT-aligned has been evaluated at 7B only; extending this
-to 0.5B, 1.5B, and 3B would reveal whether the 2.5~pp quantization
-penalty observed at 7B is consistent across the size range, or
-whether it increases at smaller scales where the interaction between
-fine-tuned weight deltas and INT4 quantization may be more
-pronounced.
+Several extensions would complete the single-call evaluation grid. Config~CD+Q+FT-aligned is evaluated at 7B only; extending it to 0.5B, 1.5B, and 3B would show whether the 2.5~pp quantization penalty on the fine-tuned model increases at smaller scales. The no-guided isolation variants are also reported only at 7B; running them across the size range would test whether the unguided floor and the ordering of prompt-level techniques remain stable as capacity decreases.
 
-The technique-isolation measurements that remove constrained decoding
-(Configs PE, CoT, RAG, and FT-aligned without guidance) are reported at 7B
-only; extending them to 0.5B, 1.5B, and 3B would establish whether the
-near-zero unguided floor, and the ordering of the prompt-level techniques
-above it, holds across the size range or shifts as capacity decreases. This
-was deferred on the same grounds as the cross-family grid: the 7B isolation
-already attributes the structural gain to constrained decoding, and the
-smaller-size no-guided sweep already shows the floor is size-insensitive.
+RAG-based tool selection requires a stronger disambiguation signal than top-5 retrieval provides. The retrieval component itself is not the bottleneck: recall@5 is 97.2\% in Config~CD+Q+RAG. The failure occurs when the model must choose among semantically similar retrieved candidates. Future work should therefore target the selection step directly, for example with a smaller $k$, a learned re-ranker, or fine-tuning on tool-selection examples from the target catalogue.
 
-RAG-based tool selection requires a stronger disambiguation signal than
-top-5 retrieval provides for a 7B model. Three concrete directions are:
-reducing $k$ to 1 or 2 to narrow the candidate set at the cost of recall;
-adding a re-ranking step between retrieval and selection to order candidates
-by query-specific relevance; and fine-tuning the model on tool-selection
-examples from the target catalog to improve sibling-function discrimination.
-The 97.2\% recall@5 observed in Config~CD+Q+RAG confirms that the retrieval
-component itself is not the bottleneck; the disambiguation failure occurs
-in the generation step, where the model must select among retrieved
-candidates. A re-ranking model trained on function-call preference data
-would be a direct intervention at the point of failure.
+The harder BFCL categories point to a second direction. The joint multi-call schema lifts \texttt{parallel} from a structural 0.0\% under the original single-extraction design to 79.0\% at 7B, confirming that the original limitation was the output schema. The remaining gap on \texttt{parallel\_multiple}, where format-aligned fine-tuning lowers accuracy relative to plain CD, suggests that future training data should target simultaneous multi-call generation rather than JSON format alignment alone.
 
-The constrained decoding advantage is established on
-\texttt{simple\_python}, where one candidate function is provided per test
-case. Section~\ref{sec:bfcl-extended} reports results for the
-\texttt{multiple} and \texttt{parallel} BFCL categories:
-Config~CD reaches 70.5\% on \texttt{multiple} at 7B; CD+FT-aligned
-matches this score exactly, confirming that the single-call architecture
-handles multi-candidate selection and that fine-tuning adds no benefit
-once scale is sufficient.
-The \texttt{parallel} category, which requires two simultaneous calls to
-the same function, yields 0.0\% under the initial single-extraction design,
-a structural property of that pipeline rather than a capability limit.
-Replacing it with a joint multi-call schema lifts \texttt{parallel} to 79.0\%
-at 7B, with accuracy rising across sizes, which confirms the constraint was
-the output schema. What remains open is closing the residual argument-fidelity gap on
-\texttt{parallel\_multiple}, where format-aligned fine-tuning currently lowers
-accuracy relative to plain CD; training data targeting simultaneous multi-call
-generation, rather than format alignment alone, is the natural next step.
+Training data alignment remains the binding constraint on LoRA fine-tuning. A production fine-tuning run should generate examples from the target deployment's own tool schemas and argument conventions, rather than relying only on a general-purpose corpus such as xlam. A systematic comparison of synthetic, domain-matched, and human-curated examples would show how much of the residual semantic error can be closed by data quality alone.
 
-Training data alignment is the binding constraint on LoRA fine-tuning for
-this task. Generating training examples from the target deployment's own
-tool schemas and argument conventions, rather than from a general-purpose
-corpus such as xlam, would remove the format mismatch as a confound and
-provide a direct learning signal for the value conventions that the
-no-training configurations fail on. Such data could be generated
-synthetically from the BFCL training split or from API documentation of
-the production tool catalog.
-A systematic study varying the source of training data (from fully
-synthetic, to domain-matched, to human-curated examples) would
-quantify how much of the 23.25~pp residual gap after CD+FT-aligned can
-be closed by data quality improvements alone, without further changes to
-the model architecture or the optimization pipeline.
-
-The cross-family evaluation establishes external validity through
-Config~CD on \texttt{simple\_python} across four checkpoints from three
-laboratories (Meta, Google, Microsoft), the harder \texttt{multiple} and
-\texttt{parallel} BFCL categories on the same models, and Config~CD+FT-aligned
-across all four contrast checkpoints. The format-aligned adapter generalises in
-the same direction as on Qwen~2.5, improving guided accuracy at every family,
-while a paired no-guided evaluation shows the gain is contingent on the
-constraint: removing guided decoding collapses the aligned checkpoints to
-0.00\%--3.75\%, against 39.00\%--67.50\% for the matched instruct models, which
-confirms across families that the adapter specialises the model to the
-constrained-decoding protocol rather than producing a stronger standalone
-generator. This evidence is sufficient to show that the
-size and technique effects observed on Qwen~2.5 are family-robust rather than
-a single-vendor artefact.
-
-The full model $\times$ technique $\times$ benchmark
-grid was not run for the contrast families: Config~CD+Q and Config~CD+Q+FT-aligned
-were evaluated only on Qwen~2.5, and $\tau$-bench was run only on the retail
-domain for Qwen~2.5. Completing this grid (per-family AWQ~INT4 quantization,
-quantized fine-tuned variants, and $\tau$-bench across each family) was deferred
-as a deliberate scope decision rather than treated as a required result, on the
-grounds that the cross-family CD and CD+FT evidence already supports the
-generalisation claim and that the quantization and agentic-benchmark techniques
-are characterised in depth on Qwen~2.5.
-
-One checkpoint, gemma-3-4b, is excluded
-from every guided-decoding configuration: it is loaded as a multimodal model on
-the frozen vLLM~0.8.5 stack, where structured-output decoding is not enforced for
-vision-language models, so the constrained-decoding protocol cannot be evaluated
-for it on this stack. Re-evaluating gemma-3-4b on a build that enforces guided
-decoding for multimodal checkpoints, and extending the quantization and
-$\tau$-bench configurations across all contrast families, would convert the
-cross-family contrast from a targeted external-validity check into a full
-replication of the Qwen~2.5 grid.
+Finally, the cross-family evidence in this thesis is a targeted external-validity check rather than a full replication. Config~CD and CD+FT-aligned are evaluated across contrast checkpoints, but quantized and agentic configurations remain concentrated on Qwen~2.5. Extending AWQ INT4, quantized fine-tuned variants, and $\tau$-bench evaluations across the same contrast families would test whether the deployment conclusions hold beyond the primary model family.

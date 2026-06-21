@@ -83,7 +83,7 @@ The strongest result comes from schema-enriched constrained decoding
 (Config~CD+schema). This configuration adds parameter descriptions, enumeration
 values, and defaults to the argument extraction prompt while keeping the FSM
 mask unchanged. At 7B it reaches 89.00\% ($+$16.25~pp over plain CD, McNemar's
-test $p < 0.00001$), entering the frontier range above GPT-5-mini without
+test $p < 0.00001$), entering the lower frontier range on BFCL~v4 Python Simple AST above GPT-5-mini without
 modifying model weights. The failures that persist across configurations and
 sizes are semantic rather than structural: wrong optional parameter defaults,
 numeric precision mismatches, and string format conventions that the model's
@@ -164,24 +164,23 @@ This thesis addresses three research questions:
 \begin{description}
     \item[RQ1] \textit{What is the performance gap between unoptimized small language models (0.5B--7B parameters) and frontier models on tool-calling benchmarks?}
     \item[RQ2] \textit{What is the marginal contribution of each optimization technique (constrained decoding, schema enrichment, prompt engineering, chain-of-thought prompting, retrieval-augmented generation, quantization, and LoRA fine-tuning) when applied cumulatively to small models for tool calling?}
-    \item[RQ3] \textit{Can a fully optimized small language model configuration achieve production-viable tool-calling accuracy on consumer hardware?}
+    \item[RQ3] \textit{Can an optimized small language model configuration achieve cascade-viable single-call tool-calling accuracy on consumer hardware?}
 \end{description}
 
-\noindent RQ1 establishes the baseline gap that motivates the work. RQ2 is the core empirical contribution. It is answered through an ablation study with two parts: a cumulative ladder that adds one technique at a time, and a complementary isolation arm that evaluates inference-time techniques without constrained decoding. This separates each technique's standalone effect from the contribution of constrained decoding itself. RQ3 addresses the practical question of whether the optimized configuration is viable for real-world deployment.
+\noindent RQ1 establishes the baseline gap that motivates the work. RQ2 is the core empirical contribution. It is answered through an ablation study with two parts: a cumulative ladder that adds one technique at a time, and a complementary isolation arm that evaluates inference-time techniques without constrained decoding. This separates each technique's standalone effect from the contribution of constrained decoding itself. RQ3 addresses the narrower deployment question of whether the optimized configuration is viable as the local tier for single-call tool calling in a cascade.
 
-For RQ3, production viability is assessed against two explicit
-criteria. The first is frontier parity: single-call accuracy within
-the range spanned by deployed frontier models on the same benchmark
-category (78.75\%--97.75\% on the Python simple-AST category; the
-comparison set is given in Chapter~\ref{ch:results}). The second is
-cascade viability: a memory footprint that fits a single consumer GPU
-(24~GiB), combined with single-call accuracy high enough that the
-local tier handles a substantial fraction of traffic ($p \geq 0.70$
-is used as the reference point in the cost model of
+For RQ3, cascade viability is assessed against two explicit criteria. The first
+is lower-tier frontier parity on the same benchmark category: single-call
+accuracy within the range spanned by deployed frontier models on BFCL~v4 Python
+Simple AST (78.75\%--97.75\%; the comparison set is given in
+Chapter~\ref{ch:results}). The second is local deployability: a memory footprint
+that fits a single consumer GPU (24~GiB), combined with single-call accuracy
+high enough that the local tier handles a substantial fraction of traffic
+($p \geq 0.70$ is used as the reference point in the cost model of
 Chapter~\ref{ch:discussion}). Both criteria are scoped to single-call,
-schema-constrained tool calling. Neither covers multi-turn task
-completion, and the cascade criterion presumes that residual failures
-are handled by escalation to a frontier model in a cascade deployment.
+schema-constrained tool calling. Neither covers general production agents or
+multi-turn task completion, and the cascade criterion presumes that residual
+semantic failures are handled by escalation to a frontier model.
 
 To answer these questions, the thesis evaluates an incremental pipeline of methods ordered by implementation cost. No-training methods are evaluated first: constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}, and quantization~\cite{lin2024awq}. Training-based methods, represented by LoRA fine-tuning~\cite{hu2022lora}, are evaluated after the no-training methods. Each method is assessed both individually and in combination to measure its marginal contribution to tool-calling accuracy.
 
@@ -202,7 +201,7 @@ The main contributions of this thesis are:
     quantization, LoRA fine-tuning, and schema-enriched prompting to
     BFCL \texttt{simple\_python} accuracy. Schema-enriched constrained
     decoding (CD+schema, 89.00\%) is the strongest no-training
-    configuration and the first to enter the frontier range
+    configuration and the first to enter the lower frontier range on BFCL~v4 Python Simple AST
     (10.25~pp above GPT-5-mini, 78.75\%); CD+FT-aligned (76.75\%)
     approaches the same lower frontier tier.
     \item A scaling analysis across Qwen~2.5 0.5B, 1.5B, 3B, and 7B

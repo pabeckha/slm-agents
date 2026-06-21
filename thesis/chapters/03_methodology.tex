@@ -1,14 +1,16 @@
 \chapter{Methodology} \label{ch:methodology}
 
-The experimental design follows a cumulative evaluation ladder: a baseline configuration
-is established first, and one technique is added at each subsequent step to isolate its
-marginal contribution. The Qwen~2.5 model family is evaluated across four sizes from
-0.5B to 7B. Seven techniques are covered: constrained decoding, schema enrichment,
-quantization, few-shot prompting, chain-of-thought prompting, retrieval-augmented
-generation, and LoRA fine-tuning.
-All configurations are evaluated on the Berkeley Function Calling Leaderboard.
+This chapter describes how the optimization techniques are evaluated. The
+experiments follow a cumulative ladder: a baseline configuration is established
+first, and one technique is added at each subsequent step to isolate its
+marginal contribution. The Qwen~2.5 model family is evaluated across four
+sizes from 0.5B to 7B. The techniques covered are constrained decoding, schema
+enrichment, quantization, few-shot prompting, chain-of-thought prompting,
+retrieval-augmented generation, and LoRA fine-tuning. All configurations are
+evaluated on the Berkeley Function Calling Leaderboard.
 
 \section{Experimental Design}
+
 The experimental design is based on controlled comparisons and runs in two
 complementary directions. In the first, a baseline configuration is established
 and each technique is added one at a time, which measures the marginal gain of
@@ -22,28 +24,31 @@ decoding itself.
 Twelve configurations are evaluated in total. Eleven form the cumulative
 ladder illustrated in Figure~\ref{fig:eval-ladder}; the twelfth, CD+schema,
 branches off separately and is reported in Section~\ref{sec:cd-schema}.
-Within the ladder, four form a main chain, each building on the
-previous one. Config~B is the baseline: the model is prompted without
-constrained decoding at full precision. In Config~CD, constrained decoding is
-added, forcing the output to conform to a valid JSON schema. In Config~CD+Q,
-AWQ INT4 quantization is applied to reduce memory footprint while preserving
-accuracy as much as possible. In Config~CD+Q+FT-aligned, a format-aligned LoRA
-adapter is applied to the quantized model. Three inference-time
-configurations branch off the main chain: Config~PE adds few-shot prompting
-on top of Config~CD at full precision, so that the effect of the examples is
-isolated from any interaction with quantization, while Config~CD+Q+ITC adds
-chain-of-thought inference-time compute and Config~CD+Q+RAG adds
-retrieval-augmented generation, both on top of Config~CD+Q. Fine-tuning branches from
-Config~CD: Config~CD+FT applies a misaligned LoRA adapter and
-Config~CD+FT-aligned applies the format-aligned adapter. Two unguided variants
-are evaluated without constrained decoding: Config~FT-only (misaligned adapter)
-and Config~FT-aligned-ng (format-aligned adapter, ng: no guided decoding).
-To isolate the contribution of constrained decoding, the three inference-time
-techniques are additionally evaluated without guided decoding: Config~PE-ng
-(few-shot), Config~ITC-ng (chain-of-thought), and Config~RAG-ng (retrieval).
-These isolation variants form the second arm of the experimental design and
-are reported in Section~\ref{sec:technique-isolation}; they are not rungs on
-the eleven-config ladder and are therefore omitted from
+
+The ladder has a main chain of four configurations. Config~B is the baseline:
+the model is prompted without constrained decoding at full precision.
+Config~CD adds constrained decoding, forcing the output to conform to a valid
+JSON schema. Config~CD+Q adds AWQ INT4 quantization to reduce the memory
+footprint while preserving accuracy as much as possible. Config~CD+Q+FT-aligned
+then applies a format-aligned LoRA adapter to the quantized model.
+
+Several configurations branch from this main chain to isolate specific design
+choices. Config~PE adds few-shot prompting on top of Config~CD at full
+precision, so the effect of examples is isolated from quantization.
+Config~CD+Q+ITC adds chain-of-thought inference-time compute, and
+Config~CD+Q+RAG adds retrieval-augmented generation, both on top of
+Config~CD+Q. Fine-tuning is evaluated from Config~CD: Config~CD+FT applies a
+misaligned LoRA adapter, while Config~CD+FT-aligned applies the
+format-aligned adapter. Two unguided variants are also evaluated without
+constrained decoding: Config~FT-only (misaligned adapter) and
+Config~FT-aligned-ng (format-aligned adapter, ng: no guided decoding).
+
+The second arm of the design isolates the contribution of constrained
+decoding. The three inference-time techniques are evaluated again without
+guided decoding: Config~PE-ng (few-shot), Config~ITC-ng (chain-of-thought),
+and Config~RAG-ng (retrieval). These isolation variants are reported in
+Section~\ref{sec:technique-isolation}; they are not rungs on the
+eleven-configuration ladder and are therefore omitted from
 Figure~\ref{fig:eval-ladder}.
 
 \begin{figure}[ht]

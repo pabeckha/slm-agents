@@ -1,5 +1,12 @@
 \chapter{Discussion} \label{ch:discussion}
 
+This chapter interprets the experimental results in terms of the thesis
+questions. The central distinction is between structural failures, which can
+be removed by constrained decoding, and semantic value errors, which require
+better schema information, training data, or routing. The chapter first
+analyses this distinction, then discusses cost-benefit trade-offs, limitations,
+practical deployment implications, and the relation to prior work.
+
 \section{Impact of Constrained Decoding vs.\ Model Scale}
 
 The 71.25 percentage point gap between Base and CD is almost
@@ -53,7 +60,7 @@ interpretation: given its native template and the full schemas, the model
 resolves most of these cases. Config~CD+schema isolates the information-loss
 component directly: enriching the constrained prompt with parameter
 descriptions, enumeration values, and defaults raises accuracy from
-72.75\% to 89.00\% ($+$16.25~pp, McNemar $p < 0.00001$, $b{=}73$, $c{=}7$;
+72.75\% to 89.00\% ($+$16.25~pp, McNemar $p < 0.00001$;
 Section~\ref{sec:cd-schema}), confirming that the majority of the residual
 gap after plain CD is attributable to missing schema detail rather than to
 the model's learned value priors. The remaining 7.00~pp gap between
@@ -131,9 +138,9 @@ for 98.5\% of failures in Base~\cite{willard2023efficient, kwon2023vllm}.
 Schema-enriched constrained decoding extends the plain CD result by supplying
 the parameter descriptions, type constraints, and enumerated values that the
 standard pipeline omits from its prompts. Config~CD+schema achieves 89.00\%
-($+16.25$~pp over plain CD, McNemar $p < 0.00001$, $b{=}73$, $c{=}7$;
+($+16.25$~pp over plain CD, McNemar $p < 0.00001$;
 Section~\ref{sec:cd-schema}), the highest accuracy of any configuration in
-the evaluation and the only result to enter the frontier range without
+the evaluation and the only result to enter the lower frontier range on BFCL~v4 Python Simple AST without
 modifying model weights. No training, no additional generated tokens, and no
 latency overhead are introduced: the measured per-call latency for CD+schema
 (0.704~s mean) falls within the same range as plain CD and does not exceed
@@ -412,40 +419,39 @@ a clean, unbiased measurement.
 
 \section{Practical Implications} \label{sec:practical-implications}
 
-The cascade architecture motivating this work posits that an SLM handles
-the majority of tool-calling requests locally, escalating only those it
-cannot handle reliably to a frontier model API. The results allow the
-cost-benefit of this architecture to be quantified directly. These figures
-are projections, not a measured cascade: they presume a semantic router that
-escalates the SLM's likely-wrong outputs, and because constrained decoding
-makes every output structurally valid, that router cannot use structural
-signals and is not built or evaluated here (revisited below). The $p$ values
-below are therefore upper bounds. If frontier
-API calls cost $c$ per query and the SLM tier cost is approximated as
-zero per query (amortized over fixed hardware), a cascade in which the
-SLM correctly handles a fraction $p$ of requests saves $p \cdot c$ per
-query relative to routing all traffic to the frontier model.
-CD+Q achieves $p \approx 0.72$, CD+Q+FT-aligned achieves $p \approx 0.74$,
-and CD+FT-aligned achieves $p \approx 0.77$, all on a single consumer GPU\@.
-The cascade criterion of RQ3 (Chapter~\ref{ch:introduction}) adopts
+The cascade architecture motivating this work assumes that an SLM handles
+most tool-calling requests locally and escalates only the unreliable cases to
+a frontier model API. The results make this architecture possible to cost, but
+only as a projection. No cascade router is implemented here. The estimates
+below presume a semantic router that can identify likely-wrong SLM outputs;
+after constrained decoding, structural routing signals are unavailable because
+every output is valid JSON naming a known function. The reported $p$ values
+are therefore upper bounds.
+
+If frontier API calls cost $c$ per query and the SLM tier cost is approximated
+as zero per query after hardware amortization, a cascade in which the SLM
+correctly handles a fraction $p$ of requests saves $p \cdot c$ per query
+relative to routing all traffic to the frontier model. CD+Q achieves
+$p \approx 0.72$, CD+Q+FT-aligned achieves $p \approx 0.74$, and
+CD+FT-aligned achieves $p \approx 0.77$, all on a single consumer GPU\@. The
+cascade criterion of RQ3 (Chapter~\ref{ch:introduction}) adopts
 $p \geq 0.70$ as its reference point: at that fraction the local tier
-eliminates at least 70\% of per-query API costs, which all four
-constrained configurations at 7B exceed.
+eliminates at least 70\% of per-query API costs, which all four constrained
+configurations at 7B exceed.
 
 The cost-benefit framing above costs the constrained local tier against a
 frontier API. For a single-model deployment a stronger local option is
 available: the same 7B model under its native tool-calling template
 (B-template) reaches 96.00\% on \texttt{simple\_python}
 (Table~\ref{tab:baseline-results}), above every constrained configuration
-on the same hardware. Where the cascade is built on one frozen model, the
-native template is therefore the local tier that should be deployed, and
-the constrained configurations are not recommended on accuracy grounds.
-The constrained path is costed here because it is the model-agnostic tier:
-output validity is guaranteed structurally and independently of any
-model's template, so a uniform integration is retained across heterogeneous
-or evolving models and the router is given guaranteed-parseable output. The
-$p$ values reported in this section thus apply to the general multi-model
-case; for a single frozen model the native template supersedes them.
+on the same hardware. For a single frozen Qwen deployment, the native template
+is therefore the better local baseline. The constrained pipeline is valuable
+when the goal is model-agnostic structural guarantees across heterogeneous
+models and schemas: output validity is guaranteed independently of any model's
+template, a uniform integration is retained, and the router receives
+guaranteed-parseable output. The $p$ values reported in this section thus apply
+to the general multi-model case; for a single frozen model the native template
+supersedes them.
 
 These values are upper-bound estimates: after constrained decoding is
 applied, every SLM output is structurally valid, removing structural
