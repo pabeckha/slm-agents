@@ -274,6 +274,35 @@ produces a model that follows instructions reliably. It responds to structured
 prompts and tool schemas without additional task-specific training, serving as
 a practical starting point for the optimization ladder evaluated in this thesis.
 
+\subsection{Contrast Checkpoints}
+
+The cross-family checks in Chapter~\ref{ch:results} use four additional instruct
+models from three other families: Llama~3.2 1B-Instruct and Llama~3.2
+3B-Instruct~\cite{metaai2024llama32}, Phi-4-mini-Instruct~\cite{abdin2024phi},
+and Gemma~3 1B-Instruct~\cite{gemmateam2025gemma3}. These are contrast
+checkpoints rather than part of the primary size ladder. Their purpose is to
+test whether the findings established on Qwen~2.5 depend on one model's training
+or hold under different pre-training corpora and instruction-tuning recipes.
+
+The four models span roughly 1B to 4B parameters: Gemma~3 1B and Llama~3.2 1B
+sit near 1B, Llama~3.2 3B at 3.2B, and Phi-4-mini at 3.8B, overlapping the lower
+half of the Qwen range. Their training regimes differ in ways that matter for
+this check. Phi-4 emphasises curated and synthetic training data, the small
+Llama~3.2 models are distilled from larger Llama checkpoints, and Gemma~3 is
+likewise trained with distillation. A result that survives all four is unlikely
+to be an artefact of any single training pipeline.
+
+The contrast checkpoints enter the evaluation in two places. The format-aligned
+fine-tuning analysis (Section~\ref{sec:format-aligned}) trains a format-aligned
+adapter on each model and evaluates it without guided decoding, to check whether
+the standalone degradation seen on Qwen also appears across families. The GitHub
+MCP evaluation (Section~\ref{sec:github-mcp}) compares baseline and constrained
+tool selection across all five families on the 21-tool catalogue. The quantized,
+fine-tuned, and $\tau$-bench configurations stay on Qwen~2.5; extending them
+across the contrast families is left to future work. Llama~3.2 is served under
+the Llama~3.2 Community License, Phi-4-mini under the MIT License, and Gemma~3
+under the Gemma Terms of Use.
+
 \section{Baseline Definition}
 \label{sec:baseline-def}
 
