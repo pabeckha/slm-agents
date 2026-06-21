@@ -275,6 +275,7 @@ prompts and tool schemas without additional task-specific training, serving as
 a practical starting point for the optimization ladder evaluated in this thesis.
 
 \subsection{Contrast Checkpoints}
+\label{sec:contrast-checkpoints}
 
 The cross-family checks in Chapter~\ref{ch:results} use four additional instruct
 models from three other families: Llama~3.2 1B-Instruct and Llama~3.2
@@ -292,14 +293,18 @@ Llama~3.2 models are distilled from larger Llama checkpoints, and Gemma~3 is
 likewise trained with distillation. A result that survives all four is unlikely
 to be an artefact of any single training pipeline.
 
-The contrast checkpoints enter the evaluation in two places. The format-aligned
-fine-tuning analysis (Section~\ref{sec:format-aligned}) trains a format-aligned
-adapter on each model and evaluates it without guided decoding, to check whether
-the standalone degradation seen on Qwen also appears across families. The GitHub
-MCP evaluation (Section~\ref{sec:github-mcp}) compares baseline and constrained
-tool selection across all five families on the 21-tool catalogue. The quantized,
-fine-tuned, and $\tau$-bench configurations stay on Qwen~2.5; extending them
-across the contrast families is left to future work. Llama~3.2 is served under
+The contrast checkpoints enter the evaluation in three places. The
+constrained-decoding generalization check (Section~\ref{sec:cross-family-cd})
+evaluates Config~CD on BFCL~v4 \texttt{simple\_python} for each checkpoint, to
+test whether the structural benefit established on Qwen holds under different
+pre-training corpora. The format-aligned fine-tuning analysis
+(Section~\ref{sec:format-aligned}) trains a format-aligned adapter on each model
+and evaluates it without guided decoding, to check whether the standalone
+degradation seen on Qwen also appears across families. The GitHub MCP evaluation
+(Section~\ref{sec:github-mcp}) compares baseline and constrained tool selection
+across all five families on the 21-tool catalogue. The quantized, fine-tuned,
+and $\tau$-bench configurations stay on Qwen~2.5; extending them across the
+contrast families is left to future work. Llama~3.2 is served under
 the Llama~3.2 Community License, Phi-4-mini under the MIT License, and Gemma~3
 under the Gemma Terms of Use.
 

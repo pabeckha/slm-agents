@@ -250,6 +250,22 @@ CLAIMS: list[Claim] = [
     Claim("cdfta_parallel_multiple_7b",
           "data/output/bfcl_ft_aligned/*7B-Instruct-merged-aligned/scores/parallel_multiple_scores.json",
           120, 200, (_RESULTS,), "CD+FT-aligned parallel_multiple, 7B (60.0%)."),
+
+    # --- cross-family CD, BFCL simple_python (04_results, tab:cross-family-cd) -
+    # Config CD (guided, bf16) on the four contrast checkpoints; aggregate
+    # scores/ files match the runs/ manifests (verified 2026-06-21).
+    Claim("cd_xfamily_gemma_3_1b",
+          "data/output/bfcl/google_gemma-3-1b-it/scores/simple_python_scores.json",
+          222, 400, (_RESULTS,), "CD simple_python, Gemma-3 1B (55.5%)."),
+    Claim("cd_xfamily_llama_1b",
+          "data/output/bfcl/meta-llama_Llama-3.2-1B-Instruct/scores/simple_python_scores.json",
+          242, 400, (_RESULTS,), "CD simple_python, Llama-3.2 1B (60.5%)."),
+    Claim("cd_xfamily_llama_3b",
+          "data/output/bfcl/meta-llama_Llama-3.2-3B-Instruct/scores/simple_python_scores.json",
+          250, 400, (_RESULTS,), "CD simple_python, Llama-3.2 3B (62.5%)."),
+    Claim("cd_xfamily_phi_4_mini",
+          "data/output/bfcl/microsoft_Phi-4-mini-instruct/scores/simple_python_scores.json",
+          273, 400, (_RESULTS,), "CD simple_python, Phi-4-mini (68.25%)."),
 ]
 
 
