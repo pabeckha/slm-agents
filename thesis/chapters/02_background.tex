@@ -14,7 +14,10 @@ Given an input sequence of token embeddings $X$, the self-attention mechanism co
 \end{equation}
 where $d_k$ is the dimension of the key vectors. Multi-head attention runs this operation in parallel across multiple subspaces, allowing the model to capture different types of dependencies simultaneously.
 
-For language modeling, the decoder-only variant is most common~\cite{brown2020language,wang2022language}. It
+For language modeling, the decoder-only variant is the most common
+choice~\cite{brown2020language}, and has been shown to achieve the strongest
+zero-shot generalization among architectures trained with unsupervised
+pretraining~\cite{wang2022language}. It
 applies a causal attention mask so that each token can only attend to
 preceding tokens, enabling autoregressive generation where the model
 predicts one token at a time conditioned on all previous tokens.
