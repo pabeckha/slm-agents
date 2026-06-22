@@ -1,0 +1,4 @@
+interface:
+  display_name: "Thesis Red Team"
+  short_description: "Find thesis gaps, overclaims, and errors"
+  default_prompt: "Use $thesis-red-team to criticize this thesis and identify gaps, overclaims, and potential errors."

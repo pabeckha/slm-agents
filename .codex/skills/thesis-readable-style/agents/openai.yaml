@@ -1,0 +1,4 @@
+interface:
+  display_name: "Thesis Readable Style"
+  short_description: "Rewrite thesis prose for clear readable flow"
+  default_prompt: "Use $thesis-readable-style to revise this thesis section so it is easy to read and follow."

@@ -1,0 +1,26 @@
+{
+  "skill_name": "thesis-examiner",
+  "evals": [
+    {
+      "id": 0,
+      "name": "full-examiner-review",
+      "prompt": "I'm the examiner for this MSc thesis at DTU (felipe-giacomelli-thesis-paulo.pdf). Give me a full examiner review: summary, strengths, the weaknesses and concrete problems the student needs to fix, some defense questions, and an indicative grade on our scale. I want it specific enough that I can hand the feedback to the student.",
+      "expected_output": "A markdown examiner review file saved next to the thesis, with: thesis summary, overall assessment + indicative Danish 7-point grade band (advisory), strengths, per-dimension evaluation (methodology, technical/math, contribution, business), a numbered issue table with severity/area/location/why-it-matters/fix, and defense questions. Findings cite specific pages.",
+      "files": ["felipe-giacomelli-thesis-paulo.pdf"]
+    },
+    {
+      "id": 1,
+      "name": "gap-hunt-feasibility-focus",
+      "prompt": "Can you read felipe-giacomelli-thesis-paulo.pdf and find the gaps and problems before I write my feedback? I'm especially skeptical about the market-feasibility / business side — the unit economics and willingness-to-pay claims — and whether the testing/evaluation method is actually rigorous enough to support the conclusions.",
+      "expected_output": "A prioritized list of concrete gaps/problems with page citations, weighted toward methodology rigor and the business-feasibility claims (market sizing, unit economics, WTP, validated-vs-speculative). Each issue should have a severity and a why-it-matters, and be specific to what the thesis actually says.",
+      "files": ["felipe-giacomelli-thesis-paulo.pdf"]
+    },
+    {
+      "id": 2,
+      "name": "casual-pre-defense-look",
+      "prompt": "my student's thesis is in felipe-giacomelli-thesis-paulo.pdf, defense is soon. take a look and tell me what i should give feedback on and where it's weakest",
+      "expected_output": "Despite the casual phrasing, a structured examiner-style assessment that identifies the weakest parts of the thesis with page-cited specifics and actionable feedback, plus likely defense pressure points. Should not just be generic advice.",
+      "files": ["felipe-giacomelli-thesis-paulo.pdf"]
+    }
+  ]
+}

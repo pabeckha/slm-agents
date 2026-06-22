@@ -11,7 +11,9 @@ PRD.md
 
 # Local tooling
 PB-AI-tooling/
-.codex/
+.codex/*
+!.codex/skills/
+!.codex/skills/**
 
 # Symlink into the HPC weights pool (machine-specific; weights never committed)
 /models
