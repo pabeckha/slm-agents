@@ -81,69 +81,7 @@ def _clean_axes(ax):
 
 
 # ---------------------------------------------------------------------------
-# Figure 1 — BFCL ablation bar chart (all 12 configurations)
-# ---------------------------------------------------------------------------
-# Story: CD+schema (89.0%) enters the frontier range — the single highlighted bar.
-
-# No-CD figures (FT-aligned-ng, FT-only) use the corrected lenient parser
-# (PR #163); B is the strict whole-completion floor. See issue #172.
-CONFIGS = [
-    ("B",               "B\n(raw)",             1.50),
-    ("FT-aligned-ng",   "FT-aligned\n(no CD)", 41.00),
-    ("CD+Q+RAG",        "CD+Q\n+RAG",          47.75),
-    ("FT-only",         "FT-only\n(no CD)",    53.00),
-    ("CD+Q+ITC",        "CD+Q\n+ITC",          65.50),
-    ("CD+FT",           "CD+FT\n(misaligned)", 69.75),
-    ("PE",              "PE\n(few-shot)",       70.25),
-    ("CD+Q",            "CD+Q\n(INT4)",        72.25),
-    ("CD",              "CD",                  72.75),
-    ("CD+Q+FT-aligned", "CD+Q+FT\n(aligned)",  74.25),
-    ("CD+FT-aligned",   "CD+FT\n(aligned)",    76.75),
-    ("CD+schema",       "CD+schema",           89.00),
-]
-
-labels  = [c[1] for c in CONFIGS]
-accs    = [c[2] for c in CONFIGS]
-colours = [C_HIGHLIGHT if c[0] == "CD+schema" else C_MUTED for c in CONFIGS]
-
-fig, ax = plt.subplots(figsize=(8.5, 3.6))
-
-bars = ax.bar(range(len(CONFIGS)), accs, color=colours, width=0.65, zorder=3)
-_add_value_labels(ax, bars, accs, highlight_key=89.00)
-
-# Frontier reference lines — annotated directly (no legend)
-FRONTIERS = [
-    ("GPT-5-mini (78.75%)",        78.75, ":"),
-    ("GPT-4.1 (91.00%)",           91.00, "-."),
-    ("Claude Sonnet 4.5 (97.75%)", 97.75, "--"),
-]
-n = len(CONFIGS)
-for name, val, ls in FRONTIERS:
-    ax.axhline(val, linestyle=ls, color=C_REF_LINE, linewidth=1.0, zorder=2, alpha=0.8)
-    ax.text(
-        0.02, val + 0.9,
-        name,
-        transform=ax.get_yaxis_transform(),
-        ha="left", va="bottom",
-        fontsize=7.5, color=C_REF_LINE,
-        style="italic",
-    )
-
-ax.set_xticks(range(n))
-ax.set_xticklabels(labels, fontsize=TICK_FONTSIZE)
-ax.set_ylabel("AST Accuracy (↑) [%]")
-ax.set_ylim(0, 107)
-_clean_axes(ax)
-
-fig.tight_layout()
-out = OUT_DIR / "fig_bfcl_ablation.pdf"
-fig.savefig(out)
-plt.close(fig)
-print(f"Saved {out}")
-
-
-# ---------------------------------------------------------------------------
-# Figure 2 — Frontier comparison (SLM configs vs frontier models)
+# Figure 1 — Frontier comparison (SLM configs vs frontier models)
 # ---------------------------------------------------------------------------
 # Story: CD+schema (highlighted) crosses into the frontier band; other SLM
 # configs are shown for context in muted grey.
@@ -216,7 +154,7 @@ print(f"Saved {out}")
 
 
 # ---------------------------------------------------------------------------
-# Figure 3 — CoT flip analysis
+# Figure 2 — CoT flip analysis
 # ---------------------------------------------------------------------------
 # Story: CoT causes more losses (51) than gains (24); net −27 at 7B.
 # Stable counts recede to grey; the loss bar is the visual anchor.
@@ -262,7 +200,7 @@ print(f"Saved {out}")
 
 
 # ---------------------------------------------------------------------------
-# Figure 4 — RAG outcome breakdown (horizontal bars)
+# Figure 3 — RAG outcome breakdown (horizontal bars)
 # ---------------------------------------------------------------------------
 # Story: wrong function selection (32 %) is the dominant failure mode.
 
@@ -304,7 +242,7 @@ print(f"Saved {out}")
 
 
 # ---------------------------------------------------------------------------
-# Figure 5 — Memory vs accuracy scatter
+# Figure 4 — Memory vs accuracy scatter
 # ---------------------------------------------------------------------------
 # Story: CD+schema achieves 89 % above the GPT-5-mini line at the same
 # 14.25 GiB footprint as CD.
@@ -395,7 +333,7 @@ print(f"Saved {out}")
 
 
 # ---------------------------------------------------------------------------
-# Figure 6 — LoRA training loss curves (v1 misaligned vs v2 aligned)
+# Figure 5 — LoRA training loss curves (v1 misaligned vs v2 aligned)
 # ---------------------------------------------------------------------------
 # Story: aligned-format training (C_HIGHLIGHT) converges to a lower loss
 # and produces the better evaluation result.
@@ -445,7 +383,7 @@ else:
 
 
 # ---------------------------------------------------------------------------
-# Figure 7 — Model-size scaling (Qwen 2.5) with cross-family CD overlay
+# Figure 6 — Model-size scaling (Qwen 2.5) with cross-family CD overlay
 # ---------------------------------------------------------------------------
 # Story: every technique improves with scale, but the constraint mechanism (CD,
 # CD+schema) carries the accuracy at every size while the raw base (B) stays on
