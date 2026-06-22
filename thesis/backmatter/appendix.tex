@@ -61,6 +61,20 @@ Max sequence length & 2048 \\
 \end{tabular}
 \end{table}
 
+Fig.~\ref{fig:lora-training-loss} shows the training loss for the two LoRA
+adapters discussed in Section~\ref{sec:format-aligned}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.65\textwidth]{pictures/figures/fig_lora_training_loss.pdf}
+\caption{Training loss for the misaligned (v1) and format-aligned (v2) LoRA
+         adapters over 6{,}750 steps (2 epochs on 54{,}000 xlam examples).
+         Both runs converge to comparable loss values; the 7.0~pp accuracy
+         difference between CD+FT and CD+FT-aligned is caused
+         by the training output format, not by training quality.}
+\label{fig:lora-training-loss}
+\end{figure}
+
 \chapter{Full Benchmark Results}
 \label{app:benchmark-results}
 

@@ -561,22 +561,12 @@ specialises the model to the constrained-decoding protocol: its standalone
 accuracy falls strictly below the unmodified instruct checkpoint,
 increasingly so away from the 7B Qwen setting.
 
-Fig.~\ref{fig:lora-training-loss} shows the training loss for both adapters.
+The training loss for both adapters is shown in
+Appendix~\ref{app:hyperparameters} (Fig.~\ref{fig:lora-training-loss}).
 Both runs use identical hyperparameters and converge to similar final losses
 (v1: 0.203, v2: 0.229 at step 6750), confirming that the v1 regression is
 not a training failure. The difference in BFCL accuracy (69.75\% vs.\
 76.75\%) is attributable to the training format, not to convergence quality.
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.65\textwidth]{pictures/figures/fig_lora_training_loss.pdf}
-\caption{Training loss for the misaligned (v1) and format-aligned (v2) LoRA
-         adapters over 6{,}750 steps (2 epochs on 54{,}000 xlam examples).
-         Both runs converge to comparable loss values; the 7.0~pp accuracy
-         difference between CD+FT and CD+FT-aligned is caused
-         by the training output format, not by training quality.}
-\label{fig:lora-training-loss}
-\end{figure}
 
 CD+FT-aligned achieves 76.75\% accuracy (307/400), an improvement
 of 4.0~pp over CD and 7.0~pp over CD+FT. This is the strongest
@@ -643,8 +633,10 @@ memory), making fine-tuned capability available on consumer hardware at
 INT4 size.
 
 Table~\ref{tab:full-ablation} presents all twelve configurations ordered
-by accuracy, and Fig.~\ref{fig:bfcl-ablation} shows the same data as
-a bar chart with frontier reference lines.
+by accuracy. Among the training-based configurations, only CD+FT-aligned
+and CD+Q+FT-aligned exceed Config~CD; the strongest configurations are
+placed against frontier models in the next section
+(Fig.~\ref{fig:frontier-comparison}).
 
 \begin{table}[ht]
 \centering
@@ -673,19 +665,6 @@ CD+FT-aligned   & CD + format-aligned LoRA           & 76.75\% & \dpos{$+4.00$~p
 \bottomrule
 \end{tabular}
 \end{table}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=\textwidth]{pictures/figures/fig_bfcl_ablation.pdf}
-\caption{BFCL v4 \texttt{simple\_python} AST accuracy for all twelve configurations.
-         Dashed reference lines show Claude Sonnet~4.5 (97.75\%),
-         GPT-4.1 (91.00\%), and GPT-5-mini (78.75\%) on the same
-         category (Python Simple AST).
-         CD+schema is the strongest no-training configuration; among the
-         training-based configurations, CD+FT-aligned and CD+Q+FT-aligned
-         are the only ones to exceed Config~CD.}
-\label{fig:bfcl-ablation}
-\end{figure}
 
 \section{Comparison with Frontier Models}
 \label{sec:frontier-comparison}
