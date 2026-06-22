@@ -15,22 +15,25 @@ language models (0.5B--7B parameters) and frontier models on tool-calling benchm
 
 Across all four Qwen~2.5 Instruct sizes evaluated on
 BFCL~v4 \texttt{simple\_python}, the model-agnostic baseline achieves
-1.5--4.75\%, with no consistent trend across model scale.
-The dominant failure mode is format non-compliance: 394 of 400
-failures in the 7B base model are malformed outputs rather than
-semantically wrong answers, and the same pattern holds at all sizes.
-This gap quantifies the cost of a naive generic integration rather
-than an intrinsic capability deficit: the B-template control, which
-prompts the same model through its native tool-calling template with
-free generation and full schemas, reaches 96.00\% (384/400) on the
-same test cases.
+1.5--4.75\% under the strict whole-completion parser, with no consistent
+trend across model scale. The dominant failure mode is format non-compliance:
+394 of 400 7B base outputs fail the strict parse rather than producing a
+semantically wrong structured call, and the same pattern holds at all sizes.
+This gap quantifies the cost of a naive generic integration and strict parse
+contract rather than an intrinsic capability deficit: the same 7B run reaches
+62.00\% when the first complete JSON object is accepted, and the B-template
+control, which prompts the same model through its native tool-calling template
+with free generation and full schemas, reaches 96.00\% (384/400) on the same
+test cases.
 Frontier models range from 78.75\% (GPT-5-mini) to 97.75\%
 (Claude Sonnet~4.5) on the same category, with flagship models at
 91.00\% or above~\cite{bfcl2024}; the B-template control falls inside
 that flagship band.
-Constrained decoding closes most of the integration gap at every size
+Constrained decoding closes the strict-parser integration gap at every size
 without modifying model weights, raising accuracy to 51.50\% (0.5B),
-62.25\% (1.5B), 64.75\% (3B), and 72.75\% (7B).
+62.25\% (1.5B), 64.75\% (3B), and 72.75\% (7B), while guaranteeing that the
+outputs are structurally parseable. At 7B, the same-parser gain over the
+lenient unguided baseline is 10.75~pp.
 At 7B, the residual gap to the best frontier model is approximately
 25~pp, and 6.00~pp to the weakest frontier entry (GPT-5-mini,
 78.75\%).
@@ -45,15 +48,13 @@ chain-of-thought prompting, retrieval-augmented generation, quantization, and
 LoRA fine-tuning) when applied cumulatively to
 small models for tool calling?}
 
-% TODO(#redteam): framing. $+48$--$+71$~pp and the $+71.25$~pp 7B figure are
-% strict-parser-floor-relative. The same-parser (lenient) 7B delta is +10.75~pp
-% (62.00 -> 72.75). State both, and frame CD's contribution as the structural
-% guarantee (100\% parseable) rather than the pp magnitude. Same-parser check is
-% 7B-only; keep the cross-size range labelled as the strict floor.
-Constrained decoding is the dominant optimization technique,
-contributing $+48$--$+71$~pp across the 0.5B to 7B size range
-without training and without generating additional tokens; at 7B the
-gain is $+71.25$~pp.
+Constrained decoding is the dominant optimization technique because it gives a
+model-agnostic structural guarantee: every output conforms to the required
+schema, without training and without generating additional tokens. Relative to
+the strict whole-completion parser floor, this corresponds to a $+48$--$+71$~pp
+recovery across the 0.5B to 7B size range. At 7B, where the same unguided run
+is also scored with the lenient first-object parser, the same-parser accuracy
+gain is $+$10.75~pp (62.00\% to 72.75\%).
 
 AWQ INT4 quantization reduces model memory by 63.5\% (14.25~GiB to
 5.20~GiB at 7B) and startup time by 83.5\% (212~s to 35~s) at a
@@ -96,8 +97,9 @@ match the fine-tuning domain.
 Paired McNemar tests place the 7B fine-tuning gain at the edge of
 significance ($p = 0.044$, borderline against the observed
 run-to-run spread) and the quantized-stack gain within noise
-($p = 0.38$); the consistent positive direction across all four
-model sizes is the primary evidence for the format-alignment effect.
+($p = 0.38$). These p-values are diagnostic rather than family-wise corrected
+across the full ablation grid, so the consistent positive direction across all
+four model sizes is the primary evidence for the format-alignment effect.
 
 Config~CD+schema, which enriches the Stage~2 prompt with parameter
 descriptions, enumeration values, and defaults while keeping the
@@ -117,15 +119,16 @@ restoring the parameter context that the model-agnostic prompt
 discards.
 
 \paragraph{RQ3.} \textit{Can an optimized small language model configuration
-achieve cascade-viable single-call tool-calling accuracy on consumer hardware?}
+provide an upper-bound local tier for cascade-style single-call tool calling on
+consumer hardware?}
 
-Under the scope defined in Chapter~\ref{ch:introduction}, the answer is yes on
-the two stated criteria, lower-tier frontier parity and consumer-GPU
-deployability, for single-call, schema-constrained tool calling. It is not a
-claim of end-to-end cascade viability: the semantic router the cascade requires
-is not implemented, and constrained decoding removes the structural validity
-signal that would otherwise drive routing, so the reported traffic fractions are
-upper bounds (Section~\ref{sec:practical-implications}). Config~CD+schema achieves
+Under the scope defined in Chapter~\ref{ch:introduction}, the answer is yes as
+an upper-bound local-tier result for single-call, schema-constrained tool
+calling on consumer hardware. It is not a claim of end-to-end cascade
+viability: the semantic router the cascade requires is not implemented, and
+constrained decoding removes the structural validity signal that would otherwise
+drive routing, so the reported traffic fractions are upper bounds
+(Section~\ref{sec:practical-implications}). Config~CD+schema achieves
 89.00\% at 7B (Section~\ref{sec:cd-schema}), which is 10.25~pp above
 GPT-5-mini (78.75\%) and 2.00~pp below GPT-4.1 (91.00\%) on BFCL~v4 Python
 Simple AST. It is the first constrained configuration in this evaluation to

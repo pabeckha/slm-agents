@@ -50,8 +50,10 @@ not raw accuracy against a model-specific template. Its value is the structural
 guarantee: the same validity mechanism can be applied across models and
 schemas. Chapter~\ref{ch:discussion} returns to this distinction.
 
-Constrained decoding (CD) recovers 71.25 percentage points, achieving
-72.75\% accuracy. Function selection reaches 100\% accuracy via
+Constrained decoding (CD) achieves 72.75\% accuracy. Relative to the strict
+whole-completion baseline this is a 71.25 percentage point recovery; relative
+to the lenient first-object baseline measured in the isolation arm, the 7B
+same-parser gain is 10.75~pp. Function selection reaches 100\% accuracy via
 \texttt{guided\_choice}; in this category each test case provides a single
 candidate function, so guided selection cannot fail. The meaningful evidence
 on tool selection therefore comes from the \texttt{multiple} category
@@ -425,7 +427,7 @@ B      & No technique, no CD     & 248/400 & 62.00\% & baseline    \\
 RAG-ng & Retrieval, no CD        & 208/400 & 52.00\% & \dneg{$-10.00$~pp} \\
 PE-ng  & Few-shot, no CD         & 236/400 & 59.00\% & \dneg{$-3.00$~pp}  \\
 ITC-ng & Chain-of-thought, no CD & 225/400 & 56.25\% & \dneg{$-5.75$~pp}  \\
-CD     & Constrained decoding    & 291/400 & 72.75\% & \dpos{$+10.75$~pp} \\
+CD     & Constrained decoding    & 291/400 & 72.75\% & \dpos{$+$10.75~pp} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -436,7 +438,7 @@ prompt-level techniques exceeds it: few-shot (PE-ng) reaches 59.00\%
 (236/400, $-3.00$~pp), chain-of-thought (ITC-ng) 56.25\% (225/400,
 $-5.75$~pp), and retrieval (RAG-ng) 52.00\% (208/400, $-10.00$~pp).
 Constrained decoding (72.75\%) is the only configuration that exceeds the
-base, by $+10.75$~pp.
+base, by $+$10.75~pp.
 
 The isolation measurements also quantify the marginal contribution of
 constrained decoding on top of each technique.
@@ -456,7 +458,7 @@ relative to the constrained-decoding contribution.}
 \toprule
 Technique & Without CD ($\uparrow$) & With CD ($\uparrow$) & CD contribution \\
 \midrule
-None (CD alone)  & 62.00\% & 72.75\% & \dpos{$+10.75$~pp} \\
+None (CD alone)  & 62.00\% & 72.75\% & \dpos{$+$10.75~pp} \\
 Few-shot         & 59.00\% & 70.25\% & \dpos{$+11.25$~pp} \\
 Chain-of-thought & 56.25\% & 65.50\% & \dpos{$+9.25$~pp}  \\
 Retrieval        & 52.00\% & 47.75\% & \dneg{$-4.25$~pp}  \\
@@ -465,7 +467,7 @@ Retrieval        & 52.00\% & 47.75\% & \dneg{$-4.25$~pp}  \\
 \end{table}
 
 Once a lenient first-object parser is in place, the marginal contribution of
-constrained decoding on the 7B model is modest: $+10.75$~pp over the base,
+constrained decoding on the 7B model is modest: $+$10.75~pp over the base,
 $+11.25$~pp on top of few-shot, and $+9.25$~pp on top of chain-of-thought.
 For retrieval it is negative ($-4.25$~pp): RAG-ng (52.00\%) exceeds CD+Q+RAG
 (47.75\%). The value of constrained decoding therefore lies in its structural
@@ -583,11 +585,11 @@ applies to absolute accuracies, not to paired differences.}
 
 This result is nominally below the 0.05 threshold but lies within the
 observed run-to-run spread: a CD run at the upper end of the 289--291
-range would not reach significance. The single-category delta is
-therefore treated as borderline rather than established. The stronger
-evidence for format alignment is the consistency of the effect across
-scale: the gain is positive at all four model sizes
-(Section~\ref{sec:model-size}).
+range would not reach significance. The p-value is also not corrected for the
+number of comparisons in the full ablation grid. The single-category delta is
+therefore treated as borderline rather than established. The stronger evidence
+for format alignment is the consistency of the effect across scale: the gain is
+positive at all four model sizes (Section~\ref{sec:model-size}).
 
 The 23.25\% failure rate that remains under CD+FT-aligned follows
 the same taxonomy as CD: optional parameter defaults, numeric

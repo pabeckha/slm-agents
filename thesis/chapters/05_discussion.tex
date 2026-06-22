@@ -9,14 +9,15 @@ practical deployment implications, and the relation to prior work.
 
 \section{Impact of Constrained Decoding vs.\ Model Scale}
 
-The 71.25 percentage point gap between Base and CD is almost
-entirely a format compliance gap. Of the 394 failures in Base, virtually
+The gap between Base and CD is almost entirely a format compliance gap. Under
+the strict whole-completion parser this gap is 71.25 percentage points; under
+the lenient first-object parser used in the isolation arm, the 7B same-parser
+accuracy gain is 10.75~pp. Of the 394 strict-parse failures in Base, virtually
 all are structural: the model produces conversational text, multiple JSON
 objects, or empty output rather than a single valid function call. The six
-correct outputs in Base are semantically accurate but happen to be
-formatted correctly by chance. The model is not unable to reason about the
-queries; it cannot express its answers in the required structured format
-without guidance.
+correct outputs in Base are semantically accurate but happen to be formatted
+correctly by chance. The model is not unable to reason about the queries; it
+cannot express its answers in the required structured format without guidance.
 
 This distinction has a direct consequence for interpreting the frontier
 comparison. CD achieves 72.75\% on BFCL~v4 \texttt{simple\_python},
@@ -119,21 +120,23 @@ sizes up to 3B.
 
 \section{Cost-Benefit Analysis of Each Method}
 
-Constrained decoding yields the highest return of any technique evaluated.
-A 71.25 percentage point accuracy gain is achieved with no training, no
-extra parameters, and no additional generated tokens. The per-step cost of
-guided decoding is not zero: schema compilation and logit masking add
-overhead that grows with schema complexity, although the finite-state
-machine approach keeps the per-token cost low when schemas are compiled
-ahead of time~\cite{willard2023efficient}. Measured on 100 sequential
-\texttt{simple\_python} cases (Section~\ref{sec:latency}), constrained
-decoding (0.878~s mean per call) is 8$\times$ faster than the unconstrained
-baseline (6.995~s mean): the unconstrained model appends prose, markdown,
-and additional JSON objects, generating far more tokens; the constraint
-terminates generation at the closing brace. Constrained decoding is therefore
-not a latency tax but a latency gain at 7B. The accuracy gain is entirely structural: logit
-masking at each decoding step eliminates the malformed output that accounts
-for 98.5\% of failures in Base~\cite{willard2023efficient, kwon2023vllm}.
+Constrained decoding yields the highest structural return of any technique
+evaluated. It guarantees parseable outputs with no training, no extra
+parameters, and no additional generated tokens. The accuracy gain is 71.25
+percentage points relative to the strict generic floor and 10.75~pp relative to
+the lenient 7B parser baseline. The per-step cost of guided decoding is not
+zero: schema compilation and logit masking add overhead that grows with schema
+complexity, although the finite-state machine approach keeps the per-token cost
+low when schemas are compiled ahead of time~\cite{willard2023efficient}.
+Measured on 100 sequential \texttt{simple\_python} cases
+(Section~\ref{sec:latency}), constrained decoding (0.878~s mean per call) is
+8$\times$ faster than the unconstrained baseline (6.995~s mean): the
+unconstrained model appends prose, markdown, and additional JSON objects,
+generating far more tokens; the constraint terminates generation at the closing
+brace. Constrained decoding is therefore not a latency tax but a latency gain
+at 7B. The structural gain comes from logit masking at each decoding step,
+which eliminates the malformed output that accounts for 98.5\% of failures in
+Base~\cite{willard2023efficient, kwon2023vllm}.
 
 Schema-enriched constrained decoding extends the plain CD result by supplying
 the parameter descriptions, type constraints, and enumerated values that the
@@ -437,16 +440,18 @@ after constrained decoding, structural routing signals are unavailable because
 every output is valid JSON naming a known function. The reported $p$ values
 are therefore upper bounds.
 
-If frontier API calls cost $c$ per query and the SLM tier cost is approximated
-as zero per query after hardware amortization, a cascade in which the SLM
-correctly handles a fraction $p$ of requests saves $p \cdot c$ per query
-relative to routing all traffic to the frontier model. CD+Q achieves
-$p \approx 0.72$, CD+Q+FT-aligned achieves $p \approx 0.74$, and
-CD+FT-aligned achieves $p \approx 0.77$, all on a single consumer GPU\@. The
-cascade criterion of RQ3 (Chapter~\ref{ch:introduction}) adopts
-$p \geq 0.70$ as its reference point: at that fraction the local tier
-eliminates at least 70\% of per-query API costs, which all four constrained
-configurations at 7B exceed.
+As a first-order projection, suppose frontier API calls cost $c$ per query and
+the local SLM tier has already been deployed, so its marginal cost is treated
+as small relative to the API call. Under that simplifying assumption, a cascade
+in which the SLM correctly handles a fraction $p$ of requests saves about
+$p \cdot c$ per query relative to routing all traffic to the frontier model.
+CD+Q achieves $p \approx 0.72$, CD+Q+FT-aligned achieves $p \approx 0.74$, and
+CD+FT-aligned achieves $p \approx 0.77$, all on a single consumer GPU\@. These
+are upper-bound traffic fractions, not measured deployment savings, because
+the router, utilization, batching, energy cost, maintenance cost, and latency
+service level are not evaluated. The cascade criterion of RQ3
+(Chapter~\ref{ch:introduction}) adopts $p \geq 0.70$ as its reference point,
+which all four constrained configurations at 7B exceed under this proxy.
 
 The cost-benefit framing above costs the constrained local tier against a
 frontier API. For a single-model deployment a stronger local option is
@@ -481,13 +486,14 @@ deployment lifecycle. The break-even query volume is given by
 $N = C_{\text{train}} / (\Delta p \cdot c_{\text{frontier}})$,
 where $C_{\text{train}}$ is the one-time training cost, $\Delta p$ is
 the accuracy gain, and $c_{\text{frontier}}$ is the frontier API cost
-per call. For CD+Q+FT-aligned versus CD+Q, $\Delta p \approx 0.02$; at
-a representative frontier cost of \$0.01 per call and a training cost
-of \$3 (approximately 4~GPU-hours), break-even is reached at
-$N \approx 15{,}000$ queries. At lower frontier costs or smaller query
-volumes the no-training configuration remains preferable; at higher
-volumes the investment recovers quickly. The
-2.0--5.0~pp accuracy range separating the cascade-viable
+per call. For CD+Q+FT-aligned versus CD+Q, $\Delta p \approx 0.02$. As an illustrative
+calculation, a frontier cost of \$0.01 per call and a training cost of \$3
+(approximately 4~GPU-hours) gives a break-even point of
+$N \approx 15{,}000$ queries. The number is not a deployment cost estimate: it
+omits local serving utilization, queueing, energy, monitoring, router cost, and
+engineering maintenance. At lower frontier costs or smaller query volumes the
+no-training configuration remains preferable; at higher volumes the investment
+recovers quickly. The 2.0--5.0~pp accuracy range separating the local-tier
 configurations represents a concrete trade-off space.
 
 The residual failure classes common to all configurations (wrong optional
@@ -522,16 +528,17 @@ generation for tool selection, and multi-step agentic evaluation.
 Willard and Louf formalised constrained generation using finite-state
 machines compiled from JSON schemas, establishing that format compliance can
 be guaranteed at each decoding step with low per-step
-overhead~\cite{willard2023efficient}. The 71.25~pp gain from Base to CD
-confirms this guarantee in practice: every failure involving malformed or
-conversational output in the Base configuration is eliminated, and the
-residual 27.25\% failure rate is attributable entirely to argument value
-errors. This validates the scope claim in Willard and Louf: constrained
-decoding solves the format compliance problem completely but cannot address
-semantic accuracy. The magnitude of the gain is unusually large here because
-the unguided failure rate of a 7B model on structured generation is
-correspondingly high; models that produce valid JSON more reliably without
-guidance would show a smaller benefit from constrained decoding.
+overhead~\cite{willard2023efficient}. The Base-to-CD comparison confirms this
+guarantee in practice: every failure involving malformed or conversational
+output under the strict Base parse is eliminated, and the residual 27.25\%
+failure rate is attributable entirely to argument value errors. This validates
+the scope claim in Willard and Louf: constrained decoding solves the format
+compliance problem completely but cannot address semantic accuracy. The
+strict-parser accuracy recovery is 71.25~pp at 7B, but the same-parser gain over
+the lenient first-object baseline is 10.75~pp. The value of constrained decoding
+here is therefore the structural guarantee first and the accuracy margin second;
+models or parsers that already recover valid JSON would show a smaller measured
+accuracy benefit.
 The negative chain-of-thought interaction observed in
 Section~\ref{sec:no-training} also connects to the study of Tam et
 al.~\cite{tam2024letmespeak}, which reports that format restrictions can

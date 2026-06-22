@@ -73,19 +73,20 @@ additional isolation variants. The evaluation asks how much of the failure rate
 is caused by output format, how much remains as semantic argument error, and
 which interventions improve each part.
 
-% TODO(#redteam): framing. "1.5--4.75\%" is the strict-parser floor. Same-parser
-% (lenient) 7B baseline is 62.00\%, giving a same-parser CD delta of +10.75~pp at
-% 7B. Either anchor to the 62.00\% figure here or cross-reference the isolation
-% arm so this is not an unqualified third instance of the strict framing.
 The main result is that constrained decoding removes format-compliance failures
-at every model size. Accuracy rises from 1.5--4.75\% in the unoptimized setting
-to 51.50--72.75\%, depending on size, without modifying model weights. Even the
-0.5B model reaches 51.50\% under constrained decoding without training. AWQ
-INT4 quantization reduces memory by 63.5\% at the 7B size (from 14.25~GiB to
-5.20~GiB) at a cost of at most 0.5~pp above 1.5B, within run-to-run variance.
-Format-aligned LoRA fine-tuning improves accuracy at every size; at 7B,
-CD+FT-aligned reaches 76.75\%, within single-run uncertainty of the weakest
-frontier entry on the same category (GPT-5-mini, 78.75\%).
+at every model size and makes every output parseable under the required schema.
+Against the strict generic floor, accuracy rises from 1.5--4.75\% in the
+unoptimized setting to 51.50--72.75\%, depending on size, without modifying
+model weights. At 7B, where the same unguided run is also evaluated under the
+lenient first-object parser, the same-parser gain is smaller but still positive:
+62.00\% to 72.75\% ($+$10.75~pp). The main contribution of constrained
+decoding is therefore the model-agnostic structural guarantee, with an accuracy
+gain whose apparent size depends on the parse contract. AWQ INT4 quantization
+reduces memory by 63.5\% at the 7B size (from 14.25~GiB to 5.20~GiB) at a cost
+of at most 0.5~pp above 1.5B, within run-to-run variance. Format-aligned LoRA
+fine-tuning improves accuracy at every size; at 7B, CD+FT-aligned reaches
+76.75\%, within single-run uncertainty of the weakest frontier entry on the
+same category (GPT-5-mini, 78.75\%).
 
 The strongest result is schema-enriched constrained decoding
 (Config~CD+schema). This configuration adds parameter descriptions, enumeration
@@ -93,7 +94,10 @@ values, and defaults to the argument extraction prompt while keeping the FSM
 mask unchanged. At 7B it reaches 89.00\% ($+$16.25~pp over plain CD, McNemar's
 test $p < 0.00001$). This places the model in the lower frontier range on the
 single-call, single-candidate BFCL~v4 Python Simple AST category, above
-GPT-5-mini, without modifying model weights. The failures that persist across
+GPT-5-mini, without modifying model weights. The comparison is intentionally
+narrow: it does not mean that the constrained pipeline is the best Qwen
+integration, since the native-template control reaches 96.00\%, and it does
+not imply general agent reliability. The failures that persist across
 configurations and sizes are semantic rather than structural: wrong optional
 parameter defaults, numeric precision mismatches, and string format conventions
 that the model's learned priors do not match. This distinction, between failures
@@ -107,14 +111,15 @@ through an external API handles the remainder. This pattern is
 economically motivated. Frontier model APIs are charged per token; a
 locally deployed 7B model on a single consumer GPU incurs a fixed
 hardware cost independent of query volume. If the small model handles
-75\% of requests correctly, 75\% of per-query API costs are eliminated.
-The central challenge is extending the fraction of requests that the
-small model can handle reliably. This thesis evaluates that local SLM
-tier in isolation for tool-calling tasks; it does not implement the
-cascade router or escalation mechanism. BFCL accuracy is therefore used
-as a proxy for the fraction of single-call requests the SLM tier could
-handle, providing a comparable basis for estimating cascade economics
-across configurations.
+75\% of requests correctly and a router can identify the remaining cases,
+75\% of per-query API calls can be avoided. The central challenge is extending
+the fraction of requests that the small model can handle reliably and then
+routing the residual semantic failures. This thesis evaluates that local SLM
+tier in isolation for tool-calling tasks; it does not implement the cascade
+router or escalation mechanism. BFCL accuracy is therefore used as an
+upper-bound proxy for the fraction of single-call requests the SLM tier could
+handle, providing a comparable basis for estimating cascade economics across
+configurations rather than a measured deployment saving.
 
 The optimization techniques are ordered by implementation cost. Methods
 that require no modification to the model weights (constrained
@@ -173,23 +178,23 @@ This thesis addresses three research questions:
 \begin{description}
     \item[RQ1] \textit{What is the performance gap between unoptimized small language models (0.5B--7B parameters) and frontier models on tool-calling benchmarks?}
     \item[RQ2] \textit{What is the marginal contribution of each optimization technique (constrained decoding, schema enrichment, prompt engineering, chain-of-thought prompting, retrieval-augmented generation, quantization, and LoRA fine-tuning) when applied cumulatively to small models for tool calling?}
-    \item[RQ3] \textit{Can an optimized small language model configuration achieve cascade-viable single-call tool-calling accuracy on consumer hardware?}
+    \item[RQ3] \textit{Can an optimized small language model configuration provide an upper-bound local tier for cascade-style single-call tool calling on consumer hardware?}
 \end{description}
 
-\noindent RQ1 establishes the baseline gap that motivates the work. RQ2 is the core empirical contribution. It is answered through an ablation study with two parts: a cumulative ladder that adds one technique at a time, and a complementary isolation arm that evaluates inference-time techniques without constrained decoding. This separates each technique's standalone effect from the contribution of constrained decoding itself. RQ3 addresses the narrower deployment question of whether the optimized configuration is viable as the local tier for single-call tool calling in a cascade.
+\noindent RQ1 establishes the baseline gap that motivates the work. RQ2 is the core empirical contribution. It is answered through an ablation study with two parts: a cumulative ladder that adds one technique at a time, and a complementary isolation arm that evaluates inference-time techniques without constrained decoding. This separates each technique's standalone effect from the contribution of constrained decoding itself. RQ3 addresses the narrower deployment question of whether the optimized configuration can act as a local single-call tier in a cascade-style architecture.
 
-For RQ3, cascade viability is assessed against two explicit criteria. The first
-is lower-tier frontier parity on the same benchmark category: single-call
-accuracy within the range spanned by deployed frontier models on BFCL~v4 Python
-Simple AST (78.75\%--97.75\%; the comparison set is given in
+For RQ3, the local-tier criterion is assessed against two explicit conditions.
+The first is lower-tier frontier parity on the same benchmark category:
+single-call accuracy within the range spanned by deployed frontier models on
+BFCL~v4 Python Simple AST (78.75\%--97.75\%; the comparison set is given in
 Chapter~\ref{ch:results}). The second is local deployability: a memory footprint
 that fits a single consumer GPU (24~GiB), combined with single-call accuracy
-high enough that the local tier handles a substantial fraction of traffic
-($p \geq 0.70$ is used as the reference point in the cost model of
-Chapter~\ref{ch:discussion}). Both criteria are scoped to single-call,
-schema-constrained tool calling. Neither covers general production agents or
-multi-turn task completion, and the cascade criterion presumes that residual
-semantic failures are handled by escalation to a frontier model.
+high enough that the local tier could handle a substantial fraction of traffic
+under an ideal semantic router ($p \geq 0.70$ is used as the reference point in
+the cost model of Chapter~\ref{ch:discussion}). Both criteria are scoped to
+single-call, schema-constrained tool calling. Neither covers general production
+agents or multi-turn task completion, and the routing mechanism required to
+escalate residual semantic failures is not implemented.
 
 To answer these questions, the thesis evaluates an incremental pipeline of methods ordered by implementation cost. No-training methods are evaluated first: constrained decoding~\cite{willard2023efficient}, prompt engineering~\cite{brown2020language}, inference-time compute~\cite{wei2022chain}, retrieval-augmented generation~\cite{lewis2020retrieval}, and quantization~\cite{lin2024awq}. Training-based methods, represented by LoRA fine-tuning~\cite{hu2022lora}, are evaluated after the no-training methods. Each method is assessed both individually and in combination to measure its marginal contribution to tool-calling accuracy.
 
@@ -198,20 +203,14 @@ To answer these questions, the thesis evaluates an incremental pipeline of metho
 The main contributions of this thesis are:
 
 \begin{enumerate}
-    % TODO(#redteam): framing. The 48--71~pp range and the 1.5--4.75\% baseline
-    % are the STRICT whole-completion-parse floor. Under the lenient parser used
-    % for the isolation arm, the same 7B baseline is 62.00\%, so the same-parser
-    % CD contribution at 7B is +10.75~pp (62.00 -> 72.75), not +71.25~pp. The
-    % same-parser check exists only at 7B; 0.5B/1.5B/3B are strict-only -- do NOT
-    % claim +10.75 across sizes. Recast the contribution around the structural
-    % guarantee (62\% -> 100\% parseable; the residual ~38\% unparseable tail is
-    % removed) rather than the pp magnitude. Lead with both numbers.
-    \item A demonstration that constrained decoding alone recovers
-    48--71~pp of BFCL accuracy across the Qwen~2.5 size range (0.5B
-    to 7B), lifting the near-zero model-agnostic baseline (1.5--4.75\%)
-    to 51.50--72.75\%, by eliminating format failures without any
-    modification to model weights and without relying on
-    model-specific prompt templates.
+    \item A demonstration that constrained decoding alone gives a
+    model-agnostic structural guarantee for BFCL tool-call generation, lifting
+    the strict model-agnostic floor from 1.5--4.75\% to 51.50--72.75\% across
+    the Qwen~2.5 size range (0.5B to 7B) without modifying model weights or
+    relying on model-specific prompt templates. At 7B, where the same unguided
+    run is also scored with the lenient first-object parser, constrained
+    decoding improves accuracy from 62.00\% to 72.75\% (+10.75~pp) while
+    making every output parseable.
     \item An incremental ablation study that isolates the marginal
     contribution of constrained decoding, prompt engineering,
     inference-time chain-of-thought, retrieval-augmented generation,
@@ -223,11 +222,11 @@ The main contributions of this thesis are:
     (10.25~pp above GPT-5-mini, 78.75\%); CD+FT-aligned (76.75\%)
     approaches the same lower frontier tier.
     \item A scaling analysis across Qwen~2.5 0.5B, 1.5B, 3B, and 7B
-    showing that constrained decoding gains scale with model size
-    (48~pp at 0.5B to 71.25~pp at 7B), that quantization cost is
-    negligible above 1.5B, that few-shot prompting reverses direction
-    at 7B, and that format-aligned fine-tuning improves accuracy at
-    every size.
+    showing that the strict-parser recovery from constrained decoding scales
+    with model size (48~pp at 0.5B to 71.25~pp at 7B), that the same-parser
+    7B gain over the lenient unguided baseline is 10.75~pp, that quantization
+    cost is negligible above 1.5B, that few-shot prompting reverses direction
+    at 7B, and that format-aligned fine-tuning improves accuracy at every size.
     \item A characterization of the pipeline boundary and the schema change that
     crosses it: the two-stage single-call architecture achieves 70.5\% on the
     \texttt{multiple} category at 7B but 0\% on \texttt{parallel} by construction,

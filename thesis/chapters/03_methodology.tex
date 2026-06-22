@@ -413,6 +413,97 @@ is reported in Chapter~\ref{ch:results}, and the implications of this
 control for interpreting the residual failure rate of the constrained
 configurations are discussed in Chapter~\ref{ch:discussion}.
 
+Figure~\ref{fig:base-vs-template} makes the two designs concrete for the
+\texttt{add} query from Chapter~\ref{ch:introduction}. The model-agnostic
+pipeline (a) anchors generation with the plain-text \texttt{JSON:~} cue and
+reduces each parameter to a \texttt{name (type)} pair, so the model receives
+neither the format it was instruction-tuned on nor the parameter descriptions,
+defaults, and enumerations present in the source schema. The native template
+(b) renders the same request the way the model saw tool use during training:
+the full JSON schema is placed inside a \texttt{<tools>} block in the system
+message, and the model is asked to wrap its call in \texttt{<tool\_call>} tags,
+which the backend then parses. The contrast isolates the two confounds folded
+into the Base score, prompt format and schema completeness, from the model's
+underlying capability.
+
+\begin{figure}[ht]
+\centering
+\lstdefinestyle{promptbox}{%
+    basicstyle=\ttfamily\scriptsize,
+    frame=single,
+    framesep=4pt,
+    columns=fullflexible,
+    keepspaces=true,
+    breaklines=true,
+    breakatwhitespace=false,
+    postbreak=\mbox{\textcolor{gray}{$\hookrightarrow$}\space},
+    showstringspaces=false,
+    aboveskip=4pt,
+    belowskip=2pt,
+}
+
+\textbf{(a) Base --- generic, model-agnostic pipeline (Stage~2 prompt)}
+\begin{lstlisting}[style=promptbox]
+Function: add(a: number, b: number) -> number
+Description: Add two numbers
+User request: What is the sum of 265 and 345?
+Extract the argument values as a JSON object with keys: a (number), b (number).
+JSON:
+\end{lstlisting}
+\textit{Model output (free generation; strict whole-completion parse fails):}
+\begin{lstlisting}[style=promptbox]
+{"a": 265, "b": 345} The function `add` takes two numbers as arguments
+and returns their sum [...] So, the sum of 265 and 345 is 610.
+\end{lstlisting}
+
+\vspace{4pt}
+\textbf{(b) B-template --- native tool-calling chat template (rendered prompt)}
+\begin{lstlisting}[style=promptbox]
+<|im_start|>system
+You are Qwen, created by Alibaba Cloud. You are a helpful assistant.
+
+# Tools
+
+You may call one or more functions to assist with the user query.
+
+You are provided with function signatures within <tools></tools> XML tags:
+<tools>
+{"type": "function", "function": {"name": "add", "description": "Add two
+numbers", "parameters": {"type": "object", "properties": {"a": {"type":
+"number"}, "b": {"type": "number"}}, "required": ["a", "b"]}}}
+</tools>
+
+For each function call, return a json object with function name and arguments
+within <tool_call></tool_call> XML tags:
+<tool_call>
+{"name": <function-name>, "arguments": <args-json-object>}
+</tool_call><|im_end|>
+<|im_start|>user
+What is the sum of 265 and 345?<|im_end|>
+<|im_start|>assistant
+\end{lstlisting}
+\textit{Model output (parsed from the \texttt{<tool\_call>} block):}
+\begin{lstlisting}[style=promptbox]
+<tool_call>
+{"name": "add", "arguments": {"a": 265, "b": 345}}
+</tool_call><|im_end|>
+\end{lstlisting}
+
+\caption{The same \texttt{add} request under the two baseline integrations.
+\textbf{(a)} The model-agnostic Base pipeline uses plain-text anchors
+(\texttt{JSON:}) and a reduced \texttt{name (type)} parameter listing; the
+model continues past the leading JSON object with explanatory prose, so a
+strict whole-completion parse rejects the output (1.50\,\%). \textbf{(b)}
+B-template renders the request through Qwen~2.5's native chat template: the
+full schema is supplied inside \texttt{<tools>}, ChatML control tokens
+(\texttt{<|im\_start|>}, \texttt{<|im\_end|>}) mark turns, and the model emits
+its call inside \texttt{<tool\_call>} tags, which the backend extracts
+(96.00\,\%). The two panels differ in prompt format and in how much of the
+source schema reaches the model; both are held fixed and replaced by a
+structural guarantee in CD.}
+\label{fig:base-vs-template}
+\end{figure}
+
 \section{Constrained Decoding}
 
 CD adds constrained decoding to Base; all other

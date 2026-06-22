@@ -15,21 +15,23 @@ The study uses an incremental ablation over the Qwen~2.5 model family
 are evaluated on four BFCL v4 categories (\texttt{simple\_python},
 \texttt{multiple}, \texttt{parallel}, and \texttt{parallel\_multiple}) and on
 $\tau$-bench retail. A minimal model-agnostic baseline that does not use the
-% TODO(#redteam): framing. The 1.5\% / "77--96 pp below frontier" gap is the
-% strict whole-completion-parse floor. The same 7B run under the lenient parser
-% scores 62.00\%; report the strict floor as a floor, and consider stating the
-% same-parser figure so the headline gap is not read as an intrinsic deficit.
 model's native tool-calling template scores 1.5\% on
-\texttt{simple\_python}, which is 77--96 percentage points below frontier
-models on the same category (78.75\%--97.75\%). A control configuration using
-the model's native template reaches 96.00\%, inside the frontier band. The
-unoptimized gap therefore measures the cost of a generic integration rather
-than the model's capability ceiling.
+\texttt{simple\_python} under a strict whole-completion parser, which is
+77--96 percentage points below frontier models on the same category
+(78.75\%--97.75\%). The same 7B run scores 62.00\% when a lenient parser
+accepts the first complete JSON object and ignores trailing prose, and a
+control configuration using the model's native template reaches 96.00\%,
+inside the frontier band. The unoptimized gap therefore measures the cost of a
+generic integration and strict parse contract rather than the model's
+capability ceiling.
 
 Constrained decoding is the dominant intervention. It raises accuracy to
-72.75\% without modifying model weights or generating additional tokens, while
-reducing mean per-call latency from 6.995~s under unconstrained generation to
-0.878~s. AWQ INT4 quantization preserves most of this accuracy at 72.25\%
+72.75\% without modifying model weights or generating additional tokens,
+while guaranteeing parseable structured output and reducing mean per-call
+latency from 6.995~s under unconstrained generation to 0.878~s. Relative to
+the lenient 7B parser baseline, this is a 10.75 percentage point accuracy
+gain; relative to the strict generic floor, it is a 71.25 percentage point
+recovery. AWQ INT4 quantization preserves most of this accuracy at 72.25\%
 while reducing memory from 14.25~GiB to 5.20~GiB. In contrast, few-shot
 prompting and chain-of-thought reasoning reduce accuracy by 2.5 and 6.75
 percentage points relative to the constrained-decoding configuration each
