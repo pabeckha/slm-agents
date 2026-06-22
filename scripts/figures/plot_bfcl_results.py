@@ -92,7 +92,7 @@ CONFIGS = [
     ("FT-aligned-ng",   "FT-aligned\n(no CD)", 41.00),
     ("CD+Q+RAG",        "CD+Q\n+RAG",          47.75),
     ("FT-only",         "FT-only\n(no CD)",    53.00),
-    ("CD+Q+ITC",        "CD+Q\n+CoT",          65.50),
+    ("CD+Q+ITC",        "CD+Q\n+ITC",          65.50),
     ("CD+FT",           "CD+FT\n(misaligned)", 69.75),
     ("PE",              "PE\n(few-shot)",       70.25),
     ("CD+Q",            "CD+Q\n(INT4)",        72.25),
@@ -157,13 +157,13 @@ SLM_CONFIGS = [
 ]
 
 FRONTIER_CONFIGS = [
-    ("GPT-5-mini",         78.75),
-    ("GPT-4.1\nmini",      91.00),
-    ("GPT-4.1",            91.00),
-    ("Gemini\n3 Pro",      94.75),
-    ("Claude\nHaiku 4.5",  95.00),
-    ("Claude\nOpus 4.5",   96.50),
-    ("Claude\nSonnet 4.5", 97.75),
+    ("GPT-5-mini",        78.75),
+    ("GPT-4.1 mini",      91.00),
+    ("GPT-4.1",           91.00),
+    ("Gemini 3 Pro",      94.75),
+    ("Claude Haiku 4.5",  95.00),
+    ("Claude Opus 4.5",   96.50),
+    ("Claude Sonnet 4.5", 97.75),
 ]
 
 all_names = [c[0] for c in SLM_CONFIGS] + [c[0] for c in FRONTIER_CONFIGS]
@@ -175,7 +175,7 @@ fig, ax = plt.subplots(figsize=(8.5, 3.6))
 bars = ax.bar(range(len(all_names)), all_accs, color=all_cols, width=0.65, zorder=3)
 
 # Label only the CD+schema bar and the frontier endpoints to reduce clutter
-LABEL_THESE = {"CD+schema", "GPT-5-mini", "Claude\nSonnet 4.5"}
+LABEL_THESE = {"CD+schema", "GPT-5-mini", "Claude Sonnet 4.5"}
 for bar, name, val in zip(bars, all_names, all_accs):
     if name in LABEL_THESE:
         is_hl = (name == "CD+schema")
@@ -190,9 +190,9 @@ for bar, name, val in zip(bars, all_names, all_accs):
         )
 
 ax.set_xticks(range(len(all_names)))
-ax.set_xticklabels(all_names, fontsize=TICK_FONTSIZE)
+ax.set_xticklabels(all_names, fontsize=TICK_FONTSIZE, rotation=35, ha="right")
 ax.set_ylabel("AST Accuracy (↑) [%]")
-ax.set_ylim(50, 107)
+ax.set_ylim(0, 107)
 
 # Compact 4-item legend (colour groups only)
 legend_handles = [
@@ -201,7 +201,8 @@ legend_handles = [
     mpatches.Patch(color=C_SECONDARY, label="B-template control — Qwen 2.5 7B (this work)"),
     mpatches.Patch(color=C_FRONTIER,  label="Frontier models (BFCL leaderboard, Python Simple AST)"),
 ]
-ax.legend(handles=legend_handles, loc="lower right", framealpha=0.9, fontsize=LABEL_FONTSIZE)
+ax.legend(handles=legend_handles, loc="lower center", bbox_to_anchor=(0.5, 1.01),
+          ncol=2, framealpha=0.9, fontsize=LABEL_FONTSIZE, borderaxespad=0.0)
 
 # Divider between SLM and frontier groups (Gestalt enclosure)
 ax.axvline(4.5, color=C_REF_LINE, linewidth=0.8, linestyle=":", alpha=0.6)
