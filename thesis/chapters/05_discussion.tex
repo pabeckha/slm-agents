@@ -285,12 +285,16 @@ single-extraction architecture and the effect of moving past it, rather than
 a permanent ceiling on the task; same-function parallel calling at the
 smallest sizes remains hard, so the category is not solved outright.
 
-All experiments use a single model family (Qwen~2.5) across four sizes.
-Directional findings, such as the ordering of techniques by accuracy,
-the size-dependence of the PE effect, and the quantization penalty
-profile, are observed consistently within this family. Whether they
-transfer to other SLM families with different training regimes (e.g.\
-Llama~3.2, Phi-4) is not established and should not be assumed.
+The size sweep and most ablation configurations use a single model
+family (Qwen~2.5) across four sizes. Constrained decoding is the
+exception: it is also evaluated on four other families
+(Section~\ref{sec:cross-family-cd}), where its structural benefit holds,
+so that finding has external support. The remaining directional findings,
+such as the ordering of techniques by accuracy, the size-dependence of
+the PE effect, and the quantization penalty profile, are observed
+consistently within Qwen~2.5 only. Whether they transfer to other SLM
+families with different training regimes (e.g.\ Llama~3.2, Phi-4) is not
+established and should not be assumed.
 
 The cascade architecture is the motivating deployment context for this
 evaluation, but no direct cascade experiment is reported. The benefit
@@ -358,12 +362,17 @@ conclusion holds across all evaluated model sizes
 (Table~\ref{tab:tau-bench-size}).
 
 \textbf{Single model family.}
-All experiments use the Qwen~2.5 Instruct family across four sizes.
-Directional findings (the ordering of techniques by accuracy, the
+The size sweep and the quantized, fine-tuned, and agentic configurations
+use the Qwen~2.5 Instruct family across four sizes. Constrained decoding
+is additionally evaluated on four other families
+(Section~\ref{sec:cross-family-cd}), where its benefit is family-robust,
+and the GitHub MCP and format-aligned analyses also span families
+(Sections~\ref{sec:github-mcp} and~\ref{sec:format-aligned}). The
+remaining findings (the ordering of techniques by accuracy, the
 size-dependence of the few-shot effect, and the quantization penalty
-profile) are observed consistently within this family but may not
-transfer to other SLM families with different pre-training regimes or
-instruction-tuning data (e.g.\ Llama~3.2, Phi-4).
+profile) are observed only within Qwen~2.5 and may not transfer to other
+SLM families with different pre-training regimes or instruction-tuning
+data (e.g.\ Llama~3.2, Phi-4).
 
 \textbf{BFCL \texttt{simple\_python} reliance.}
 The primary evaluation uses the least demanding BFCL category:
