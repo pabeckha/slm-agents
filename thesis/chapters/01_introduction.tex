@@ -51,7 +51,10 @@ model-agnostic integration, not the model's ceiling. It reflects
 plain-text prompts, a strict single-object parse that discards the
 leading valid object once trailing text follows it, and no use of the
 model-specific tool-calling template that Qwen~2.5 provides. A more
-lenient parser recovers many of these completions, and a control
+lenient parser that accepts the leading valid object and ignores any
+trailing text recovers many of these completions: the same 7B run then
+scores 62.00\% (this lenient parser is the one used for the isolation
+analysis in Chapter~\ref{ch:results}). A control
 configuration that prompts the same model through its native
 tool-calling template (B-template) reaches 96.00\% (384/400) on the
 same test cases. The 1.5\% should therefore be read as the floor for a
@@ -61,14 +64,19 @@ format compliance structurally, with guarantees that hold for any model
 and any schema. The full parser-sensitivity and B-template analysis is
 deferred to Chapters~\ref{ch:results} and~\ref{ch:discussion}.
 
-This thesis directly investigates that assumption: that reliable agentic
-behavior requires large-scale models. It evaluates four Qwen~2.5
-Instruct sizes (0.5B, 1.5B, 3B, and 7B) on BFCL~v4
+This thesis investigates one part of that assumption: whether reliable
+single-call tool use requires a large model, or whether much of the observed
+failure comes from insufficient structure around generation. It evaluates four
+Qwen~2.5 Instruct sizes (0.5B, 1.5B, 3B, and 7B) on BFCL~v4
 \texttt{simple\_python}, using a main ladder of optimization configurations and
 additional isolation variants. The evaluation asks how much of the failure rate
 is caused by output format, how much remains as semantic argument error, and
 which interventions improve each part.
 
+% TODO(#redteam): framing. "1.5--4.75\%" is the strict-parser floor. Same-parser
+% (lenient) 7B baseline is 62.00\%, giving a same-parser CD delta of +10.75~pp at
+% 7B. Either anchor to the 62.00\% figure here or cross-reference the isolation
+% arm so this is not an unqualified third instance of the strict framing.
 The main result is that constrained decoding removes format-compliance failures
 at every model size. Accuracy rises from 1.5--4.75\% in the unoptimized setting
 to 51.50--72.75\%, depending on size, without modifying model weights. Even the
@@ -79,33 +87,34 @@ Format-aligned LoRA fine-tuning improves accuracy at every size; at 7B,
 CD+FT-aligned reaches 76.75\%, within single-run uncertainty of the weakest
 frontier entry on the same category (GPT-5-mini, 78.75\%).
 
-The strongest result comes from schema-enriched constrained decoding
+The strongest result is schema-enriched constrained decoding
 (Config~CD+schema). This configuration adds parameter descriptions, enumeration
 values, and defaults to the argument extraction prompt while keeping the FSM
 mask unchanged. At 7B it reaches 89.00\% ($+$16.25~pp over plain CD, McNemar's
-test $p < 0.00001$), entering the lower frontier range on BFCL~v4 Python Simple AST above GPT-5-mini without
-modifying model weights. The failures that persist across configurations and
-sizes are semantic rather than structural: wrong optional parameter defaults,
-numeric precision mismatches, and string format conventions that the model's
-learned priors do not match. This distinction, between failures that constraints
-can fix and failures that require better semantic guidance or training,
-organises the evaluation.
+test $p < 0.00001$). This places the model in the lower frontier range on the
+single-call, single-candidate BFCL~v4 Python Simple AST category, above
+GPT-5-mini, without modifying model weights. The failures that persist across
+configurations and sizes are semantic rather than structural: wrong optional
+parameter defaults, numeric precision mismatches, and string format conventions
+that the model's learned priors do not match. This distinction, between failures
+that constraints can fix and failures that require better semantic guidance or
+training, organises the evaluation.
 
 The practical deployment context motivating this investigation is the
 cascade architecture: a two-tier system in which a locally deployed
-small model handles the majority of incoming requests, while a frontier
-model accessed through an external API handles the remainder. This
-pattern is economically motivated. Frontier model APIs are charged per
-token; a locally deployed 7B model on a single consumer GPU incurs a
-fixed hardware cost independent of query volume. If the small model
-handles 75\% of requests correctly, 75\% of per-query API costs are
-eliminated. The central challenge is extending the fraction of requests
-that the small model can handle reliably, which is precisely what each
-optimization technique in this thesis is evaluated against. This thesis
-evaluates the SLM tier in isolation; the cascade router and escalation
-mechanism are not implemented. BFCL accuracy is a proxy for the
-fraction of requests the SLM tier could handle, providing a comparable
-basis for estimating cascade economics across configurations.
+small model handles routine requests, while a frontier model accessed
+through an external API handles the remainder. This pattern is
+economically motivated. Frontier model APIs are charged per token; a
+locally deployed 7B model on a single consumer GPU incurs a fixed
+hardware cost independent of query volume. If the small model handles
+75\% of requests correctly, 75\% of per-query API costs are eliminated.
+The central challenge is extending the fraction of requests that the
+small model can handle reliably. This thesis evaluates that local SLM
+tier in isolation for tool-calling tasks; it does not implement the
+cascade router or escalation mechanism. BFCL accuracy is therefore used
+as a proxy for the fraction of single-call requests the SLM tier could
+handle, providing a comparable basis for estimating cascade economics
+across configurations.
 
 The optimization techniques are ordered by implementation cost. Methods
 that require no modification to the model weights (constrained
@@ -189,6 +198,14 @@ To answer these questions, the thesis evaluates an incremental pipeline of metho
 The main contributions of this thesis are:
 
 \begin{enumerate}
+    % TODO(#redteam): framing. The 48--71~pp range and the 1.5--4.75\% baseline
+    % are the STRICT whole-completion-parse floor. Under the lenient parser used
+    % for the isolation arm, the same 7B baseline is 62.00\%, so the same-parser
+    % CD contribution at 7B is +10.75~pp (62.00 -> 72.75), not +71.25~pp. The
+    % same-parser check exists only at 7B; 0.5B/1.5B/3B are strict-only -- do NOT
+    % claim +10.75 across sizes. Recast the contribution around the structural
+    % guarantee (62\% -> 100\% parseable; the residual ~38\% unparseable tail is
+    % removed) rather than the pp magnitude. Lead with both numbers.
     \item A demonstration that constrained decoding alone recovers
     48--71~pp of BFCL accuracy across the Qwen~2.5 size range (0.5B
     to 7B), lifting the near-zero model-agnostic baseline (1.5--4.75\%)
@@ -201,7 +218,8 @@ The main contributions of this thesis are:
     quantization, LoRA fine-tuning, and schema-enriched prompting to
     BFCL \texttt{simple\_python} accuracy. Schema-enriched constrained
     decoding (CD+schema, 89.00\%) is the strongest no-training
-    configuration and the first to enter the lower frontier range on BFCL~v4 Python Simple AST
+    configuration and the first to enter the lower frontier range on the
+    single-call, single-candidate BFCL~v4 Python Simple AST category
     (10.25~pp above GPT-5-mini, 78.75\%); CD+FT-aligned (76.75\%)
     approaches the same lower frontier tier.
     \item A scaling analysis across Qwen~2.5 0.5B, 1.5B, 3B, and 7B
@@ -216,7 +234,7 @@ The main contributions of this thesis are:
     and replacing the per-function extraction stage with a joint multi-call schema
     lifts \texttt{parallel} to 79\% at 7B, showing the limit was the output schema
     rather than model capability.
-    \item A targeted real-world validation on the GitHub MCP server (21 live
+    \item An exploratory real-world validation on the GitHub MCP server (21 live
     tools, 50 natural-language prompts) showing that constrained decoding holds
     96.0\% tool selection at 7B when the model must choose from a full catalogue
     of semantically similar operations, that its benefit concentrates on the
