@@ -443,4 +443,73 @@ if _v1_path.exists() and _v2_path.exists():
 else:
     print("Skipping fig_lora_training_loss: trainer_state.json not found (models/ lives on HPC)")
 
+
+# ---------------------------------------------------------------------------
+# Figure 7 — Model-size scaling (Qwen 2.5) with cross-family CD overlay
+# ---------------------------------------------------------------------------
+# Story: every technique improves with scale, but the constraint mechanism (CD,
+# CD+schema) carries the accuracy at every size while the raw base (B) stays on
+# the floor. Cross-family CD points (other labs) track the Qwen CD line by
+# capacity, not by lineage. Data: Table size-sweep-full + Table cross-family-cd.
+
+SIZES = [0.5, 1.5, 3.0, 7.0]
+
+# (label, accuracies over SIZES, colour, linestyle, marker, linewidth)
+SIZE_LINES = [
+    ("B-template", [78.00, 84.75, 95.00, 96.00], C_FRONTIER,  "--", "s", 1.3),
+    ("CD+schema",  [74.25, 84.00, 88.00, 89.00], C_HIGHLIGHT, "-",  "D", 2.2),
+    ("CD",         [51.50, 62.25, 64.75, 72.75], C_REF_LINE,  "-",  "o", 1.6),
+    ("CD+Q",       [47.75, 60.50, 64.50, 72.25], C_REF_LINE,  ":",  "x", 1.3),
+    ("PE",         [53.50, 64.75, 67.00, 70.25], C_SECONDARY, "-",  "^", 1.6),
+    ("B (raw)",    [ 3.50,  4.75,  2.75,  1.50], C_NEUTRAL_DARK, "-", ".", 1.2),
+]
+
+# Cross-family CD points: (label, approx_size_B, accuracy)
+CROSS_FAMILY = [
+    ("Gemma 3 1B",  1.0, 55.50),
+    ("Llama 3.2 1B", 1.2, 60.50),
+    ("Llama 3.2 3B", 3.2, 62.50),
+    ("Phi-4-mini",   3.8, 68.25),
+]
+
+fig, ax = plt.subplots(figsize=(6.2, 4.0))
+
+for label, accs, col, ls, mk, lw in SIZE_LINES:
+    is_hl = (label == "CD+schema")
+    ax.plot(SIZES, accs, color=col, linestyle=ls, marker=mk,
+            markersize=5 if not is_hl else 6, linewidth=lw,
+            zorder=5 if is_hl else 3, label=label,
+            markerfacecolor=col if mk != "x" else "none")
+
+# Cross-family CD points (other labs) — single marker style, distinct hue so
+# they read apart from the Qwen lines.
+C_CROSS = "#e0892b"  # muted orange — cross-family CD points
+cf_x = [c[1] for c in CROSS_FAMILY]
+cf_y = [c[2] for c in CROSS_FAMILY]
+ax.scatter(cf_x, cf_y, marker="*", s=130, color=C_CROSS,
+           edgecolor="white", linewidth=0.5, zorder=6,
+           label="Other families (CD)")
+for name, x, y in CROSS_FAMILY:
+    ax.annotate(name, xy=(x, y), xytext=(0, -11),
+                textcoords="offset points", ha="center", va="top",
+                fontsize=6.8, color=C_CROSS)
+
+ax.set_xscale("log")
+ax.set_xticks(SIZES)
+ax.set_xticklabels([f"{s:g}B" for s in SIZES])
+ax.minorticks_off()
+ax.set_xlim(0.42, 8.2)
+ax.set_ylim(0, 100)
+ax.set_xlabel("Model size (parameters, log scale)")
+ax.set_ylabel("AST Accuracy (↑) [%]")
+ax.legend(loc="lower right", framealpha=0.9, fontsize=LABEL_FONTSIZE, ncol=2)
+_clean_axes(ax)
+
+fig.tight_layout()
+out = OUT_DIR / "fig_size_scaling.pdf"
+fig.savefig(out)
+plt.close(fig)
+print(f"Saved {out}")
+
+
 print("\nAll figures saved to", OUT_DIR)

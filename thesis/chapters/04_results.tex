@@ -1166,6 +1166,27 @@ rather than by training lineage. The evaluation is confined to Config~CD on
 \texttt{simple\_python}; the quantized, fine-tuned, and agentic configurations
 remain on Qwen~2.5 (Section~\ref{sec:threats-validity}).
 
+Fig.~\ref{fig:size-scaling} summarises both results on a single accuracy-versus-size
+axis. Accuracy rises monotonically with scale for every technique, but the
+constraint mechanism (CD, CD+schema) carries the accuracy at all four sizes
+while the raw base (B) stays on the near-zero floor; CD+Q tracks CD so closely
+that the quantization penalty is barely visible. The four cross-family CD points
+fall within the Qwen~2.5 CD band at the corresponding parameter count, ordered
+by model capacity rather than by training lineage.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{pictures/figures/fig_size_scaling.pdf}
+\caption{BFCL~v4 \texttt{simple\_python} AST accuracy versus Qwen~2.5 model size
+         (log scale) for the main configurations
+         (Table~\ref{tab:size-sweep-full}). Stars mark Config~CD on four
+         other instruct families at their approximate parameter count
+         (Table~\ref{tab:cross-family-cd}); they fall within the Qwen~2.5 CD
+         band by capacity, not by lab. CD+Q overlaps CD throughout, showing
+         the negligible INT4 quantization penalty above 1.5B.}
+\label{fig:size-scaling}
+\end{figure}
+
 \section{Extended Function-Calling Categories}
 \label{sec:bfcl-extended}
 
