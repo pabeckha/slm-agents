@@ -19,17 +19,23 @@ as a model-size sweep across the full Qwen 2.5 family (0.5B, 1.5B, 3B, 7B).
 
 | Config | Techniques | BFCL AST (7B) |
 |--------|-----------|----------|
-| B | Baseline (no optimization) | 1.5% |
+| B | Baseline, generic prompt (strict parser) | 1.5% |
+| B-template | Native tool-calling template, free generation | 96.00% |
 | CD | + Constrained decoding | 72.75% |
+| CD+schema | + Schema-enriched prompt (descriptions, enums, defaults) | **89.00%** |
 | PE | + Few-shot prompting | 70.25% |
 | CD+Q | + AWQ INT4 quantization | 72.25% |
 | CD+Q+ITC | + Chain-of-thought | 65.5% |
-| CD+Q+RAG | + RAG top-5 retrieval | 47.75% |
-| FT-only | LoRA alone, no CD | 13.75% |
-| FT-aligned-ng | Format-aligned LoRA, no CD | 13.25% |
+| CD+Q+RAG | + RAG top-5 retrieval (open catalogue) | 47.75% |
+| FT-only | LoRA alone, no CD (lenient parser) | 53.00% |
+| FT-aligned-ng | Format-aligned LoRA, no CD (lenient parser) | 41.00% |
 | CD+FT | + LoRA (misaligned format) | 69.75% |
-| CD+FT-aligned | + LoRA (format-aligned) | **76.75%** |
+| CD+FT-aligned | + LoRA (format-aligned) | 76.75% |
 | CD+Q+FT-aligned | + LoRA (format-aligned) + AWQ INT4 | 74.25% |
+
+The B row uses a strict whole-completion parser (the generic-integration floor); the
+no-guided rows (FT-only, FT-aligned-ng) use a lenient first-object parser, under which
+the same B run scores 62.00%. All guided rows are parser-independent.
 
 τ-bench retail (Config CD): **4.35% pass rate** (mean of 3 runs × 115 tasks) — multi-step agentic baseline.
 
@@ -51,15 +57,23 @@ parallel_multiple) were also run; see [docs/decisions/size-sweep-results.md](doc
 
 ## Key Findings
 
-Constrained decoding alone closes ~95% of the gap between a raw 7B SLM (1.5%) and
-frontier models on BFCL simple\_python. Qwen 2.5 7B + CD (72.75%) matches GPT-4.1
-(72.67%) and Claude Sonnet 4.5 (72.58%).
+The 1.5% baseline is the floor of a generic, model-agnostic integration under a strict
+parser, not the model's ceiling: the same model under its native tool-calling template
+(B-template) reaches 96.00%. Constrained decoding restores format compliance
+structurally for any model and schema, lifting accuracy to 72.75% at 7B while
+guaranteeing parseable output.
 
-Format-aligned LoRA fine-tuning pushes past the no-training ceiling: CD+FT-aligned at
-**76.75%** comes within 0.08 pp of Claude Opus 4.5 (76.83%) on simple_python and is
-the best result in the study. The key was aligning training format exactly to the
-inference pipeline — general-purpose xlam training with format mismatch caused a
-regression (-3 pp).
+Schema-enriched constrained decoding (CD+schema) is the strongest no-training result at
+**89.00%** (+16.25 pp over plain CD, McNemar p < 0.00001), entering the lower frontier
+range on BFCL v4 Python Simple AST without modifying model weights (frontier models span
+78.75%–97.75% on this category). Format-aligned LoRA fine-tuning reaches 76.75%; the key
+was aligning the training output format exactly to the inference pipeline — general-purpose
+xlam training with a format mismatch caused a regression (-3 pp).
+
+The central finding: constrained decoding converts tool calling from a format-compliance
+problem (fixable structurally at inference time) into a semantic argument-value problem,
+which schema enrichment addresses far better than prompting or fine-tuning. None of this
+transfers to multi-step agency — τ-bench retail stays at 4.35%.
 
 ## Project Structure
 
@@ -67,7 +81,7 @@ regression (-3 pp).
 src/                  # Constrained decoding pipeline (vLLM backend, prompts, schema)
 scripts/              # HPC job scripts, evaluation scripts, LoRA training
 data/                 # Input datasets and output results
-docs/                 # Decisions, research, planning, meeting notes
+docs/                 # Decisions, research, planning
 thesis/               # LaTeX thesis document (main.tex)
 project_plan/         # Formal project plan and bibliography
 ```
@@ -86,8 +100,9 @@ All chapters complete; all experiments done.
 | Conclusion | Complete |
 | Appendices | Complete — AI disclosure, hyperparameters, full results |
 
-Current: 58 pages (target 40–60, excl. preface and appendix). Deadline: 2026-07-05.
-Build verified clean: no undefined references or citations.
+Current: 66 numbered pages (body + appendices). Deadline: 2026-07-05.
+Build verified clean: no undefined references or citations; thesis/docs number
+consistency enforced by `make test` (148 checks).
 
 ## Running Experiments
 
@@ -121,4 +136,4 @@ Requires `HF_TOKEN` for model downloads and `HF_HOME` pointing to scratch storag
 
 ## Supervisor
 
-Nicki Skafte Detlefsen (DTU) — meetings tracked in `docs/supervision/`
+Nicki Skafte Detlefsen (DTU).
