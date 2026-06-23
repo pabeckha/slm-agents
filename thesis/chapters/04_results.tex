@@ -76,6 +76,7 @@ semantic error without training. PE, CD+Q+ITC, and CD+Q+RAG assess whether
 other inference-time interventions improve on the constrained pipeline.
 
 \subsection{Constrained Decoding}
+\label{sec:cd-results}
 
 The two-stage constrained decoding pipeline eliminates the dominant failure mode
 of Base. In the function selection stage, \texttt{guided\_choice} restricts
@@ -830,6 +831,59 @@ on BFCL, because $\tau$-bench tools accept free-form string identifiers
 that constrained decoding does not validate. Context management failures
 are also observed in tasks with long conversation histories, where earlier
 tool call results are displaced from the model's working context.
+
+Figure~\ref{fig:tau-failure} shows a representative failed trajectory that
+makes the gap concrete. The task requires the agent to authenticate Yusuf
+Rossi (zip 19122) and exchange two items in order \texttt{\#W2378156}. The
+policy in the system prompt requires the agent to locate the user id first,
+by email or by name and zip. Instead of asking for these details or using
+the identity available in the conversation, the model fabricates them: it
+calls \texttt{find\_user\_id\_by\_email} with an invented address
+(\texttt{john.doe@example.com}), and after that fails, calls
+\texttt{find\_user\_id\_by\_name\_zip} with an invented name and zip
+(\texttt{John Doe}, \texttt{10001}). Both lookups return \texttt{user not
+found}, and the agent transfers to a human, so none of the requested
+exchanges is performed and the task scores reward 0.0. Every tool call in
+the trajectory is structurally valid and names a real function, which is
+exactly what constrained decoding guarantees; the failure is in the
+\emph{values}. The free-form string identifiers that
+\texttt{find\_user\_id\_by\_email} and \texttt{find\_user\_id\_by\_name\_zip}
+accept are not constrained by \texttt{guided\_json}, so the model is free to
+hallucinate them, and a single fabricated argument at the authentication
+step collapses the entire multi-step task before any sub-goal is reached.
+This is the BFCL residual failure mode (Section~\ref{sec:cd-results}) acting
+at the first turn of a multi-step trajectory, where there is no later step
+that can recover from it.
+
+\begin{figure}[ht]
+\centering
+\begin{lstlisting}[style=promptbox]
+Task: authenticate Yusuf Rossi (zip 19122); exchange two items in #W2378156.
+Ground-truth first action:
+  find_user_id_by_name_zip(first_name="Yusuf", last_name="Rossi", zip="19122")
+
+[user]      I received my order #W2378156, and I'm looking to exchange the
+            mechanical keyboard [...] switch the smart thermostat [...]
+[assistant] -> find_user_id_by_email({"email": "john.doe@example.com"})
+[tool]      Error: user not found
+[assistant] -> find_user_id_by_name_zip({"first_name": "John",
+                                         "last_name": "Doe", "zip": "10001"})
+[tool]      Error: user not found
+[assistant] -> transfer_to_human_agents({"summary": "User John Doe could not
+            be located [...]"})
+[tool]      Transfer successful        (task ends; reward 0.0)
+\end{lstlisting}
+\caption{A failed $\tau$-bench retail trajectory for CD on Qwen~2.5
+7B-Instruct (task 0, run 1), reproduced from the stored trajectory log.
+Each tool call is structurally valid and names an existing function, the
+guarantee constrained decoding provides, but the model fabricates the
+free-form identifier arguments (\texttt{john.doe@example.com}, then
+\texttt{John Doe}/\texttt{10001}) instead of eliciting or reusing the
+user's actual identity. Authentication fails at the first step, so the
+multi-step task collapses before any exchange is attempted. Assistant prose
+between calls is omitted; \texttt{[...]} marks elisions.}
+\label{fig:tau-failure}
+\end{figure}
 
 The 4.35\% pass rate on $\tau$-bench establishes the agentic baseline for
 CD on the retail domain. The 68.4~pp gap quantifies the boundary

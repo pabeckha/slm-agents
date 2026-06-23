@@ -22,34 +22,26 @@ decoding itself.
 \subsection{Cumulative Evaluation Ladder}
 
 Twelve configurations are evaluated in total. Eleven form the cumulative
-ladder illustrated in Figure~\ref{fig:eval-ladder}; the twelfth, CD+schema,
-branches off separately and is reported in Section~\ref{sec:cd-schema}.
+ladder in Figure~\ref{fig:eval-ladder}; the twelfth, CD+schema, branches off
+separately and is reported in Section~\ref{sec:cd-schema}.
 
-The ladder has a main chain of four configurations. Config~B is the baseline:
-the model is prompted without constrained decoding at full precision.
-Config~CD adds constrained decoding, forcing the output to conform to a valid
-JSON schema. Config~CD+Q adds AWQ INT4 quantization to reduce the memory
-footprint while preserving accuracy as much as possible. Config~CD+Q+FT-aligned
-then applies a format-aligned LoRA adapter to the quantized model.
+The ladder is organised around a main chain (Config~B $\to$ CD $\to$ CD+Q
+$\to$ CD+Q+FT-aligned) that starts from an unconstrained full-precision
+baseline and adds one technique at each step: constrained decoding, then
+AWQ INT4 quantization, then a format-aligned LoRA adapter. The remaining
+configurations branch from this chain to isolate a single design choice
+rather than to extend the stack. Few-shot prompting (PE) branches from CD at
+full precision, so its effect is separated from quantization; chain-of-thought
+(ITC) and retrieval (RAG) branch from CD+Q; and two LoRA adapters, misaligned
+(CD+FT) and format-aligned (CD+FT-aligned), branch from CD\@. Two further
+variants drop constrained decoding entirely (FT-only and FT-aligned-ng, where
+ng denotes no guided decoding) to measure fine-tuning on its own.
 
-Several configurations branch from this main chain to isolate specific design
-choices. Config~PE adds few-shot prompting on top of Config~CD at full
-precision, so the effect of examples is isolated from quantization.
-Config~CD+Q+ITC adds chain-of-thought inference-time compute, and
-Config~CD+Q+RAG adds retrieval-augmented generation, both on top of
-Config~CD+Q. Fine-tuning is evaluated from Config~CD: Config~CD+FT applies a
-misaligned LoRA adapter, while Config~CD+FT-aligned applies the
-format-aligned adapter. Two unguided variants are also evaluated without
-constrained decoding: Config~FT-only (misaligned adapter) and
-Config~FT-aligned-ng (format-aligned adapter, ng: no guided decoding).
-
-The second arm of the design isolates the contribution of constrained
-decoding. The three inference-time techniques are evaluated again without
-guided decoding: Config~PE-ng (few-shot), Config~ITC-ng (chain-of-thought),
-and Config~RAG-ng (retrieval). These isolation variants are reported in
-Section~\ref{sec:technique-isolation}; they are not rungs on the
-eleven-configuration ladder and are therefore omitted from
-Figure~\ref{fig:eval-ladder}.
+The second arm of the design re-evaluates the three inference-time techniques
+without guided decoding (Config~PE-ng, ITC-ng, and RAG-ng) to quantify the
+contribution of constrained decoding itself. These isolation variants are
+reported in Section~\ref{sec:technique-isolation}; they are not rungs on the
+ladder and are omitted from Figure~\ref{fig:eval-ladder}.
 
 \begin{figure}[ht]
 \centering
@@ -110,14 +102,15 @@ Figure~\ref{fig:eval-ladder}.
 
 \end{tikzpicture}%
 }
-\caption{Incremental evaluation ladder showing all eleven configurations.
-The main chain (top row, solid arrows) adds one technique at a time.
-Orange nodes are inference-time branches: PE branches from CD at full
+\caption{Incremental evaluation ladder showing eleven of the twelve
+configurations. The main chain (top row, solid arrows) adds one technique at a
+time. Orange nodes are inference-time branches: PE branches from CD at full
 precision; ITC and RAG branch from CD+Q\@.
 Green nodes are fine-tuning branches from CD\@.
 Gray nodes are unguided standalone configurations (no constrained decoding).
-The off-ladder CD+schema variant (Section~\ref{sec:cd-schema}) is evaluated
-separately and is not shown.}
+Not shown: the off-ladder CD+schema variant (Section~\ref{sec:cd-schema}) and
+the no-guided isolation variants PE-ng, ITC-ng, and RAG-ng
+(Section~\ref{sec:technique-isolation}), which are evaluated separately.}
 \label{fig:eval-ladder}
 \end{figure}
 
@@ -608,6 +601,36 @@ both pipeline stages, and temperature is set to~0. PE is evaluated
 as a parallel track to CD+Q rather than as an extension of it, so the
 full-precision model is retained to isolate the effect of the few-shot
 examples from any interaction with quantization.
+
+\section{Inference-Time Compute}
+\label{sec:method-itc}
+
+CD+Q+ITC extends CD+Q with a chain-of-thought reasoning
+step~\cite{wei2022chain,snell2024scaling}. The two-stage pipeline is
+unchanged at its endpoints: function selection still uses
+\texttt{guided\_choice} and argument extraction still uses
+\texttt{guided\_json}. A free-form reasoning stage is inserted between
+them. After the function name is selected, the model generates a reasoning
+trace of up to 256 tokens, prompted to set out which arguments the call
+requires and what values they should take, before the final guided
+extraction.
+
+The reasoning stage is deliberately unconstrained. The structural guarantee
+of constrained decoding applies only to the final extraction, where it is
+needed to produce a valid call; the intermediate trace is left free so the
+model can deliberate about argument values without the token mask
+restricting it. The 256-token budget bounds the additional inference cost
+while leaving room for the model to reason over the argument set of a
+single call. The reasoning text is discarded after the extraction step and
+does not enter the parsed output.
+
+CD+Q+ITC branches from CD+Q rather than extending the stack, so the
+AWQ~INT4 model is retained and the only change relative to CD+Q is the
+inserted reasoning stage. All other settings are inherited from CD+Q:
+guided decoding on both endpoints and temperature~0. Isolating the effect
+of inference-time compute from quantization at the 7B scale, where the
+quantization penalty is 0.5~pp, is not required because the reasoning stage
+is evaluated as a single addition to the CD+Q operating baseline.
 
 \section{Retrieval-Augmented Generation}
 
