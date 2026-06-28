@@ -486,14 +486,30 @@ deployment lifecycle. The break-even query volume is given by
 $N = C_{\text{train}} / (\Delta p \cdot c_{\text{frontier}})$,
 where $C_{\text{train}}$ is the one-time training cost, $\Delta p$ is
 the accuracy gain, and $c_{\text{frontier}}$ is the frontier API cost
-per call. For CD+Q+FT-aligned versus CD+Q, $\Delta p \approx 0.02$. As an illustrative
-calculation, a frontier cost of \$0.01 per call and a training cost of \$3
-(approximately 4~GPU-hours) gives a break-even point of
-$N \approx 15{,}000$ queries. The number is not a deployment cost estimate: it
-omits local serving utilization, queueing, energy, monitoring, router cost, and
-engineering maintenance. At lower frontier costs or smaller query volumes the
-no-training configuration remains preferable; at higher volumes the investment
-recovers quickly. The 2.0--5.0~pp accuracy range separating the local-tier
+per call. For CD+Q+FT-aligned versus CD+Q, $\Delta p \approx 0.02$. The two cost terms can
+be grounded in current list prices rather than left illustrative. A frontier
+tool call to GPT-4o is billed at \$2.50 per million input tokens and \$10.00 per
+million output tokens.\footnote{\url{https://openai.com/api/pricing/}, accessed
+2026-06-28.} A representative \texttt{simple\_python}-style call consisting of
+roughly 2{,}000 input tokens (system instruction, tool schemas, and user query)
+and 150 output tokens (a single JSON call) therefore costs
+$c_{\text{frontier}} \approx \$0.0065$. The one-time training cost is the
+approximately 4~GPU-hours of the LoRA run priced at a current A100~80\,GB cloud
+rate of about \$1.50 per GPU-hour,\footnote{Representative on-demand rate for a
+single A100~80\,GB; community-cloud providers quote \$1.19--\$1.49 per GPU-hour
+(\url{https://www.runpod.io/pricing}, accessed 2026-06-28).} giving
+$C_{\text{train}} \approx \$6$. These figures place the break-even point at
+$N = C_{\text{train}} / (\Delta p \cdot c_{\text{frontier}}) \approx 46{,}000$
+queries. The number is not a deployment cost estimate: it omits local serving
+utilization, queueing, energy, monitoring, router cost, and engineering
+maintenance. It is also highly sensitive to the escalation target. If the
+frontier tier is a cheaper model such as GPT-4o-mini (\$0.15 and \$0.60 per
+million input and output tokens), the same call costs only
+$c_{\text{frontier}} \approx \$0.0004$ and the break-even rises above 750{,}000
+queries; the trained tier pays for itself only when the model it displaces is an
+expensive one. At lower frontier costs or smaller query volumes the no-training
+configuration remains preferable; at higher volumes against a frontier-priced
+target the investment recovers quickly. The 2.0--5.0~pp accuracy range separating the local-tier
 configurations represents a concrete trade-off space.
 
 The residual failure classes common to all configurations (wrong optional
@@ -507,6 +523,29 @@ likely hard cases before inference, or token-probability confidence scoring
 after inference. Both are tractable extensions of the evaluated pipeline
 and represent the primary mechanisms for narrowing the escalation boundary
 beyond what the optimization techniques evaluated here can achieve.
+
+Concretely, such a router would sit between the constrained pipeline and the
+frontier API and operate on two signals. The first is a pre-inference query
+classifier: a lightweight model, for example a sentence embedding of the user
+query and the candidate tool schema followed by a logistic regression, trained
+on the per-case correct/incorrect labels already collected in this evaluation
+to predict the probability that the SLM will produce a semantically correct
+call, and escalating queries above a risk threshold without running the SLM at
+all. The second is a post-inference confidence signal derived from the decoder
+itself. Although constrained decoding guarantees that every output is valid
+JSON, the token-level log-probabilities under the guided mask are not uniform:
+the mean log-probability over the extracted argument tokens, or the entropy at
+the masked argument positions, provides a calibratable score that a threshold
+can convert into a route decision. A complementary post-inference signal is
+self-consistency, in which the argument extraction is sampled more than once and
+disagreement among the samples triggers escalation. Because the residual failure
+classes are systematic (optional-parameter defaults, numeric precision, and
+string-format conventions) rather than random, a classifier trained on these
+labelled cases is the more promising of the two: it targets a structured rather
+than a diffuse error distribution. The threshold in either case sets the
+operating point on a precision-recall trade-off between API cost saved and
+incorrect calls served locally, and its calibration is the design parameter that
+determines how close the realised $p$ comes to the upper bounds reported above.
 
 Fine-tuning alignment is the binding constraint on the achievable accuracy
 ceiling. The xlam experiment demonstrates that a general-purpose

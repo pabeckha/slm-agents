@@ -137,7 +137,7 @@ The evaluation pipeline, prompt templates, guided decoding schemas,
 HPC job scripts, and training scripts are available in the
 accompanying repository.\footnote{\url{https://github.com/pabeckha/slm-agents}}
 
-\section{Evaluation Framework}
+\section{Evaluation Framework} \label{sec:eval-framework}
 
 Two benchmarks are used to evaluate the configurations.
 The Berkeley Function Calling Leaderboard covers single-turn
@@ -167,7 +167,13 @@ reference for the benchmark.
 The primary metric is AST accuracy: the model output is
 parsed and compared structurally against the ground truth,
 checking function name, argument names, argument values, and
-argument types. Evaluation is performed using the BFCL
+argument types. BFCL also defines an execution accuracy
+metric, which runs the generated call and compares its
+runtime result against a reference output; AST accuracy is
+used throughout this thesis because it is deterministic,
+reproducible, and independent of the runtime environment,
+consistent with the leaderboard convention for comparing
+configurations systematically. Evaluation is performed using the BFCL
 \texttt{ast\_checker}, which applies lenient type coercion
 between compatible types (e.g., integer and float). All
 inference runs use temperature 0 to ensure deterministic
@@ -543,6 +549,77 @@ consequences of each for the \texttt{parallel} category
 are analysed in Section~\ref{sec:bfcl-extended} and
 Chapter~\ref{ch:discussion}.
 
+Figure~\ref{fig:single-vs-joint} contrasts the two schemas. The
+single-extraction design selects a list of distinct function names and
+then extracts arguments for each name independently, so it emits at most
+one argument object per distinct name. The joint multi-call schema instead
+produces a single JSON array of complete \texttt{\{name, arguments\}}
+objects, in which the same function may appear more than once with different
+arguments.
+
+\begin{figure}[ht]
+\centering
+\textbf{(a) Single-extraction schema (per-function pipeline)}\\[2pt]
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+    node distance=0.9cm,
+    inp/.style={rectangle, draw=gray!60, fill=gray!10, rounded corners=3pt,
+                minimum width=2.2cm, minimum height=0.8cm, align=center, font=\small},
+    stg/.style={rectangle, draw, fill=blue!8, rounded corners=4pt,
+                minimum width=3.4cm, minimum height=1.0cm, align=center, font=\small},
+    res/.style={rectangle, draw, fill=green!10, rounded corners=3pt,
+                minimum width=2.8cm, minimum height=0.8cm, align=center, font=\small},
+    arr/.style={-{Stealth}, thick},
+]
+\node[inp] (q) {User query};
+\node[stg, right=of q] (s1) {Stage 1: \texttt{guided\_json}\\select name list\\$\{f_1, f_2\}$};
+\node[stg, right=of s1] (s2) {Stage 2: \texttt{guided\_json}\\extract args\\per distinct name};
+\node[res, right=of s2] (out) {$f_1(\mathrm{args}_1)$\\$f_2(\mathrm{args}_2)$};
+\draw[arr] (q) -- (s1);
+\draw[arr] (s1) -- (s2);
+\draw[arr] (s2) -- (out);
+\node[font=\footnotesize\itshape, text width=5.2cm, align=center, below=0.35cm of s2]
+    {A repeated call to $f_1$ collapses: one argument object per distinct name.};
+\end{tikzpicture}%
+}
+
+\vspace{8pt}
+\textbf{(b) Joint multi-call schema (single pass)}\\[2pt]
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+    node distance=0.9cm,
+    inp/.style={rectangle, draw=gray!60, fill=gray!10, rounded corners=3pt,
+                minimum width=2.2cm, minimum height=0.8cm, align=center, font=\small},
+    stg/.style={rectangle, draw, fill=blue!8, rounded corners=4pt,
+                minimum width=5.0cm, minimum height=1.0cm, align=center, font=\small},
+    res/.style={rectangle, draw, fill=green!10, rounded corners=3pt,
+                minimum width=3.0cm, minimum height=0.8cm, align=center, font=\small},
+    arr/.style={-{Stealth}, thick},
+]
+\node[inp] (q2) {User query};
+\node[stg, right=of q2] (sj) {Single \texttt{guided\_json} pass\\JSON array of $\{$name, arguments$\}$ objects};
+\node[res, right=of sj] (out2) {$f_1(\mathrm{args}_1)$\\$f_1(\mathrm{args}_2)$\\$f_2(\mathrm{args}_3)$};
+\draw[arr] (q2) -- (sj);
+\draw[arr] (sj) -- (out2);
+\node[font=\footnotesize\itshape, text width=5.2cm, align=center, below=0.35cm of sj]
+    {Each object carries its own name and arguments; the same function may recur.};
+\end{tikzpicture}%
+}
+\caption{Single-extraction versus joint multi-call constrained-decoding
+schemas for the \texttt{parallel} categories. \textbf{(a)} The
+single-extraction pipeline first selects a list of distinct function names,
+then extracts an argument object for each name in a separate
+\texttt{guided\_json} pass; because argument extraction is conditioned only
+on the query and the selected name and decoding is deterministic at
+temperature~0, two calls to the same function would be identical, so the
+design emits one object per distinct name. \textbf{(b)} The joint multi-call
+schema generates a single JSON array of complete call objects in one pass,
+so the same function can appear multiple times with different arguments.
+This is the change that lifts \texttt{parallel} from a structural $0.0\%$ to
+$79.0\%$ at 7B (Section~\ref{sec:bfcl-extended}).}
+\label{fig:single-vs-joint}
+\end{figure}
+
 The resulting accuracy for CD, together with the function-selection rate
 and the breakdown of residual argument-value failures, is reported in
 Chapter~\ref{ch:results}.
@@ -703,6 +780,54 @@ step via the same finite-state machine as CD. The schema enrichment
 acts on the prompt only: it provides the model with richer semantic
 context for value selection without altering the token-level mask.
 The two mechanisms are composable and independent.
+
+Figure~\ref{fig:template-vs-enriched} shows the difference on a single
+test case (\texttt{simple\_python\_34}). The template prompt lists each
+parameter only as \texttt{name (type)}; the enriched prompt adds a
+\texttt{Parameters:} block carrying the natural-language description,
+the allowed values, and the default for each parameter. Here the user
+asks to ``prefer exploring nature'' while the \texttt{exploration\_type}
+parameter is an enumeration whose members
+(\texttt{nature}, \texttt{urban}, \texttt{history}, \texttt{culture})
+appear only in the enriched prompt: under the template prompt the model
+must guess the exact enum spelling, whereas the enriched prompt supplies it.
+
+\begin{figure}[ht]
+\textbf{(a) CD --- template prompt (\texttt{name (type)} listing only)}
+\begin{lstlisting}[style=promptbox]
+Function: travel_itinerary_generator(destination: string, days: integer, daily_budget: integer, exploration_type: string) -> string
+Description: Generate a travel itinerary based on specific destination, duration and daily budget, with preferred exploration type.
+User request: Create an itinerary for a 7 days trip to Tokyo with daily budgets not exceeding $100 and prefer exploring nature.
+Extract the argument values as a JSON object with keys: destination (string), days (integer), daily_budget (integer), exploration_type (string).
+JSON:
+\end{lstlisting}
+
+\vspace{4pt}
+\textbf{(b) CD+schema --- enriched prompt (per-parameter schema block added)}
+\begin{lstlisting}[style=promptbox]
+Function: travel_itinerary_generator(destination: string, days: integer, daily_budget: integer, exploration_type: string) -> string
+Description: Generate a travel itinerary based on specific destination, duration and daily budget, with preferred exploration type.
+Parameters:
+- destination (string, required): Destination city of the trip.
+- days (integer, required): Number of days for the trip.
+- daily_budget (integer, required): The maximum daily budget for the trip.
+- exploration_type (string, optional): The preferred exploration type. Allowed values: "nature", "urban", "history", "culture". Default: "urban".
+User request: Create an itinerary for a 7 days trip to Tokyo with daily budgets not exceeding $100 and prefer exploring nature.
+Extract the argument values as a JSON object with keys: destination (string), days (integer), daily_budget (integer), exploration_type (string).
+JSON:
+\end{lstlisting}
+\caption{Template versus schema-enriched Stage~2 argument-extraction prompt
+for the same test case (\texttt{simple\_python\_34}). \textbf{(a)} The CD
+template prompt carries only the reduced \texttt{name (type)} parameter
+listing. \textbf{(b)} Config~CD+schema inserts a \texttt{Parameters:} block
+with each parameter's description, enumerated values, and default, drawn
+directly from the BFCL function schema. The \texttt{guided\_json} constraint
+is identical in both cases; only the prompt gains information. The enumerated
+values for \texttt{exploration\_type}, which the template prompt omits, are
+exactly what the model needs to map ``prefer exploring nature'' onto the
+literal \texttt{"nature"}.}
+\label{fig:template-vs-enriched}
+\end{figure}
 
 Config~CD+schema is evaluated at 7B only, on the full 400-case
 \texttt{simple\_python} test set, to isolate the contribution of

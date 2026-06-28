@@ -80,6 +80,8 @@ ReAct (Reasoning and Acting)~\cite{yao2023react} is a prompting framework that i
 
 This pattern improves multi-step task completion by making the model's reasoning explicit and allowing it to adapt its plan based on intermediate results. ReAct is particularly relevant for agentic systems because it provides a structured way to combine reasoning and tool use within a single generation process.
 
+Within the ReAct loop, the Action step is the point at which the model must emit a structured tool call, and for small models it is also the point at which generation most often fails: the reasoning trace may be sound while the emitted call is malformed JSON or names a function that does not exist. This thesis isolates that step. Constrained decoding (Section~\ref{sec:bg-constrained-decoding}) enforces structural validity at exactly the Action step, so that a small model's reasoning is no longer discarded for a formatting error. The extent to which this shifts the bottleneck from structural failure to residual semantic failure is the central empirical question of Chapter~\ref{ch:results}.
+
 \subsection{Cascade Architectures}
 
 A cascade architecture routes inference requests across two or
@@ -103,7 +105,7 @@ This thesis is framed around extending the small model operating
 region within a cascade; the economic motivation and deployment
 context are described in Chapter~\ref{ch:introduction}.
 
-\section{Constrained Decoding}
+\section{Constrained Decoding} \label{sec:bg-constrained-decoding}
 
 Constrained decoding modifies the generation process so that the model can only produce outputs that conform to a predefined structure. Rather than relying on the model to implicitly learn output formats, constrained decoding enforces them at inference time by masking invalid tokens at each generation step.
 
@@ -112,6 +114,16 @@ Constrained decoding modifies the generation process so that the model can only 
 The key idea is to define the valid output space using a formal grammar, typically a context-free grammar (CFG) or a JSON schema. At each decoding step, the grammar determines which tokens are valid continuations given the tokens generated so far. Invalid tokens receive a probability of zero (or negative infinity in log-space), ensuring that only grammatically valid sequences can be produced.
 
 For tool calling, this means the model is guaranteed to produce valid JSON that conforms to the tool's argument schema. Field names, types, and structure are enforced by construction rather than learned behavior. Willard and Louf~\cite{willard2023efficient} formalized this approach using finite-state machines compiled from regular expressions and parsers for context-free grammars.
+
+A context-free grammar specifies the valid output space as a set of production rules. A minimal grammar for a JSON object carrying a single integer field illustrates the idea:
+
+\begin{verbatim}
+    object -> "{" "\"a\":" integer "}"
+    integer -> digit | digit integer
+    digit  -> "0" | "1" | ... | "9"
+\end{verbatim}
+
+\noindent After the opening brace the grammar admits only the literal \texttt{"a":}, so any token whose text does not extend that literal is masked; after the field marker it admits a digit, and so on until the closing brace. The reason the per-step overhead is low is that this reasoning is not performed by re-parsing the partial output at every step. The grammar is compiled once, ahead of generation, into a finite-state machine, and the model's tokenizer vocabulary is aligned against that machine so that each state stores the set of token IDs that are valid continuations from it~\cite{willard2023efficient}. At generation time the constraint is therefore a single lookup of the current state's precomputed token mask, whose cost does not grow with the size of the grammar; XGrammar~\cite{dong2024xgrammar} further caches these masks to reduce the residual per-step cost. This indexing step is what libraries such as Outlines~\cite{outlines2024} perform, and it is why constrained decoding adds little latency per token despite enforcing a non-trivial grammar.
 
 \subsection{Guided Decoding Techniques}
 
@@ -238,33 +250,14 @@ quantization.
 
 \subsection{Tool Calling and Benchmarks}
 
-The Berkeley Function Calling Leaderboard (BFCL)~\cite{bfcl2024}
-provides a standardized benchmark for evaluating language models on
-function-calling tasks. Four categories of increasing difficulty are
-defined. In the \texttt{simple\_python} category, a single oracle
-function definition is provided alongside the user query, and the
-model must produce the correct function call with matching arguments.
-In the \texttt{multiple\_function} category, several candidate
-function definitions are provided and the model must first identify
-the correct function before extracting arguments. The
-\texttt{parallel\_function} category requires multiple simultaneous
-function calls from a single user request. A multi-turn category
-tests stateful interactions across several dialogue turns, where
-argument values may depend on prior tool outputs. This thesis
-evaluates all configurations on the \texttt{simple\_python} category,
-which isolates argument extraction accuracy from the function
-selection problem.
-
-Two evaluation metrics are reported in BFCL. AST accuracy parses
-the model output into an abstract syntax tree and compares it
-structurally against the ground truth, checking function name,
-argument names, argument types, and argument values without executing
-the function. Execution accuracy runs the generated call and compares
-the runtime result to a ground truth output. AST accuracy is the
-primary metric used in this thesis because it is deterministic,
-reproducible, and independent of runtime environment, consistent with
-the leaderboard convention for comparing configurations
-systematically.
+Function-calling benchmarks span a spectrum that trades catalogue
+size against task depth. The Berkeley Function Calling Leaderboard
+(BFCL)~\cite{bfcl2024} is the standardized single-turn benchmark on
+which the configurations in this thesis are evaluated; its categories,
+metrics, and the specific test splits used are described with the
+experimental setup in Section~\ref{sec:eval-framework}. It is the
+reference point against which the other benchmarks below are
+positioned.
 
 ToolLLM~\cite{qin2024toolllm} extends function-calling evaluation to
 over 16,000 real-world APIs from the RapidAPI catalogue, covering
@@ -276,16 +269,14 @@ results rather than structural matching. The scope of ToolLLM
 reflects a harder generalization challenge than BFCL, as the API
 catalog far exceeds what can be memorized from pre-training data.
 
-The $\tau$-bench benchmark~\cite{taubench2024} evaluates end-to-end
-multi-step agentic task completion in simulated retail and airline
-customer service domains. Each task requires the model to reason
-across five to fifteen tool calls, observe intermediate results, and
-reach a final database state that matches a ground truth resolution.
-Task reward is binary: the final state must exactly match the ground
-truth to receive a score of 1.0, and partial completion yields no
-reward. A user simulator introduces stochastic variation across runs,
-so multiple evaluation passes are required for stable pass-rate
-estimates.
+At the multi-step end of the spectrum, the $\tau$-bench
+benchmark~\cite{taubench2024} evaluates end-to-end agentic task
+completion in simulated retail and airline customer service domains,
+scoring only whether the final database state matches a ground truth
+resolution after a sequence of interdependent tool calls. This thesis
+uses $\tau$-bench to probe multi-step reliability beyond single-call
+accuracy; its task structure, scoring, and the user-simulator
+configuration are detailed in Section~\ref{sec:eval-framework}.
 
 \subsection{Fine-Tuned Small Models for Tool Use}
 
