@@ -118,7 +118,7 @@ For tool calling, this means the model is guaranteed to produce valid JSON that 
 A context-free grammar specifies the valid output space as a set of production rules. A minimal grammar for a JSON object carrying a single integer field illustrates the idea:
 
 \begin{verbatim}
-    object -> "{" "\"a\":" integer "}"
+    object -> "{" '"a":' integer "}"
     integer -> digit | digit integer
     digit  -> "0" | "1" | ... | "9"
 \end{verbatim}

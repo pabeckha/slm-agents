@@ -597,7 +597,7 @@ arguments.
     arr/.style={-{Stealth}, thick},
 ]
 \node[inp] (q2) {User query};
-\node[stg, right=of q2] (sj) {Single \texttt{guided\_json} pass\\JSON array of $\{$name, arguments$\}$ objects};
+\node[stg, right=of q2] (sj) {Single \texttt{guided\_json} pass\\JSON array of \{name, arguments\} objects};
 \node[res, right=of sj] (out2) {$f_1(\mathrm{args}_1)$\\$f_1(\mathrm{args}_2)$\\$f_2(\mathrm{args}_3)$};
 \draw[arr] (q2) -- (sj);
 \draw[arr] (sj) -- (out2);
