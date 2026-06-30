@@ -116,3 +116,82 @@ CD+Q+FT-aligned & CD + AWQ INT4 + format-aligned LoRA  & 297/400 & 74.25\% & $+1
 \end{tabular}%
 }
 \end{table}
+
+\chapter{Updated Project Plan: Deviations from the Original Plan}
+\label{app:project-plan-update}
+
+This appendix updates the project plan submitted at the start of the
+project, as required for hand-in. It records the parts of the project
+that changed significantly from the original plan; the original
+motivation, research question, and time plan are otherwise unchanged.
+
+\section{Scope and framing}
+
+The original plan positioned constrained decoding (CD) as the core
+contribution, supported by a set of complementary efficiency techniques
+(quantization, LoRA fine-tuning, retrieval-augmented generation, and
+possibly knowledge distillation). The final thesis keeps CD as the core,
+but the framing shifted to expressing each technique as a candidate for
+\emph{expanding the boundary of a cascade LLM architecture}, i.e.\ how
+far a small model can be pushed before a request must be escalated to a
+larger model.
+
+\section{Changes to the experimental program}
+
+The most significant deviation concerns the role of the complementary
+techniques. The original plan treated them as additive improvements on
+top of CD. The experiments showed the opposite for several of them:
+
+\begin{itemize}
+  \item Retrieval-augmented generation reduced accuracy substantially
+        ($-25$~pp relative to plain CD) rather than improving it.
+  \item In-context chain-of-thought (ITC) also reduced accuracy
+        ($-7.25$~pp).
+  \item AWQ INT4 quantization was approximately neutral ($-0.50$~pp),
+        confirming it as a low-cost compression option rather than an
+        accuracy lever.
+  \item LoRA fine-tuning helped only modestly and only in combination
+        with CD (format-aligned LoRA: $+4.00$~pp), and collapsed to near
+        zero accuracy without guided decoding.
+\end{itemize}
+
+Knowledge distillation, listed in the original plan as an optional
+alternative, was not pursued; it was de-scoped to keep the analysis
+focused on the techniques above, as anticipated by the risk-mitigation
+note in the original plan.
+
+The strongest configuration in the final thesis, \texttt{CD+schema}
+(a schema-enriched argument-extraction prompt, $+16.25$~pp over plain
+CD), was not part of the original plan. It emerged from analysing the
+failure modes observed during the constrained-decoding experiments and
+became a central result.
+
+\section{Time plan}
+
+% TODO (author): in your own words, note any timing deviations from the
+% Gantt chart in the original plan, e.g. whether the "Exploration of
+% alternative efficiency techniques" phase ran longer/shorter than
+% planned, and how report writing overlapped with experimentation.
+
+\chapter{Self-Evaluation of the Project Process}
+\label{app:self-evaluation}
+
+% TODO (author): this chapter is a required, personal reflection on how
+% the project went. Write it in your own voice. Use the prompts below as
+% a guide and delete them once written. This is a solo thesis, so the
+% group-work and company prompts from the DTU hand-in guidelines do not
+% apply.
+
+% - Did you follow the time plan? Which phases ran to schedule and which
+%   slipped? What caused the slips (e.g. HPC queue times, .venv/uv sync
+%   races, baseline parser drift requiring reruns)?
+%
+% - What problems did you encounter during the project, and how did you
+%   resolve them? (e.g. shared-NFS environment corruption, stale
+%   aggregate score files vs. per-run source of truth, no-guided baseline
+%   parser sensitivity inverting headline numbers.)
+%
+% - What would you do differently with hindsight? (e.g. lock the parser
+%   definition earlier, pre-sync the environment before parallel jobs.)
+%
+% - What did you learn from the process, beyond the technical results?
