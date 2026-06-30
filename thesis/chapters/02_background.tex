@@ -1,12 +1,12 @@
 \chapter{Background} \label{ch:background}
 
-Reliable tool calling with small language models draws on several areas of prior work: the architecture and scaling behaviour of language models, the design of agentic systems that invoke external tools, and the inference-time and training-time techniques used to control model output. These foundations are developed in the sections that follow.
+Reliable tool calling with small language models draws on several areas of prior work. This chapter introduces the language-model architecture behind the evaluated systems, the design of agentic systems that invoke external tools, and the inference-time and training-time techniques used to control model output.
 
 \section{Language Models}
 
 \subsection{Transformer Architecture}
 
-The Transformer architecture, introduced by Vaswani et al.~\cite{vaswani2017attention}, forms the foundation of modern language models. It replaces recurrent computation with a self-attention mechanism that allows each token in a sequence to attend to all other tokens in parallel. A Transformer block consists of a multi-head self-attention layer followed by a position-wise feed-forward network, with layer normalization and residual connections applied around each sub-layer.
+The Transformer architecture, introduced by Vaswani et al.~\cite{vaswani2017attention}, forms the foundation of modern language models. It replaces recurrent computation with self-attention, which allows each token in a sequence to attend to all other tokens in parallel. A Transformer block consists of a multi-head self-attention layer followed by a position-wise feed-forward network, with layer normalization and residual connections around each sub-layer.
 
 Given an input sequence of token embeddings $X$, the self-attention mechanism computes queries $Q = XW^Q$, keys $K = XW^K$, and values $V = XW^V$ through learned linear projections. The attention output is computed as:
 \begin{equation}
@@ -44,43 +44,45 @@ the 7B model fits within consumer GPU memory budgets during inference.
 
 \subsection{Scaling Laws}
 
-Scaling laws describe the empirical relationship between model performance and three key factors: the number of parameters, the amount of training data, and the available compute budget. Kaplan et al.~\cite{kaplan2020scaling} showed that language model loss follows a power-law relationship with each of these factors, and that performance improves predictably as any of them increases.
+Scaling laws describe how model performance changes with the number of parameters, the amount of training data, and the available compute budget. Kaplan et al.~\cite{kaplan2020scaling} showed that language model loss follows a power-law relationship with these factors, and that performance improves predictably as they increase.
 
-Hoffmann et al.~\cite{hoffmann2022training} refined these findings with the Chinchilla scaling laws, demonstrating that many large models were under-trained relative to their size. Their work showed that for a fixed compute budget, optimal performance is achieved by balancing model size and training data rather than maximizing parameters alone. This insight has direct implications for small language models: a well-trained small model can outperform a larger but under-trained one.
+Hoffmann et al.~\cite{hoffmann2022training} refined these findings with the Chinchilla scaling laws, showing that many large models were under-trained relative to their size. For a fixed compute budget, performance improves when model size and training data are balanced rather than when parameter count is maximized alone. This matters for small language models because a well-trained small model can outperform a larger but under-trained one.
 
 More recently, the focus has shifted toward inference-time scaling~\cite{snell2024scaling}, where additional computation at generation time (through techniques such as chain-of-thought prompting or search) can improve performance without increasing model size.
 
 \subsection{Small vs. Large Language Models}
 
-Large language models (LLMs) such as GPT-4~\cite{openai2023gpt4} and the Claude model family operate at hundreds of billions of parameters and demonstrate strong performance across a wide range of tasks, including complex reasoning and tool use. However, their size demands significant computational resources, typically requiring multi-GPU clusters or cloud API access for inference.
+Large language models (LLMs) such as GPT-4~\cite{openai2023gpt4} and the Claude model family operate at hundreds of billions of parameters and perform strongly across a wide range of tasks, including complex reasoning and tool use. Their size also makes them expensive to run, typically requiring multi-GPU clusters or cloud API access for inference.
 
-Small language models (SLMs), commonly taken to span roughly 1 to 12 billion parameters~\cite{sharma2025slmagents}, can run on consumer hardware such as a single GPU with 24GB of VRAM. Recent open-weight SLMs, including Qwen 2.5~\cite{qwen2024qwen25}, Llama 3.2~\cite{metaai2024llama32}, and Phi-4~\cite{abdin2024phi}, have narrowed the gap with larger models on standard benchmarks through improved training data, better tokenizers, and architectural refinements such as grouped-query attention (GQA).
+Small language models (SLMs), commonly taken to span roughly 1 to 12 billion parameters~\cite{sharma2025slmagents}, can run on consumer hardware such as a single GPU with 24GB of VRAM. Recent open-weight SLMs, including Qwen 2.5~\cite{qwen2024qwen25}, Llama 3.2~\cite{metaai2024llama32}, and Phi-4~\cite{abdin2024phi}, have narrowed the gap with larger models on standard benchmarks. This improvement comes from better training data, improved tokenizers, and architectural refinements such as grouped-query attention (GQA).
 
 Despite these improvements, SLMs still lag behind frontier models on tasks that require multi-step reasoning, tool selection from large schemas, and reliable structured output generation. This gap motivates the optimization techniques explored in this thesis.
 
 \section{Agentic Systems}
 
-An agentic system is a software architecture in which a language model acts as the central reasoning engine, deciding which actions to take, invoking external tools, and synthesizing results to fulfill user requests. Unlike simple question-answering, agentic behavior involves planning, acting, and adapting based on intermediate results.
+An agentic system is a software architecture in which a language model acts as the central reasoning engine. It decides which actions to take, invokes external tools, and synthesizes results to fulfill user requests. Unlike simple question-answering, agentic behavior involves planning, acting, and adapting based on intermediate results.
 
 \subsection{Tool Calling}
 
-Tool calling refers to the ability of a language model to invoke external functions or APIs as part of its response. The model receives a set of available tool schemas (names, descriptions, parameter types) and must select the appropriate tool for a given request, generate valid arguments matching the schema, and incorporate the tool's response into its reasoning.
+Tool calling is the ability of a language model to invoke external functions or APIs as part of its response. The model receives a set of available tool schemas, including names, descriptions, and parameter types. It must then select the appropriate tool for a request, generate valid arguments matching the schema, and incorporate the tool's response into its reasoning.
 
 Tool calling is the primary capability evaluated in this thesis. It requires both language understanding (to map user intent to the correct tool) and structured generation (to produce syntactically and semantically valid function calls).
 
 \subsection{Structured Output Generation}
 
-Agentic systems typically require the model to produce outputs in a specific format, most commonly JSON. The model must generate output that is syntactically valid (parseable JSON), conforms to a predefined schema (correct field names and types), and is semantically correct (values that make sense for the given context).
+Agentic systems typically require the model to produce outputs in a specific format, most commonly JSON. The output must satisfy three conditions: it must be syntactically valid, conform to a predefined schema, and contain semantically correct values for the given context.
 
 Without explicit constraints, language models frequently produce malformed outputs: missing closing brackets, incorrect field names, wrong data types, or extra fields not present in the schema. These failures are particularly common in small models and represent a key reliability bottleneck for agentic deployments.
 
 \subsection{The ReAct Pattern}
 
-ReAct (Reasoning and Acting)~\cite{yao2023react} is a prompting framework that interleaves reasoning traces with action steps. Rather than generating a final answer directly, the model follows a loop of Thought (reasoning about what to do next), Action (calling a tool or performing a step), and Observation (processing the result of that action).
+ReAct (Reasoning and Acting)~\cite{yao2023react} is a prompting framework that interleaves reasoning traces with action steps. Rather than generating a final answer directly, the model follows a loop of Thought, Action, and Observation. The Thought step reasons about what to do next, the Action step calls a tool or performs a step, and the Observation step processes the result.
 
 This pattern improves multi-step task completion by making the model's reasoning explicit and allowing it to adapt its plan based on intermediate results. ReAct is particularly relevant for agentic systems because it provides a structured way to combine reasoning and tool use within a single generation process.
 
-Within the ReAct loop, the Action step is the point at which the model must emit a structured tool call, and for small models it is also the point at which generation most often fails: the reasoning trace may be sound while the emitted call is malformed JSON or names a function that does not exist. This thesis isolates that step. Constrained decoding (Section~\ref{sec:bg-constrained-decoding}) enforces structural validity at exactly the Action step, so that a small model's reasoning is no longer discarded for a formatting error. The extent to which this shifts the bottleneck from structural failure to residual semantic failure is the central empirical question of Chapter~\ref{ch:results}.
+Within the ReAct loop, the Action step is where the model must emit a structured tool call. For small models, this is also where generation often fails. The reasoning trace may be sound, but the emitted call may be malformed JSON or may name a function that does not exist.
+
+This thesis isolates that step. Constrained decoding (Section~\ref{sec:bg-constrained-decoding}) enforces structural validity at the Action step, so that a small model's reasoning is not discarded because of a formatting error. Chapter~\ref{ch:results} evaluates whether this shifts the bottleneck from structural failure to residual semantic failure.
 
 \subsection{Cascade Architectures}
 
@@ -107,11 +109,11 @@ context are described in Chapter~\ref{ch:introduction}.
 
 \section{Constrained Decoding} \label{sec:bg-constrained-decoding}
 
-Constrained decoding modifies the generation process so that the model can only produce outputs that conform to a predefined structure. Rather than relying on the model to implicitly learn output formats, constrained decoding enforces them at inference time by masking invalid tokens at each generation step.
+Constrained decoding modifies generation so that the model can only produce outputs that conform to a predefined structure. Instead of relying on the model to learn output formats implicitly, constrained decoding enforces them at inference time by masking invalid tokens at each generation step.
 
 \subsection{Formal Grammars for Generation}
 
-The key idea is to define the valid output space using a formal grammar, typically a context-free grammar (CFG) or a JSON schema. At each decoding step, the grammar determines which tokens are valid continuations given the tokens generated so far. Invalid tokens receive a probability of zero (or negative infinity in log-space), ensuring that only grammatically valid sequences can be produced.
+The key idea is to define the valid output space with a formal grammar, typically a context-free grammar (CFG) or a JSON schema. At each decoding step, the grammar determines which tokens are valid continuations given the tokens generated so far. Invalid tokens receive probability zero, or negative infinity in log-space, so only grammatically valid sequences can be produced.
 
 For tool calling, this means the model is guaranteed to produce valid JSON that conforms to the tool's argument schema. Field names, types, and structure are enforced by construction rather than learned behavior. Willard and Louf~\cite{willard2023efficient} formalized this approach using finite-state machines compiled from regular expressions and parsers for context-free grammars.
 
@@ -123,11 +125,15 @@ A context-free grammar specifies the valid output space as a set of production r
     digit  -> "0" | "1" | ... | "9"
 \end{verbatim}
 
-\noindent After the opening brace the grammar admits only the literal \texttt{"a":}, so any token whose text does not extend that literal is masked; after the field marker it admits a digit, and so on until the closing brace. The reason the per-step overhead is low is that this reasoning is not performed by re-parsing the partial output at every step. The grammar is compiled once, ahead of generation, into a finite-state machine, and the model's tokenizer vocabulary is aligned against that machine so that each state stores the set of token IDs that are valid continuations from it~\cite{willard2023efficient}. At generation time the constraint is therefore a single lookup of the current state's precomputed token mask, whose cost does not grow with the size of the grammar; XGrammar~\cite{dong2024xgrammar} further caches these masks to reduce the residual per-step cost. This indexing step is what libraries such as Outlines~\cite{outlines2024} perform, and it is why constrained decoding adds little latency per token despite enforcing a non-trivial grammar.
+\noindent After the opening brace, the grammar admits only the literal \texttt{"a":}, so any token whose text does not extend that literal is masked. After the field marker, it admits a digit, and this continues until the closing brace. The per-step overhead is low because the partial output is not re-parsed at every step. Instead, the grammar is compiled once, before generation, into a finite-state machine. The model's tokenizer vocabulary is then aligned against that machine, so each state stores the token IDs that are valid continuations from it~\cite{willard2023efficient}.
+
+At generation time, the constraint is therefore a lookup of the current state's precomputed token mask. The cost does not grow with the size of the grammar; XGrammar~\cite{dong2024xgrammar} further caches these masks to reduce the remaining per-step cost. This indexing step is what libraries such as Outlines~\cite{outlines2024} perform, and it is why constrained decoding can enforce a non-trivial grammar with little added latency per token.
 
 \subsection{Guided Decoding Techniques}
 
-Several libraries implement constrained decoding for language models. Outlines~\cite{outlines2024} uses finite-state machines compiled from regular expressions or JSON schemas to guide generation. LMQL~\cite{beurer2023lmql} combines constrained decoding with a query language that allows expressing complex output constraints declaratively. XGrammar~\cite{dong2024xgrammar} accelerates context-free grammar execution with a token-mask cache, reducing the per-step overhead of grammar-constrained generation. Format constraints are not free in general: Tam et al.~\cite{tam2024letmespeak} report that strict format restrictions can degrade reasoning performance on tasks where free-form derivation helps, a trade-off examined empirically for tool calling in Chapter~\ref{ch:results}.
+Several libraries implement constrained decoding for language models. Outlines~\cite{outlines2024} uses finite-state machines compiled from regular expressions or JSON schemas to guide generation. LMQL~\cite{beurer2023lmql} combines constrained decoding with a query language for expressing complex output constraints declaratively. XGrammar~\cite{dong2024xgrammar} accelerates context-free grammar execution with a token-mask cache, reducing the per-step overhead of grammar-constrained generation.
+
+Format constraints are not free in general. Tam et al.~\cite{tam2024letmespeak} report that strict format restrictions can degrade reasoning performance on tasks where free-form derivation helps. Chapter~\ref{ch:results} examines this trade-off empirically for tool calling.
 
 These techniques are particularly impactful for small models because they eliminate an entire class of errors (malformed outputs) without requiring any additional training. Constrained decoding is the base layer of this thesis, upon which the other techniques are stacked.
 
@@ -375,7 +381,7 @@ compiled grammar state.
 \subsection{Cascade Architectures}
 
 A cascade architecture routes inference requests across models of
-different capability and cost~\cite{snell2024scaling}. Routine
+different capability and cost. Routine
 requests are handled by a smaller, faster model; requests that exceed
 its reliable operating range are escalated to a larger model,
 typically accessed through an external API. Routing decisions may be

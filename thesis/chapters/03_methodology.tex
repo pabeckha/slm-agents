@@ -829,9 +829,11 @@ literal \texttt{"nature"}.}
 \label{fig:template-vs-enriched}
 \end{figure}
 
-Config~CD+schema is evaluated at 7B only, on the full 400-case
-\texttt{simple\_python} test set, to isolate the contribution of
-schema information to the residual failure rate after constrained
-decoding. A paired McNemar test on stored per-case predictions
-compares CD+schema against the stored CD run (290/400) used as the
-paired baseline.
+Config~CD+schema is evaluated on the full 400-case
+\texttt{simple\_python} test set across all four Qwen~2.5 sizes for the
+size-scaling analysis. The primary paired significance test is reported at
+7B, where a paired McNemar test on stored per-case predictions compares
+CD+schema against the stored CD run (290/400) used as the paired baseline.
+The size sweep shows whether the schema-enrichment effect persists across
+capacity, while the paired 7B comparison isolates the contribution of schema
+information to the residual failure rate after constrained decoding.

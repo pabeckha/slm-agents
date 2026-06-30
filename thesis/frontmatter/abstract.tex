@@ -4,10 +4,10 @@
 Frontier language models are now the default backbone for agentic systems, but
 their dependence on external APIs limits their use in offline,
 privacy-sensitive, and high-volume deployments. Small language models can run on
-consumer hardware and avoid these constraints, but they often fail at the
+consumer hardware and avoid these constraints. However, they often fail at the
 structured output and tool-calling tasks that agentic pipelines require. This
-thesis examines how far optimization techniques can move a small model toward
-reliable tool calling, and which accuracy cost or benefit each technique
+thesis studies how far optimization techniques can move a small model toward
+reliable tool calling, and what accuracy cost or benefit each technique
 introduces.
 
 The study uses an incremental ablation over the Qwen~2.5 model family
@@ -16,46 +16,46 @@ are evaluated on four BFCL v4 categories (\texttt{simple\_python},
 \texttt{multiple}, \texttt{parallel}, and \texttt{parallel\_multiple}) and on
 $\tau$-bench retail. A minimal model-agnostic baseline that does not use the
 model's native tool-calling template scores 1.5\% on
-\texttt{simple\_python} under a strict whole-completion parser, which is
+\texttt{simple\_python} under a strict whole-completion parser. This is
 77--96 percentage points below frontier models on the same category
 (78.75\%--97.75\%). The same 7B run scores 62.00\% when a lenient parser
-accepts the first complete JSON object and ignores trailing prose, and a
+accepts the first complete JSON object and ignores trailing prose, while a
 control configuration using the model's native template reaches 96.00\%,
 inside the frontier band. The unoptimized gap therefore measures the cost of a
-generic integration and strict parse contract rather than the model's
-capability ceiling.
+generic integration and strict parse contract, not the model's capability
+ceiling.
 
 Constrained decoding is the dominant intervention. It raises accuracy to
 72.75\% without modifying model weights or generating additional tokens,
 while guaranteeing parseable structured output and reducing mean per-call
 latency from 6.995~s under unconstrained generation to 0.878~s. Relative to
 the lenient 7B parser baseline, this is a 10.75 percentage point accuracy
-gain; relative to the strict generic floor, it is a 71.25 percentage point
+gain. Relative to the strict generic floor, it is a 71.25 percentage point
 recovery. AWQ INT4 quantization preserves most of this accuracy at 72.25\%
 while reducing memory from 14.25~GiB to 5.20~GiB. In contrast, few-shot
 prompting and chain-of-thought reasoning reduce accuracy by 2.5 and 6.75
 percentage points relative to the constrained-decoding configuration each
 extends. Retrieval-augmented generation reduces accuracy by 24.5 percentage
-points, but in an open-catalogue setting that replaces the single oracle
-candidate with five retrieved candidates; the drop reflects candidate
-disambiguation (retrieval recall@5 is 97.2\%) rather than retrieval overhead on
-a fixed task. Format-aligned LoRA
-fine-tuning reaches 76.75\%, and 74.25\% after subsequent quantization at the
-same memory footprint.
+points in an open-catalogue setting that replaces the single oracle candidate
+with five retrieved candidates. The drop reflects candidate disambiguation
+(retrieval recall@5 is 97.2\%), not retrieval overhead on a fixed task.
+Format-aligned LoRA fine-tuning reaches 76.75\%, and 74.25\% after subsequent
+quantization at the same memory footprint.
 
 The strongest no-training result is schema-enriched constrained decoding
 (CD+schema), which adds parameter descriptions, enumeration values, and default
 values to the argument extraction prompt while keeping the FSM structural
-constraint unchanged. CD+schema reaches 89.0\% ($+$16.25~pp over plain CD,
+constraint unchanged. CD+schema reaches 89.00\% ($+$16.25~pp over plain CD,
 McNemar $p < 0.00001$), placing the 7B model inside the frontier range on the
-single-call, single-candidate BFCL category without modifying model weights. The
-unoptimized failure mode is therefore primarily a format-compliance gap: 394 of
-400 baseline failures are malformed outputs rather than wrong answers.
-Constrained decoding removes that gap structurally, and schema enrichment
-recovers much of the remaining loss by restoring schema information discarded by
-the generic prompt. The result does not imply end-to-end agent reliability.
-Accuracy falls to 4.3\% on $\tau$-bench retail, and BFCL \texttt{parallel}
-scores 0\% under the initial single-call schema, though extending the schema to
-joint multi-call generation lifts it to 79\% at 7B. The persistent
-$\tau$-bench gap shows that multi-turn planning, unlike multi-call emission,
-requires more than the optimization techniques studied here.
+single-call, single-candidate BFCL category without modifying model weights.
+These results show that the unoptimized failure mode is primarily a
+format-compliance gap: 394 of 400 baseline failures are malformed outputs rather
+than wrong answers. Constrained decoding removes that gap structurally, and
+schema enrichment recovers much of the remaining loss by restoring schema
+information discarded by the generic prompt. The result does not imply
+end-to-end agent reliability. Accuracy falls to 4.35\% on $\tau$-bench retail,
+and BFCL \texttt{parallel} scores 0\% under the initial single-call schema,
+though extending the schema to joint multi-call generation lifts it to 79\% at
+7B. The persistent $\tau$-bench gap shows that multi-turn planning, unlike
+multi-call emission, requires more than the optimization techniques studied
+here.

@@ -62,12 +62,13 @@ resolves most of these cases. Config~CD+schema isolates the information-loss
 component directly: enriching the constrained prompt with parameter
 descriptions, enumeration values, and defaults raises accuracy from
 72.75\% to 89.00\% ($+$16.25~pp, McNemar $p < 0.00001$;
-Section~\ref{sec:cd-schema}), confirming that the majority of the residual
-gap after plain CD is attributable to missing schema detail rather than to
+Section~\ref{sec:cd-schema}), showing that the majority of the residual
+gap after plain CD is consistent with missing schema detail rather than only
 the model's learned value priors. The remaining 7.00~pp gap between
-CD+schema (89.00\%) and B-template (96.00\%) reflects the prompt-format
-advantage of the native template and residual value-convention scorer
-artifacts; it is not dominated by information loss.
+CD+schema (89.00\%) and B-template (96.00\%) bounds the effect of factors
+not isolated by CD+schema. Because B-template also changes the prompt format,
+tool-call delimiters, and parser target, the gap should be read as a residual
+integration difference rather than as a single identified cause.
 
 \subsection{Effect of Model Scale on CD Performance}
 
@@ -143,8 +144,8 @@ the parameter descriptions, type constraints, and enumerated values that the
 standard pipeline omits from its prompts. Config~CD+schema achieves 89.00\%
 ($+16.25$~pp over plain CD, McNemar $p < 0.00001$;
 Section~\ref{sec:cd-schema}), the highest accuracy of any configuration in
-the evaluation and the only result to enter the lower frontier range on BFCL~v4 Python Simple AST without
-modifying model weights. No training, no additional generated tokens, and no
+the evaluation and the only constrained result to fall within the lower BFCL~v4
+Python Simple AST leaderboard band without modifying model weights. No training, no additional generated tokens, and no
 latency overhead are introduced: the measured per-call latency for CD+schema
 (0.704~s mean) falls within the same range as plain CD and does not exceed
 the unconstrained baseline. The implementation cost is maintaining enriched
@@ -338,12 +339,13 @@ rather than an intrinsic capability deficit. The information-loss
 component of this gap is now quantified directly by Config~CD+schema
 (Section~\ref{sec:cd-schema}): enriching the constrained prompt
 with the full schema detail raises accuracy from 72.75\% to 89.00\%
-($+$16.25~pp, McNemar $p < 0.00001$), demonstrating that most of the
-residual after plain CD is attributable to the absent descriptions,
-enumerations, and defaults rather than to the model's learned value
+($+$16.25~pp, McNemar $p < 0.00001$), showing that most of the
+residual after plain CD is consistent with absent descriptions,
+enumerations, and defaults rather than only with the model's learned value
 priors. The remaining 7.00~pp gap between CD+schema and B-template
-is attributable to the native template's prompt-format advantage and
-residual value-convention scorer artifacts.
+is a residual integration gap: B-template also changes prompt format,
+tool-call delimiters, and parser target, so this control bounds the gap but
+does not isolate a single cause.
 
 \textbf{$\tau$-bench user simulator.}
 The user simulator is the agent model itself (Qwen~2.5 7B), whereas

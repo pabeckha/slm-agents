@@ -62,9 +62,19 @@ entirely in argument extraction: wrong numeric precision (e.g., 9.8 vs.\
 9.81), string format mismatches (e.g., ``kilometers/hour'' vs.\ ``km/h''),
 and incorrect optional parameter defaults.
 
-The B-template control also frames the residual failure analysis in the remainder of this chapter: it characterises the model-agnostic pipeline rather than the model's ceiling. Unlike the pipeline's prompts, the native template carries the full unmodified function schemas, and the failure categories that survive constrained decoding correspond closely to the kinds of information found in parameter descriptions, default values, and enumerations, which the pipeline omits (Chapter~\ref{ch:methodology}). For a single frozen Qwen deployment, the native template is therefore the stronger local baseline. The constrained pipeline is valuable when the goal is model-agnostic structural guarantees across heterogeneous models and schemas.
+The B-template control also frames the residual failure analysis in the
+remainder of this chapter. It characterises the model-agnostic pipeline rather
+than the model's ceiling. Unlike the pipeline's prompts, the native template
+carries the full unmodified function schemas. The failure categories that
+survive constrained decoding correspond closely to information found in
+parameter descriptions, default values, and enumerations, which the pipeline
+omits (Chapter~\ref{ch:methodology}).
 
-Few-shot prompting (PE) also uses constrained decoding and decreases accuracy by 2.5 percentage points relative to CD alone. The three few-shot examples, targeting known failure modes, did not transfer across function domains. This negative result indicates that three in-context examples cannot substitute for the schema detail absent from the pipeline's prompts, a point tested directly by CD+schema in Section~\ref{sec:cd-schema}.
+For a single frozen Qwen deployment, the native template is therefore the
+stronger local baseline. The constrained pipeline is valuable when the goal is a
+model-agnostic structural guarantee across heterogeneous models and schemas.
+
+Few-shot prompting (PE) also uses constrained decoding and decreases accuracy by 2.5 percentage points relative to CD alone. The three examples target known failure modes, but they do not transfer across function domains. This negative result indicates that three in-context examples cannot substitute for the schema detail absent from the pipeline's prompts. Section~\ref{sec:cd-schema} tests that point directly with CD+schema.
 
 \section{No-Training Methods}
 \label{sec:no-training}
@@ -672,7 +682,7 @@ CD+FT-aligned   & CD + format-aligned LoRA           & 76.75\% & \dpos{$+4.00$~p
 \section{Comparison with Frontier Models}
 \label{sec:frontier-comparison}
 
-Table~\ref{tab:frontier-comparison} compares the Qwen~2.5 7B-Instruct results against frontier models, using official scores from the BFCL~v4 leaderboard\footnote{\url{https://gorilla.cs.berkeley.edu/leaderboard.html}, accessed 2026-06-04 and re-verified 2026-06-10 (the page reports its data as last updated 2026-04-12). The quoted scores are the Python sub-category of the Non-Live Simple AST group (400 test cases, identical in composition to the \texttt{simple\_python} category evaluated here), taken from the leaderboard's published data file. The ``Simple'' column displayed on the leaderboard page is the unweighted mean over the Python (400 cases), Java (100 cases), and JavaScript (50 cases) sub-categories and is therefore not comparable to a Python-only evaluation.} for the Python Simple AST category.
+Table~\ref{tab:frontier-comparison} compares the Qwen~2.5 7B-Instruct results against frontier models on BFCL~v4 Python Simple AST. The frontier scores are official leaderboard scores rather than local re-runs.\footnote{\url{https://gorilla.cs.berkeley.edu/leaderboard.html}, accessed 2026-06-04 and re-verified 2026-06-10 (the page reports its data as last updated 2026-04-12). The quoted scores are the Python sub-category of the Non-Live Simple AST group (400 test cases, identical in composition to the \texttt{simple\_python} category evaluated here), taken from the leaderboard's published data file. The ``Simple'' column displayed on the leaderboard page is the unweighted mean over the Python (400 cases), Java (100 cases), and JavaScript (50 cases) sub-categories and is therefore not comparable to a Python-only evaluation.}
 
 \begin{table}[ht]
 \centering
@@ -707,7 +717,8 @@ Qwen 2.5 7B (raw)           & SLM (ours) & 1.50\%  \\
          (this work) vs.\ frontier models from the official leaderboard
          (Python Simple AST category). The native-template control
          (B-template, 96.00\%) lies within the flagship frontier band;
-         CD+schema (89.00\%) enters the lower frontier range on Python Simple AST above GPT-5-mini.}
+         CD+schema (89.00\%) falls within the lower BFCL Python Simple AST
+         leaderboard band.}
 \label{fig:frontier-comparison}
 \end{figure}
 
@@ -721,17 +732,20 @@ revision~\cite{chen2025toleap}: the model itself performs at frontier
 level when prompted through its native template. Plain CD (72.75\%) and
 CD+FT-aligned (76.75\%) sit below the frontier range on this category;
 CD+schema (89.00\%), which adds full parameter schema detail to the
-constrained prompt, enters the lower frontier range on BFCL~v4 Python Simple
-AST, sitting 10.25~pp above GPT-5-mini and 2.00~pp below GPT-4.1.
+constrained prompt, falls within the lower BFCL~v4 Python Simple AST
+leaderboard band, between GPT-5-mini (78.75\%) and GPT-4.1 (91.00\%).
 The gap to the best frontier model (Claude Sonnet~4.5 at 97.75\%) is 8.75~pp.
 
 Constrained decoding closes the integration gap, not the frontier gap, for
 a prompt that omits schema detail. Restoring that detail (parameter
 descriptions, enumeration values, and defaults, which the native template and
 frontier APIs provide) closes most of the residual gap without training.
-The comparison with B-template bounds the information loss at 7.00~pp above
-CD+schema, a gap attributable to the remaining value-convention artifacts and
-the native template's prompt-format advantage.
+The comparison with B-template bounds the remaining gap at 7.00~pp above
+CD+schema. Because B-template changes prompt format, schema completeness,
+tool-call delimiters, and parser target together, this control does not by
+itself identify which factor accounts for the gap; the remaining difference is
+consistent with a combination of native-template prompt-format advantage and
+residual value-convention scorer artifacts.
 
 A note on statistical precision: with $n=400$ binary test cases, the 95\%
 Wilson confidence interval is approximately $\pm$4.1--4.4~pp for accuracy
@@ -753,7 +767,7 @@ Cross-harness comparisons in this section therefore remain indicative.
 The internally consistent comparisons are those between configurations
 evaluated under the same local harness.
 
-The frontier comparison also requires scope interpretation. The \texttt{simple\_python} category is the least demanding BFCL scenario: single-turn, single-function calls with no selection ambiguity (one candidate function per test case). Both constrained decoding and frontier models' native tool-calling APIs guarantee valid JSON and valid function names, levelling the playing field on format compliance. The differentiator is argument value accuracy, where flagship frontier models hold a 14--21~pp advantage over the best constrained configuration, while the same 7B model under its native template is competitive with them. The phrase ``frontier range'' in this section therefore refers only to BFCL~v4 Python Simple AST, not to general agentic performance.
+The frontier comparison also requires careful scope. The \texttt{simple\_python} category is the least demanding BFCL scenario: each test case is single-turn, uses one function call, and provides one candidate function. Both constrained decoding and frontier models' native tool-calling APIs guarantee valid JSON and valid function names, so format compliance is largely equalized. The differentiator is argument value accuracy. On that dimension, flagship frontier models hold a 14--21~pp advantage over the best constrained configuration, while the same 7B model under its native template is competitive with them. The phrase ``frontier range'' in this section therefore refers only to BFCL~v4 Python Simple AST, not to general agentic performance.
 
 Frontier models distinguish themselves on harder tasks. Their BFCL overall
 scores, which weight multi-turn (30\%) and agentic tasks (40\%), remain
@@ -794,7 +808,7 @@ whereas the reference $\tau$-bench configuration drives the simulator
 with a frontier model. A 7B simulator can misstate or omit task
 details, so part of the observed failure rate may originate in the
 simulator rather than the agent. The absolute pass rate should
-therefore be read as a conservative estimate, and comparisons to
+therefore be read as a non-standard estimate, and comparisons to
 published $\tau$-bench pass rates obtained under stronger simulators
 are not like-for-like (Section~\ref{sec:threats-validity}).
 
@@ -1098,9 +1112,9 @@ achieves 72.75\%. The CD gain over Base also increases with model size, from
 48.0~pp at 0.5B to 71.25~pp at 7B. Larger models produce fewer argument value
 errors once format compliance is enforced, and a larger fraction of their
 latent capability is unlocked by the constraint mechanism. No size reaches
-the frontier range on this category (78.75\%--97.75\%); the 7B model under
-CD comes within 6.00~pp of the weakest frontier entry (GPT-5-mini,
-78.75\%).
+the BFCL Python Simple AST leaderboard band on this category
+(78.75\%--97.75\%); the 7B model under CD comes within 6.00~pp of the
+weakest listed frontier entry (GPT-5-mini, 78.75\%).
 
 AWQ INT4 quantization applied to CD produces a size-dependent accuracy cost.
 At 0.5B the penalty is 3.75~pp (51.50\% $\to$ 47.75\%); at 1.5B it falls to
