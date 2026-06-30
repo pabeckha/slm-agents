@@ -127,12 +127,12 @@ an upper-bound local-tier result for single-call, schema-constrained tool
 calling on consumer hardware. It is not a claim of end-to-end cascade
 viability: the semantic router the cascade requires is not implemented, and
 constrained decoding removes the structural validity signal that would otherwise
-drive routing, so the reported traffic fractions are upper bounds
-(Section~\ref{sec:practical-implications}). Config~CD+schema achieves
-89.00\% at 7B (Section~\ref{sec:cd-schema}), which is 10.25~pp above
-GPT-5-mini (78.75\%) and 2.00~pp below GPT-4.1 (91.00\%) on BFCL~v4 Python
-Simple AST. It is the first constrained configuration in this evaluation to
-enter the lower frontier range on that category while retaining structural
+drive routing, so the reported traffic fractions are upper bounds under an
+ideal semantic router (Section~\ref{sec:practical-implications}).
+Config~CD+schema achieves 89.00\% at 7B (Section~\ref{sec:cd-schema}), which
+falls within the lower BFCL~v4 Python Simple AST leaderboard band between
+GPT-5-mini (78.75\%) and GPT-4.1 (91.00\%). It is the first constrained
+configuration in this evaluation to reach that band while retaining structural
 validity guarantees and requiring no model-weight updates. This comparison is
 indicative because frontier scores are taken from the public leaderboard rather
 than re-run under the local harness (Section~\ref{sec:frontier-comparison}).
@@ -147,8 +147,9 @@ native tool-calling template is the stronger local baseline. The constrained
 pipeline is justified when model-agnostic structural guarantees are required
 across heterogeneous models and schemas.
 
-Against the cascade criterion (a single consumer GPU and a local tier handling
-$p \geq 0.70$ of single-call traffic), five configurations qualify.
+Against the cascade proxy criterion (a single consumer GPU and a local tier
+handling $p \geq 0.70$ of single-call traffic under an ideal semantic router),
+five configurations meet the proxy threshold.
 CD+schema achieves 89.00\% at full bfloat16 precision (14.25~GiB), fitting on a
 consumer NVIDIA RTX~4090 (24~GiB) alongside substantial key-value cache
 capacity. CD+Q achieves 72.25\% on 5.20~GiB with no training required.
@@ -260,16 +261,18 @@ The $\tau$-bench airline domain offers a second evaluation environment that
 would indicate whether the retail result generalises across task structures
 and tool catalog sizes.
 
-Several extensions would complete the single-call evaluation grid. Config~CD+Q+FT-aligned is evaluated at 7B only; extending it to 0.5B, 1.5B, and 3B would show whether the 2.5~pp quantization penalty on the fine-tuned model increases at smaller scales. The no-guided isolation variants are also reported only at 7B; running them across the size range would test whether the unguided floor and the ordering of prompt-level techniques remain stable as capacity decreases.
+Several extensions would complete the single-call evaluation grid. Config~CD+Q+FT-aligned is evaluated at 7B only. Extending it to 0.5B, 1.5B, and 3B would show whether the 2.5~pp quantization penalty on the fine-tuned model increases at smaller scales. The no-guided isolation variants are also reported only at 7B. Running them across the size range would test whether the unguided floor and the ordering of prompt-level techniques remain stable as capacity decreases.
 
-A smaller controlled ablation would also sharpen the central positive result. Config~CD+schema injects three kinds of information at once: natural-language parameter descriptions, enumerated value constraints, and default values. The 16.25~pp gain over plain CD is therefore an aggregate over all three. Adding them one at a time, on the same 400-case split and with no new model runs beyond re-prompting, would attribute the gain to its components and indicate which class of schema metadata is worth the cost of authoring for a target tool catalogue.
+A smaller controlled ablation would also sharpen the central positive result. Config~CD+schema injects three kinds of information at once: natural-language parameter descriptions, enumerated value constraints, and default values. The 16.25~pp gain over plain CD is therefore an aggregate effect. Adding these metadata types one at a time, on the same 400-case split and with no new model runs beyond re-prompting, would attribute the gain to its components. It would also indicate which class of schema metadata is worth authoring for a target tool catalogue.
 
 RAG-based tool selection requires a stronger disambiguation signal than top-5 retrieval provides. The retrieval component itself is not the bottleneck: recall@5 is 97.2\% in Config~CD+Q+RAG. The failure occurs when the model must choose among semantically similar retrieved candidates. Future work should therefore target the selection step directly, for example with a smaller $k$, a learned re-ranker, or fine-tuning on tool-selection examples from the target catalogue.
 
-The harder BFCL categories point to a second direction. The joint multi-call schema lifts \texttt{parallel} from a structural 0.0\% under the original single-extraction design to 79.0\% at 7B, confirming that the original limitation was the output schema. The remaining gap on \texttt{parallel\_multiple}, where format-aligned fine-tuning lowers accuracy relative to plain CD, suggests that future training data should target simultaneous multi-call generation rather than JSON format alignment alone.
+The harder BFCL categories point to a second direction. The joint multi-call schema lifts \texttt{parallel} from a structural 0.0\% under the original single-extraction design to 79.0\% at 7B. This confirms that the original limitation was the output schema. The remaining gap on \texttt{parallel\_multiple}, where format-aligned fine-tuning lowers accuracy relative to plain CD, suggests that future training data should target simultaneous multi-call generation rather than JSON format alignment alone.
 
 Training data alignment remains the binding constraint on LoRA fine-tuning. A production fine-tuning run should generate examples from the target deployment's own tool schemas and argument conventions, rather than relying only on a general-purpose corpus such as xlam. A systematic comparison of synthetic, domain-matched, and human-curated examples would show how much of the residual semantic error can be closed by data quality alone.
 
-Finally, the cross-family evidence in this thesis is a targeted external-validity check rather than a full replication. Config~CD and CD+FT-aligned are evaluated across contrast checkpoints, but quantized and agentic configurations remain concentrated on Qwen~2.5. Extending AWQ INT4, quantized fine-tuned variants, and $\tau$-bench evaluations across the same contrast families would test whether the deployment conclusions hold beyond the primary model family.
+Finally, the cross-family evidence in this thesis is a targeted external-validity check rather than a full replication. Config~CD and CD+FT-aligned are evaluated across contrast checkpoints, but the quantized and agentic configurations remain concentrated on Qwen~2.5. Extending AWQ INT4, quantized fine-tuned variants, and $\tau$-bench evaluations across the same contrast families would test whether the deployment conclusions hold beyond the primary model family.
 
-Beyond the specific extensions above, the ordering of results points to a broader question for how tool-calling agents are built. The single most effective intervention measured here is not a larger model, more training data, or an extra reasoning step, but the restoration of schema detail that was already present in the tool definitions and had simply been dropped from the prompt. A no-training, prompt-level change outperformed format-aligned fine-tuning at a fraction of the engineering cost. This suggests that effort spent making tool interfaces machine-legible (complete parameter descriptions, explicit enumerations, and stated defaults) may currently return more reliability per unit of work than further training of the model that consumes them. As tool ecosystems converge on shared interface standards, the schema becomes a shared leverage point that every model behind it inherits, whereas a fine-tuning gain is, as the xLAM result shows, specific to one model and one output convention. The evidence here is from a single benchmark category and should not be over-generalised, but it is at least suggestive that the field has invested heavily in adapting models to tools while under-investing in making tools describe themselves well to models.
+Beyond these specific extensions, the ordering of results points to a broader question about how tool-calling agents should be built. The most effective intervention measured here is not a larger model, more training data, or an extra reasoning step. It is the restoration of schema detail that was already present in the tool definitions but had been dropped from the prompt. A no-training, prompt-level change outperformed format-aligned fine-tuning at a fraction of the engineering cost.
+
+This suggests that making tool interfaces machine-legible may return more reliability per unit of work than further training of the model that consumes them. Complete parameter descriptions, explicit enumerations, and stated defaults are useful because every model behind the schema can inherit them. A fine-tuning gain, as the xLAM result shows, is specific to one model and one output convention. The evidence here comes from a single benchmark category and should not be over-generalised. Still, it suggests that the field may have invested more effort in adapting models to tools than in making tools describe themselves well to models.

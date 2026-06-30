@@ -2,11 +2,13 @@
 
 \section{Motivation}
 
-Large language models (LLMs) have become the dominant backbone for agentic systems. These systems reason over user requests, decompose tasks, and call external tools to produce structured outputs. Frontier models such as GPT and Claude perform strongly on these tasks, but they also introduce high inference costs, external API dependencies, added latency, and limited control over data privacy. In many deployment settings, these constraints are not secondary concerns; they determine whether the system can be used at all.
+Large language models (LLMs) have become the dominant backbone for agentic systems. These systems reason over user requests, decompose tasks, and call external tools to produce structured outputs. Frontier models such as GPT and Claude perform strongly on these tasks. However, they also introduce high inference costs, external API dependencies, added latency, and limited control over data privacy. In many deployment settings, these constraints determine whether the system can be used at all.
 
-The dominant constraint depends on the setting. In on-device and edge applications, such as a phone assistant or an in-vehicle agent, there may be no reliable network path to an external API, and inference must fit within a fixed memory and power budget. In regulated domains such as healthcare, legal services, and finance, transmitting user data to a third-party API may be prohibited regardless of cost. In high-throughput backend automation, where a single task can issue many tool calls and request volume can reach millions per day, metered API calls dominate the operating budget. These settings share a common structure: many individual tool calls are mechanically simple. The model must emit one valid tool call with correct arguments given a tool schema and the current state, which is the schema- and API-constrained regime where SLMs are most competitive~\cite{sharma2025slmagents}. The practical question behind this thesis is whether a small local model can handle enough of these calls reliably, leaving only the hard cases for a frontier model.
+The dominant constraint depends on the setting. In on-device and edge applications, such as a phone assistant or an in-vehicle agent, there may be no reliable network path to an external API. Inference must also fit within a fixed memory and power budget. In regulated domains such as healthcare, legal services, and finance, transmitting user data to a third-party API may be prohibited regardless of cost. In high-throughput backend automation, where a single task can issue many tool calls and request volume can reach millions per day, metered API calls dominate the operating budget.
 
-Small language models (SLMs), commonly taken to span roughly 1 to 12 billion parameters~\cite{sharma2025slmagents}, offer a possible answer. Recent open-weight models such as Qwen 2.5~\cite{qwen2024qwen25}, Llama 3.2~\cite{metaai2024llama32}, and Phi-4~\cite{abdin2024phi} can run on consumer-grade hardware, support local deployment, and sharply reduce per-query costs. Out of the box, however, SLMs struggle with the capabilities that agentic systems require. They can produce malformed structured outputs, select incorrect tools, hallucinate function arguments, and fail at multi-step reasoning. These shortcomings have led to a widespread assumption that reliable agentic behavior requires large-scale models.
+These settings share a useful structure: many individual tool calls are mechanically simple. The model must emit one valid tool call with correct arguments given a tool schema and the current state. This is the schema- and API-constrained regime where SLMs are most competitive~\cite{sharma2025slmagents}. The practical question behind this thesis is therefore whether a small local model can handle enough of these calls reliably, leaving only the hard cases for a frontier model.
+
+Small language models (SLMs), commonly taken to span roughly 1 to 12 billion parameters~\cite{sharma2025slmagents}, offer a possible answer. Recent open-weight models such as Qwen 2.5~\cite{qwen2024qwen25}, Llama 3.2~\cite{metaai2024llama32}, and Phi-4~\cite{abdin2024phi} can run on consumer-grade hardware, support local deployment, and sharply reduce per-query costs. Out of the box, however, SLMs still struggle with capabilities that agentic systems require. They can produce malformed structured outputs, select incorrect tools, hallucinate function arguments, and fail at multi-step reasoning. These shortcomings have led to a widespread assumption that reliable agentic behavior requires large-scale models.
 
 The failure mode is concrete, and the aggregate figures that follow
 are measured on BFCL~v4 \texttt{simple\_python}. Consider a user query such as
@@ -66,12 +68,12 @@ deferred to Chapters~\ref{ch:results} and~\ref{ch:discussion}.
 
 This thesis investigates one part of that assumption: whether reliable
 single-call tool use requires a large model, or whether much of the observed
-failure comes from insufficient structure around generation. It evaluates four
-Qwen~2.5 Instruct sizes (0.5B, 1.5B, 3B, and 7B) on BFCL~v4
-\texttt{simple\_python}, using a main ladder of optimization configurations and
-additional isolation variants. The evaluation asks how much of the failure rate
-is caused by output format, how much remains as semantic argument error, and
-which interventions improve each part.
+failure comes from insufficient structure around generation. The evaluation uses
+four Qwen~2.5 Instruct sizes (0.5B, 1.5B, 3B, and 7B) on BFCL~v4
+\texttt{simple\_python}, with a main ladder of optimization configurations and
+additional isolation variants. It asks how much of the failure rate is caused by
+output format, how much remains as semantic argument error, and which
+interventions improve each part.
 
 The main result is that constrained decoding removes format-compliance failures
 at every model size and makes every output parseable under the required schema.
@@ -104,22 +106,22 @@ that the model's learned priors do not match. This distinction, between failures
 that constraints can fix and failures that require better semantic guidance or
 training, organises the evaluation.
 
-The practical deployment context motivating this investigation is the
-cascade architecture: a two-tier system in which a locally deployed
-small model handles routine requests, while a frontier model accessed
-through an external API handles the remainder. This pattern is
-economically motivated. Frontier model APIs are charged per token; a
-locally deployed 7B model on a single consumer GPU incurs a fixed
-hardware cost independent of query volume. If the small model handles
-75\% of requests correctly and a router can identify the remaining cases,
-75\% of per-query API calls can be avoided. The central challenge is extending
-the fraction of requests that the small model can handle reliably and then
-routing the residual semantic failures. This thesis evaluates that local SLM
-tier in isolation for tool-calling tasks; it does not implement the cascade
-router or escalation mechanism. BFCL accuracy is therefore used as an
-upper-bound proxy for the fraction of single-call requests the SLM tier could
-handle, providing a comparable basis for estimating cascade economics across
-configurations rather than a measured deployment saving.
+The practical deployment context is a cascade architecture: a two-tier system in
+which a locally deployed small model handles routine requests, while a frontier
+model accessed through an external API handles the remainder. This pattern is
+economically motivated. Frontier model APIs are charged per token, whereas a
+locally deployed 7B model on a single consumer GPU incurs a fixed hardware cost
+independent of query volume. If the small model handles 75\% of requests
+correctly and a router can identify the remaining cases, 75\% of per-query API
+calls can be avoided.
+
+The central challenge is to increase the fraction of requests that the small
+model can handle reliably and then route the residual semantic failures. This
+thesis evaluates that local SLM tier in isolation for tool-calling tasks; it
+does not implement the cascade router or escalation mechanism. BFCL accuracy is
+therefore used as an upper-bound proxy for the fraction of single-call requests
+the SLM tier could handle. It provides a comparable basis for estimating
+cascade economics across configurations, not a measured deployment saving.
 
 The optimization techniques are ordered by implementation cost. Methods
 that require no modification to the model weights (constrained
@@ -164,12 +166,12 @@ that constrained decoding converts the problem from format compliance
 argument-value accuracy, which only format-aligned training can
 further improve.
 
-Whether these failures stem from fundamental limitations in model
-capacity or from insufficient constraints and guidance during
-generation determines the appropriate intervention. If the latter,
-a carefully chosen stack of optimization techniques should be
-sufficient to make small models competitive with frontier models on
-agentic benchmarks.
+The appropriate intervention depends on the source of failure. If failures come
+mainly from limited model capacity, then larger models or additional training
+are required. If they come mainly from insufficient constraints and missing
+schema guidance, inference-time structure may close much of the gap. This thesis
+therefore evaluates which part of the failure can be removed structurally and
+which part remains as semantic error.
 
 \section{Research Questions}
 
