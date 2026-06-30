@@ -296,30 +296,68 @@ failure modes observed during the constrained-decoding experiments and
 became a central result.
 
 \paragraph{Time plan.}
-% TODO (author): in your own words, note any timing deviations from the
-% Gantt chart above, e.g. whether the "Exploration of alternative
-% efficiency techniques" phase ran longer/shorter than planned, and how
-% report writing overlapped with experimentation.
+The experimental phases ran longer than the Gantt chart allowed. The main
+reason was that several of the efficiency techniques behaved differently
+from what the plan assumed, so the exploration phase needed extra analysis
+to understand why retrieval and chain-of-thought reduced accuracy and to
+develop the schema-enriched prompt that replaced them. HPC queue times also
+slowed the turnaround of individual experiments. As a consequence, report
+writing was more concentrated in the final weeks than the original plan
+intended, where writing was meant to overlap evenly with experimentation.
 
 \chapter{Self-Evaluation of the Project Process}
 \label{app:self-evaluation}
 
-% TODO (author): this chapter is a required, personal reflection on how
-% the project went. Write it in your own voice. Use the prompts below as
-% a guide and delete them once written. This is a solo thesis, so the
-% group-work and company prompts from the DTU hand-in guidelines do not
-% apply.
+This appendix is a personal reflection on how the project ran. It was a
+solo thesis, so the group-work and company questions in the DTU hand-in
+guidelines do not apply.
 
-% - Did you follow the time plan? Which phases ran to schedule and which
-%   slipped? What caused the slips (e.g. HPC queue times, .venv/uv sync
-%   races, baseline parser drift requiring reruns)?
-%
-% - What problems did you encounter during the project, and how did you
-%   resolve them? (e.g. shared-NFS environment corruption, stale
-%   aggregate score files vs. per-run source of truth, no-guided baseline
-%   parser sensitivity inverting headline numbers.)
-%
-% - What would you do differently with hindsight? (e.g. lock the parser
-%   definition earlier, pre-sync the environment before parallel jobs.)
-%
-% - What did you learn from the process, beyond the technical results?
+\section{Following the time plan}
+
+I followed the early phases of the plan reasonably well, but the project
+diverged from the original schedule once the experiments started. The
+literature review and the baseline setup finished close to plan. The
+experimental phases then took longer than budgeted, for two reasons.
+First, several efficiency techniques did not behave as the plan assumed:
+retrieval-augmented generation and in-context chain-of-thought reduced
+accuracy instead of improving it, and the fine-tuned models collapsed
+without guided decoding. Understanding these results, rather than simply
+recording them, took additional time and led me to reallocate effort
+toward the schema-enriched prompt that became the main contribution.
+Second, queue times on the DTU HPC cluster slowed the turnaround of
+individual runs, so iterating on an experiment was rarely a same-day
+activity. Because of these delays, the writing was concentrated more
+heavily in the final weeks than I had planned.
+
+\section{Problems encountered}
+
+The two problems that affected the project most were infrastructure
+contention and unexpected model behavior. HPC queue and GPU waiting times
+made the experimental loop slower than expected and discouraged frequent
+small experiments. The more interesting difficulty was that several
+techniques I expected to help actually hurt accuracy. This was initially
+hard to trust and required careful checking of the evaluation setup before
+I accepted the results as genuine rather than as a bug in my pipeline. That
+checking was time-consuming but ultimately became one of the more valuable
+parts of the analysis, because it forced a precise account of why each
+technique helped or hurt.
+
+\section{What I would do differently}
+
+With hindsight, I would change three things. First, I would run a cheap,
+early probe of each efficiency technique before committing time to a full
+evaluation, since several techniques turned out not to help and that could
+have been seen sooner. Second, I would prepare the software environment
+more carefully before launching parallel HPC jobs, because contention on
+the shared environment caused avoidable failures and reruns. Third, I would
+start writing earlier and keep it closer to the experiments, so that the
+final weeks were spent revising rather than drafting.
+
+\section{What I learned}
+
+Beyond the technical results, the project taught me to treat a surprising
+result as something to explain rather than to discard, and to be careful
+about the difference between a real effect and an artifact of the
+evaluation setup. It also gave me a more realistic sense of how much of an
+empirical project is spent on infrastructure, iteration, and verification
+rather than on the final experiments themselves.
